@@ -1,23 +1,25 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom'; // For navigation
+import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, Activity, AlertCircle, Clock, 
   ArrowRight, FileText, Search 
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext'; // 1. Import useAuth
 
 const PatientDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth(); // 2. Get user data
 
   // Mock Data (Summary data only)
   const nextAppt = {
     hasAppointment: true,
-    doctor: "Dr. Thilina Weerasinghe",
+    doctor: "Dr.nayomi Perera",
     hospital: "Ruhuna Hospital",
     time: "10:30 AM",
     date: "Today, Oct 25",
     myNumber: 15,
-    currentServing: 12, // The "Live" feature
-    status: "ON_TIME" // or "DELAYED"
+    currentServing: 12,
+    status: "ON_TIME"
   };
 
   const pendingTasks = [
@@ -31,12 +33,17 @@ const PatientDashboard = () => {
       {/* 1. Header with Personalization */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
+          {/* 3. Use user.name here */}
+          <h1 className="text-3xl font-bold text-slate-800">
+            Hello, {user?.name || "Patient"}! 👋
+          </h1>
           <p className="text-slate-500 mt-1">Overview of your healthcare status</p>
         </div>
         <div className="text-right hidden sm:block">
           <p className="text-sm font-semibold text-slate-400">Current Date</p>
-          <p className="text-lg font-medium text-slate-700">Tuesday, Oct 25, 2024</p>
+          <p className="text-lg font-medium text-slate-700">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+          </p>
         </div>
       </div>
 
@@ -79,7 +86,7 @@ const PatientDashboard = () => {
                     </div>
                   </div>
                   <button 
-                    onClick={() => navigate('/appointments')}
+                    onClick={() => navigate('/patient/appointments')}
                     className="bg-white text-blue-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 transition"
                   >
                     View Ticket
@@ -121,7 +128,7 @@ const PatientDashboard = () => {
                       {task.amount && <p className="text-sm text-slate-500 mt-1">{task.amount}</p>}
                     </div>
                     <button 
-                      onClick={() => navigate(task.type === 'payment' ? '/payments' : '/reports')}
+                      onClick={() => navigate(task.type === 'payment' ? '/patient/payments' : '/patient/records')}
                       className="text-sm bg-orange-50 text-orange-700 px-3 py-1.5 rounded-md font-medium hover:bg-orange-100"
                     >
                       {task.type === 'payment' ? 'Pay Now' : 'View'}
@@ -144,39 +151,34 @@ const PatientDashboard = () => {
                 icon={<Search size={20} />} 
                 label="Find Doctor" 
                 color="text-purple-600 bg-purple-50"
-                onClick={() => navigate('/find-doctor')}
+                onClick={() => navigate('/patient/find-doctor')}
               />
               <QuickBtn 
                 icon={<FileText size={20} />} 
-                label="Upload Report" 
+                label="Reports" 
                 color="text-emerald-600 bg-emerald-50"
-                onClick={() => navigate('/reports')}
+                onClick={() => navigate('/patient/records')}
               />
               <QuickBtn 
                 icon={<Calendar size={20} />} 
-                label="History" 
+                label="Appointments" 
                 color="text-blue-600 bg-blue-50"
-                onClick={() => navigate('/history')}
+                onClick={() => navigate('/patient/appointments')}
               />
               <QuickBtn 
                 icon={<Activity size={20} />} 
-                label="My Vitals" 
+                label="Payments" 
                 color="text-pink-600 bg-pink-50"
-                onClick={() => navigate('/vitals')} // Optional future feature
+                onClick={() => navigate('/patient/payments')}
               />
             </div>
           </div>
 
-          {/* D. Recent Activity Feed (Mini version of History) */}
+          {/* D. Recent Activity Feed */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-slate-800">Recent Activity</h3>
-              <button 
-                onClick={() => navigate('/history')}
-                className="text-xs text-blue-600 hover:underline"
-              >
-                View All
-              </button>
+              <button className="text-xs text-blue-600 hover:underline">View All</button>
             </div>
             <div className="space-y-4">
               <ActivityItem 
@@ -199,7 +201,6 @@ const PatientDashboard = () => {
 };
 
 // --- Helper Components ---
-
 const QuickBtn = ({ icon, label, color, onClick }) => (
   <button 
     onClick={onClick}

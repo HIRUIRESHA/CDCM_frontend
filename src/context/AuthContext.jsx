@@ -10,16 +10,17 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
-    if (storedUser && token) {
+    if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
     setLoading(false);
   }, []);
 
-  // 2. Login Function (Connects to Backend)
+  // 2. Login Function
   const login = async (email, password) => {
     try {
-      const response = await fetch('http://localhost:8080/api/auth/login', {
+      // Make sure the port matches your backend (8082)
+      const response = await fetch('http://localhost:8082/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -28,43 +29,51 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (response.ok) {
-        // Normalize Role: Backend sends "ROLE_PATIENT", Frontend expects "PATIENT"
-        const cleanRole = data.role.replace('ROLE_', '');
-        
+        // --- FIX START ---
+        // Backend sends: { message, userId, role, name }
         const userData = {
-          id: data.id,
-          email: data.email,
-          role: cleanRole, 
-          name: data.email.split('@')[0] // Temporary name from email
+          id: data.userId, // Use 'userId' (from backend)
+          email: email,    // Use the function argument 'email'
+          role: data.role, 
+          // Use real name from backend, or fallback to email name if missing
+          name: data.name || email.split('@')[0] 
         };
+        // --- FIX END ---
 
         // Save to State & LocalStorage
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('token', data.token);
         
         return { success: true };
       } else {
-        return { success: false, message: "Invalid email or password" };
+        return { success: false, message: data.message || "Invalid email or password" };
       }
     } catch (error) {
       console.error("Login Error:", error);
-      return { success: false, message: "Server error. Is Backend running?" };
+      return { success: false, message: "Server error or Invalid JSON response" };
     }
   };
 
-  // 3. Register Function (Optional helper, mainly used in Register.jsx)
+  // 3. Register Function
   const register = async (endpoint, formData) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/auth/${endpoint}`, {
+      // Make sure the port matches your backend (8082)
+      const response = await fetch(`http://localhost:8082/api/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
       
       if (response.ok) return { success: true };
-      const errorText = await response.text();
-      return { success: false, message: errorText };
+      
+      // Handle text vs json error responses safely
+      const text = await response.text();
+      try {
+          const json = JSON.parse(text);
+          return { success: false, message: json.message };
+      } catch (e) {
+          return { success: false, message: text };
+      }
     } catch (error) {
       return { success: false, message: "Network error" };
     }
@@ -74,8 +83,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    window.location.href = '/login'; // Force redirect
+    window.location.href = '/login'; 
   };
 
   return (

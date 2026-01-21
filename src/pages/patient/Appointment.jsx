@@ -9,7 +9,7 @@ const PatientAppointments = () => {
   const appointments = [
     {
       id: 1,
-      doctor: "Dr. Thilina Weerasinghe",
+      doctor: "Dr. nayomi Perera",
       specialty: "Cardiologist",
       hospital: "Ruhuna Hospital",
       date: "Oct 25, 2024",

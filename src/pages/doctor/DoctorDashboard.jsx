@@ -1,7 +1,10 @@
 import React from 'react';
 import { Calendar, Users, Clock, Video, TrendingUp, CheckCircle, AlertCircle, MessageSquare } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext'; // 1. Import useAuth
 
 const DoctorDashboard = () => {
+  const { user } = useAuth(); // 2. Get user data
+
   const stats = [
     {
       icon: <Users size={24} className="text-white" />,
@@ -103,12 +106,17 @@ const DoctorDashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-[#0a1647]">Welcome back, Dr. Smith</h1>
+          {/* 3. Use user.name (Backend sends title + name for doctors) */}
+          <h1 className="text-3xl font-bold text-[#0a1647]">
+            Welcome back, {user?.name || "Doctor"}
+          </h1>
           <p className="text-gray-600 mt-1">Here's what's happening with your patients today</p>
         </div>
         <div className="bg-white px-6 py-2 rounded-xl shadow-md">
           <p className="text-sm text-gray-500">Today</p>
-          <p className="text-lg font-semibold text-[#0a1647]">Tuesday, Jan 20, 2026</p>
+          <p className="text-lg font-semibold text-[#0a1647]">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+          </p>
         </div>
       </div>
 
