@@ -4,11 +4,11 @@ import {
   Calendar, Activity, AlertCircle, Clock, 
   ArrowRight, FileText, Search 
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext'; // 1. Import useAuth
+import { useAuth } from '../../context/AuthContext'; // Import useAuth
 
 const PatientDashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth(); // 2. Get user data
+  const { user } = useAuth(); //  Get user data
 
   // Mock Data (Summary data only)
   const nextAppt = {
