@@ -2,13 +2,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, Activity, AlertCircle, Clock, 
-  ArrowRight, FileText, Search 
+  FileText, Search 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext'; // Import useAuth
 
 const PatientDashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth(); //  Get user data
+  const { user } = useAuth(); // Get user data
 
   // Mock Data (Summary data only)
   const nextAppt = {
@@ -33,7 +33,12 @@ const PatientDashboard = () => {
       {/* 1. Header with Personalization */}
       <div className="flex justify-between items-end">
         <div>
-          {/* 3. Use user.name here */}
+          {/* Welcome Message */}
+          <p className="text-lg font-bold text-slate-750 mb-1">
+            Welcome to Patient Dashboard
+          </p>
+
+          {/* Greeting */}
           <h1 className="text-3xl font-bold text-slate-800">
             Hello, {user?.name || "Patient"}! 👋
           </h1>
@@ -72,7 +77,7 @@ const PatientDashboard = () => {
                   </div>
                 </div>
 
-                {/* The "Live Queue" Feature */}
+                {/* Live Queue */}
                 <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="text-center">
@@ -97,7 +102,6 @@ const PatientDashboard = () => {
               <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
             </div>
           ) : (
-            // Fallback if no appointment today
             <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center text-center">
               <div className="bg-gray-50 p-4 rounded-full mb-4">
                 <Calendar className="text-gray-400" size={32} />
@@ -113,7 +117,7 @@ const PatientDashboard = () => {
             </div>
           )}
 
-          {/* B. Action Required (Pending Tasks) */}
+          {/* B. Action Required */}
           {pendingTasks.length > 0 && (
             <div>
               <h3 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
@@ -140,10 +144,8 @@ const PatientDashboard = () => {
           )}
         </div>
 
-        {/* RIGHT COLUMN - Quick Access (1/3 width) */}
+        {/* RIGHT COLUMN - Quick Access */}
         <div className="space-y-6">
-          
-          {/* C. Quick Shortcuts */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
             <h3 className="font-bold text-slate-800 mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -174,7 +176,7 @@ const PatientDashboard = () => {
             </div>
           </div>
 
-          {/* D. Recent Activity Feed */}
+          {/* Recent Activity */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-slate-800">Recent Activity</h3>
@@ -193,7 +195,6 @@ const PatientDashboard = () => {
               />
             </div>
           </div>
-
         </div>
       </div>
     </div>
