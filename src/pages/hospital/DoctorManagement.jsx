@@ -6,9 +6,9 @@ const DoctorManagement = () => {
   const [doctors] = useState([
     {
       id: 1,
-      name: "Dr. Thilina Weerasinghe",
+      name: "Dr. nayomi Perera",
       specialty: "Cardiologist",
-      email: "thilina@example.com",
+      email: "nayomi@example.com",
       phone: "071-6032143",
       status: "Active",
       patients: 124,

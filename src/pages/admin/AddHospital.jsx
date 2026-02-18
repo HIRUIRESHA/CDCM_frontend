@@ -24,7 +24,7 @@ const AddHospital = () => {
 
     try {
       // Replace with your actual Backend URL
-      const response = await fetch('http://localhost:8080/api/admin/add-hospital', {
+      const response = await fetch('http://localhost:8082/api/admin/register-hospital', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

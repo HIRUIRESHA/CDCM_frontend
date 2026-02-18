@@ -1,8 +1,12 @@
 import React from 'react';
 import { Users, Calendar, DollarSign, Star, AlertTriangle, Activity } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext'; // 1. Import useAuth
 
 const HospitalDashboard = () => {
+  const { user } = useAuth(); // 2. Get user data
+
   const stats = [
+    // ... keep your stats array exactly as it was ...
     {
       icon: <Users size={24} className="text-white" />,
       title: "Total Doctors",
@@ -41,7 +45,8 @@ const HospitalDashboard = () => {
   ];
 
   const updates = [
-    {
+    // ... keep your updates array exactly as it was ...
+     {
       icon: <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
         <Calendar size={20} className="text-white" />
       </div>,
@@ -76,7 +81,10 @@ const HospitalDashboard = () => {
       {/* Header */}
       <div className="flex justify-end mb-6">
         <div className="bg-white px-6 py-2 rounded-bl-3xl shadow-md">
-          <h1 className="text-2xl font-bold text-[#0a1647]">Asiri Hospital</h1>
+          {/* 3. Use user.name here with a fallback */}
+          <h1 className="text-2xl font-bold text-[#0a1647]">
+            {user?.name || "Hospital Dashboard"}
+          </h1>
         </div>
       </div>
 
@@ -85,7 +93,7 @@ const HospitalDashboard = () => {
         <div className="relative z-10">
           <h2 className="text-4xl font-bold text-[#0a1647] mb-3">Dashboard</h2>
           <p className="text-[#0a1647] text-lg max-w-2xl mb-4">
-            Welcome back! Here's what's happening at your hospital today. Monitor key metrics, 
+            Welcome back! Here's what's happening at <strong>{user?.name}</strong> today. Monitor key metrics, 
             track activities, and stay updated with real-time information.
           </p>
           <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">

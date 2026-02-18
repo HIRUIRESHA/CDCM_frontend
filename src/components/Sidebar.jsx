@@ -6,7 +6,7 @@ import {
 import { PlusCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-// === Helper Component for Sidebar Links ===
+// Helper Component for Sidebar Links
 const SidebarLink = ({ to, icon, label }) => {
     const location = useLocation();
     const isActive = location.pathname.startsWith(to);
@@ -25,7 +25,7 @@ const SidebarLink = ({ to, icon, label }) => {
     );
 };
 
-// === Common Sidebar Container ===
+//Common Sidebar Container 
 const SidebarContainer = ({ children, title, titleColor = "text-white" }) => {
     const { logout } = useAuth();
     return (
@@ -66,9 +66,8 @@ const SidebarContainer = ({ children, title, titleColor = "text-white" }) => {
 };
 
 
-// =========================================
-// 1. PATIENT SIDEBAR
-// =========================================
+// PATIENT SIDEBAR
+
 export const PatientSidebar = () => {
     return (
       <SidebarContainer title="HealthRoute" titleColor="text-white">
@@ -84,9 +83,9 @@ export const PatientSidebar = () => {
     );
 };
 
-// =========================================
-// 2. DOCTOR SIDEBAR
-// =========================================
+
+// DOCTOR SIDEBAR
+
 export const DoctorSidebar = () => {
     return (
       <SidebarContainer title="HealthRoute" titleColor="text-white">
@@ -101,9 +100,9 @@ export const DoctorSidebar = () => {
     );
 };
 
-// =========================================
-// 3. HOSPITAL SIDEBAR
-// =========================================
+
+// HOSPITAL SIDEBAR
+
 export const HospitalSidebar = () => {
     return (
          <SidebarContainer title="HealthRoute" titleColor="text-white">
