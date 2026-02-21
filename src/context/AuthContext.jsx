@@ -9,12 +9,17 @@ export const AuthProvider = ({ children }) => {
   // Check if user is already logged in (on page refresh)
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
     setLoading(false);
   }, []);
+
+  const updateUser = (newDetails) => {
+    const updatedUser = { ...user, ...newDetails };
+    setUser(updatedUser); // Updates the state instantly
+    localStorage.setItem('user', JSON.stringify(updatedUser)); // Saves it for page reloads
+  };
 
   // Login Function
   const login = async (email, password) => {
@@ -27,9 +32,10 @@ export const AuthProvider = ({ children }) => {
 
       const data = await response.json();
 
-      if (response.ok) {
+      // 👇 ADDED data.token CHECK HERE 👇
+      if (response.ok && data.token) { 
         
-        // Backend sends: { message, userId, role, name }
+        // Backend sends: { message, userId, role, name, token }
         const userData = {
           id: data.userId, 
           email: email,    
@@ -38,10 +44,13 @@ export const AuthProvider = ({ children }) => {
           name: data.name || email.split('@')[0] 
         };
         
-
         // Save to State & LocalStorage
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
+        
+        // 🚀 VERY IMPORTANT: SAVE THE TOKEN 🚀
+        localStorage.setItem('token', data.token); 
+        // ------------------------------------
         
         return { success: true };
       } else {
@@ -56,7 +65,6 @@ export const AuthProvider = ({ children }) => {
   //  Register Function
   const register = async (endpoint, formData) => {
     try {
-      
       const response = await fetch(`http://localhost:8082/api/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,11 +90,16 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    
+    // 🚀 VERY IMPORTANT: CLEAR THE TOKEN 🚀
+    localStorage.removeItem('token'); 
+    // ------------------------------------
+    
     window.location.href = '/login'; 
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, register, loading, updateUser }}>
       {!loading && children}
     </AuthContext.Provider>
   );
