@@ -4,13 +4,14 @@ import { AuthProvider } from './context/AuthContext';
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
-import PublicLayout from './layouts/PublicLayout'; // <--- Import the new layout
+import PublicLayout from './layouts/PublicLayout';
 
 // Public Pages
 import Home from "./pages/public/Home";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import FindDoctor from "./pages/public/FindDoctor";
+import Profile from "./pages/Profile"; // <--- 1. IMPORT THIS
 
 // Private Dashboard Pages
 import PatientDashboard from './pages/patient/PatientDashboard';
@@ -31,7 +32,7 @@ function App() {
       <BrowserRouter>
         <Routes>
 
-          {/* GROUP 1: PUBLIC ROUTES (Uses Navbar & Footer) */}
+          {/* GROUP 1: PUBLIC ROUTES */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
@@ -40,9 +41,12 @@ function App() {
           </Route>
 
 
-          {/* GROUP 2: PROTECTED DASHBOARD ROUTES (Uses Sidebar) */}
+          {/* GROUP 2: PROTECTED DASHBOARD ROUTES */}
           <Route element={<DashboardLayout />}>
             
+            {/* 2. ADD PROFILE ROUTE HERE */}
+            <Route path="/profile" element={<Profile />} />
+
             {/* PATIENT */}
             <Route path="patient">
               <Route path="dashboard" element={<PatientDashboard />} />
@@ -78,7 +82,7 @@ function App() {
 
           </Route>
 
-          {/* Catch-all: Redirect unknown links to Home */}
+          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" />} />
 
         </Routes>
