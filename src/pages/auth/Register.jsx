@@ -84,9 +84,13 @@ const Register = () => {
     const result = await register(endpoint, payload);
 
     if (result.success) {
-      alert("Registration successful! Please login.");
-      navigate('/login');
-    } else {
+    navigate('/verify-email', {
+      state: {
+        email: formData.email,
+        role: role === 'patient' ? 'PATIENT' : 'DOCTOR'
+      }
+    });
+  } else {
       setError(result.message || "Registration failed");
       setIsSubmitting(false);
     }
