@@ -10,6 +10,7 @@ import PublicLayout from './layouts/PublicLayout';
 import Home from "./pages/public/Home";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 import FindDoctor from "./pages/public/FindDoctor";
 import Profile from "./pages/Profile"; // <--- 1. IMPORT THIS
 
@@ -54,6 +55,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/find-doctor" element={<FindDoctor />} />
              <Route path="/forgot-password" element={<ForgotPassword />} />
              <Route path="/reset-password/:token" element={<ResetPassword />} />
