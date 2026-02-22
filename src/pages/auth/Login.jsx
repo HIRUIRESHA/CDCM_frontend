@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [showPassword, setShowPassword] = useState(false);
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -23,8 +24,6 @@ const Login = () => {
     const result = await login(formData.email, formData.password);
 
     if (result.success) {
-      // Redirect based on role is handled by the user state change, 
-      // but we can force navigation here for better UX
       const user = JSON.parse(localStorage.getItem('user'));
       if (user.role === 'ADMIN') navigate('/admin/dashboard');
       else if (user.role === 'HOSPITAL') navigate('/hospital/dashboard');
@@ -40,6 +39,7 @@ const Login = () => {
     <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 px-4">
       <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 w-full max-w-md">
         
+        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex p-3 rounded-full bg-blue-50 text-blue-600 mb-4">
             <LogIn size={24} />
@@ -48,6 +48,7 @@ const Login = () => {
           <p className="text-gray-500 text-sm mt-2">Sign in to access your dashboard</p>
         </div>
 
+        {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 text-red-700 text-sm rounded-lg flex items-center gap-2">
             <AlertCircle size={16} />
@@ -55,7 +56,10 @@ const Login = () => {
           </div>
         )}
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
+
+          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
             <div className="relative">
@@ -72,22 +76,39 @@ const Login = () => {
             </div>
           </div>
 
+          {/* Password */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 name="password"
                 required
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
               />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            <div className="text-right mt-1">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Forgot Password?
+              </Link>
             </div>
           </div>
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={isSubmitting}
@@ -97,6 +118,7 @@ const Login = () => {
           </button>
         </form>
 
+        {/* Register Link */}
         <p className="text-center mt-6 text-sm text-gray-500">
           Don't have an account?{' '}
           <Link to="/register" className="text-blue-600 font-medium hover:underline">

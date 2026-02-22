@@ -4,7 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
-import PublicLayout from './layouts/PublicLayout'; // <--- Import the new layout
+import PublicLayout from './layouts/PublicLayout';
 
 // Public Pages
 import Home from "./pages/public/Home";
@@ -12,15 +12,33 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import FindDoctor from "./pages/public/FindDoctor";
+import Profile from "./pages/Profile"; // <--- 1. IMPORT THIS
 
 // Private Dashboard Pages
 import PatientDashboard from './pages/patient/PatientDashboard';
 import PatientAppointments from './pages/patient/Appointment';
+import MedicalHistory from './pages/patient/MedicalHistory';
+import Messages from './pages/patient/Messages';
+import MyDoctors from './pages/patient/MyDoctors';
+import Notification from './pages/patient/Notification';
+import Payment from './pages/patient/Payment';
+import Reports from './pages/patient/Reports';
+import Settings from './pages/patient/Settings';
+import ForgotPassword from "./pages/public/ForgotPassword";
+import ResetPassword from "./pages/public/ResetPassword";
+
+
 import HospitalDashboard from './pages/hospital/HospitalDashboard';
+
 import DoctorManagement from './pages/hospital/DoctorManagement';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import DoctorAccountPage from './pages/doctor/Account';
 import DoctorSchedulePage from './pages/doctor/Schedule';
+import DoctorFeedbackPage from './pages/doctor/Feedback';
+import DoctorMessagesPage from './pages/doctor/Messages';
+import DoctorNotificationsPage from './pages/doctor/Notifications';
+import DoctorVideoConferencePage from './pages/doctor/VideoConference';
+
 import AddHospital from './pages/admin/AddHospital';
 
 // Placeholder for missing pages
@@ -32,27 +50,41 @@ function App() {
       <BrowserRouter>
         <Routes>
 
-          {/* GROUP 1: PUBLIC ROUTES (Uses Navbar & Footer) */}
+          {/* GROUP 1: PUBLIC ROUTES */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/find-doctor" element={<FindDoctor />} />
+             <Route path="/forgot-password" element={<ForgotPassword />} />
+             <Route path="/reset-password/:token" element={<ResetPassword />} />
+
           </Route>
 
 
-          {/* GROUP 2: PROTECTED DASHBOARD ROUTES (Uses Sidebar) */}
+          {/* GROUP 2: PROTECTED DASHBOARD ROUTES */}
           <Route element={<DashboardLayout />}>
             
+            {/* 2. ADD PROFILE ROUTE HERE */}
+            <Route path="/profile" element={<Profile />} />
+
             {/* PATIENT */}
-            <Route path="patient">
-              <Route path="dashboard" element={<PatientDashboard />} />
-              <Route path="find-doctor" element={<Placeholder title="Find Doctor" />} />
-              <Route path="appointments" element={<PatientAppointments />} />
-              <Route path="records" element={<Placeholder title="Medical Records" />} />
-              <Route path="payments" element={<Placeholder title="Payments" />} />
-            </Route>
+           <Route path="patient">
+             <Route path="dashboard" element={<PatientDashboard />} />
+             <Route path="find-doctor" element={<Placeholder title="Find Doctor" />} />
+             <Route path="appointments" element={<PatientAppointments />} />
+             <Route path="records" element={<Placeholder title="Medical Records" />} />
+             <Route path="payments" element={<Payment />} />
+             <Route path="medical-history" element={<MedicalHistory />} />
+             <Route path="messages" element={<Messages />} />
+             <Route path="my-doctors" element={<MyDoctors />} />
+             <Route path="notifications" element={<Notification />} />  
+             <Route path="reports" element={<Reports />} />
+             <Route path="settings" element={<Settings />} />
+            
+           </Route>
+
 
             {/* HOSPITAL */}
             <Route path="hospital">
@@ -61,16 +93,16 @@ function App() {
               <Route path="staff" element={<Placeholder title="Manage Staff" />} />
             </Route>
 
-            {/* DOCTOR */}
-            <Route path="doctor">
-              <Route path="dashboard" element={<DoctorDashboard />} />
+           <Route path="doctor">
+             <Route path="dashboard" element={<DoctorDashboard />} />
               <Route path="schedule" element={<DoctorSchedulePage />} />
               <Route path="account" element={<DoctorAccountPage />} />
-              <Route path="video-conference" element={<Placeholder title="Video Conference" />} />
-              <Route path="feedback" element={<Placeholder title="Feedback" />} />
-              <Route path="notifications" element={<Placeholder title="Notifications" />} />
-              <Route path="messages" element={<Placeholder title="Messages" />} />
-            </Route>
+              <Route path="video-conference" element={<DoctorVideoConferencePage />} />
+              <Route path="feedback" element={<DoctorFeedbackPage />} />
+              <Route path="notifications" element={<DoctorNotificationsPage />} />
+              <Route path="messages" element={<DoctorMessagesPage />} />
+          </Route>
+
 
             {/* ADMIN */}
             <Route path="admin">
@@ -80,7 +112,7 @@ function App() {
 
           </Route>
 
-          {/* Catch-all: Redirect unknown links to Home */}
+          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" />} />
 
         </Routes>
