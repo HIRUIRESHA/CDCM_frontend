@@ -22,41 +22,66 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Login Function
-  const login = async (email, password) => {
-    try {
-      const response = await fetch('http://localhost:8082/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+// Login Function
+const login = async (email, password) => {
+  try {
+    const response = await fetch('http://localhost:8082/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (response.ok && data.token) { 
-        
-        // Backend sends: { message, userId, role, name, token }
-        const userData = {
-          id: data.userId, 
-          email: email,    
-          role: data.role, 
-          name: data.name || email.split('@')[0] 
-        };
-        
-        // Save to State & LocalStorage
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-        
-        localStorage.setItem('token', data.token); 
-        
-        return { success: true };
-      } else {
-        return { success: false, message: data.message || "Invalid email or password" };
+    if (response.ok && data.token) {
+
+      // Save token first
+      localStorage.setItem('token', data.token);
+
+      // Build profile URL based on role
+      const profileUrl =
+        data.role === 'PATIENT'
+          ? `http://localhost:8082/api/auth/patients/${data.userId}`
+          : `http://localhost:8082/api/auth/doctors/${data.userId}`;
+
+      // Fetch full profile to get profileImage
+      let profileImage = null;
+
+      try {
+        const profileRes = await fetch(profileUrl, {
+          headers: {
+            Authorization: `Bearer ${data.token}`,
+          },
+        });
+
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          profileImage = profile.profileImage || null;
+        }
+      } catch (e) {
+        console.warn("Profile fetch failed after login:", e);
       }
-    } catch (error) {
-      console.error("Login Error:", error);
-      return { success: false, message: "Server error or Invalid JSON response" };
+
+      const userData = {
+        id: data.userId,
+        email,
+        role: data.role,
+        name: data.name || email.split('@')[0],
+        profileImage, // ✅ now sidebar has it after login
+      };
+
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      return { success: true };
+    } else {
+      return { success: false, message: data.message || "Invalid email or password" };
     }
-  };
+  } catch (error) {
+    console.error("Login Error:", error);
+    return { success: false, message: "Server error or Invalid JSON response" };
+  }
+};
 
   //  Register Function
   const register = async (endpoint, formData) => {
