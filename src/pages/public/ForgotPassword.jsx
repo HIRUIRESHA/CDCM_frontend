@@ -9,7 +9,7 @@ export default function ForgotPassword() {
     e.preventDefault();
 
     try {
-      await axios.post("http://localhost:8000/auth/forgot-password?email=" + email);
+     await axios.post("http://localhost:8082/api/auth/forgot-password?email=" + email);
       alert("Reset link sent to your email");
     } catch (error) {
       alert("Error sending email");
