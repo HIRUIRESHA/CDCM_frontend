@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+
 import { 
-    LayoutDashboard, Calendar, FileText, CreditCard, Users, LogOut, Settings,UserCog,Microscope,AlertCircle,BarChart3,Bell,FileBarChart,MessageSquare,User,MessageCircle,Video
+    LayoutDashboard, Calendar, FileText, CreditCard, Users, LogOut, Settings,UserCog,Microscope,AlertCircle,BarChart3,Bell,FileBarChart,MessageSquare,User,MessageCircle,Video,Building
 } from 'lucide-react';
 import { PlusCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -136,5 +137,9 @@ export const AdminSidebar = () => (
   <SidebarContainer title="CDCMS Admin" titleColor="text-red-600">
     <SidebarLink to="/admin/dashboard" icon={<LayoutDashboard size={20} />} label="Dashboard" />
     <SidebarLink to="/admin/add-hospital" icon={<PlusCircle size={20} />} label="Add Hospital" />
+    <SidebarLink to="/admin/manage-hospitals" icon={<Building size={20} />} label="Manage Hospitals" />
+    <SidebarLink to="/admin/manage-doctors" icon={<User size={20} />} label="Manage Doctors" />
+    <SidebarLink to="/admin/manage-patients" icon={<Users size={20} />} label="Manage Patients" />
+
   </SidebarContainer>
 );

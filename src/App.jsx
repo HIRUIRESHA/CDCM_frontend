@@ -40,6 +40,9 @@ import DoctorNotificationsPage from './pages/doctor/Notifications';
 import DoctorVideoConferencePage from './pages/doctor/VideoConference';
 
 import AddHospital from './pages/admin/AddHospital';
+import ManageHospitals from './pages/admin/ManageHospitals';
+import ManageDoctors from './pages/admin/ManageDoctors';
+import ManagePatients from './pages/admin/ManagePatients';
 
 // Placeholder for missing pages
 const Placeholder = ({ title }) => <h1 className="text-2xl p-4">{title} Page</h1>;
@@ -108,6 +111,9 @@ function App() {
             <Route path="admin">
               <Route path="dashboard" element={<Placeholder title="Admin Dashboard" />} />
               <Route path="add-hospital" element={<AddHospital />} />
+              <Route path="manage-hospitals" element={<ManageHospitals />} />
+              <Route path="manage-doctors" element={<ManageDoctors />} />
+              <Route path="manage-patients" element={<ManagePatients />} />
             </Route>
 
           </Route>
