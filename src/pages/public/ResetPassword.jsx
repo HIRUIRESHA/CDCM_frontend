@@ -12,9 +12,13 @@ export default function ResetPassword() {
     e.preventDefault();
 
     try {
-      await axios.post(
-        `http://localhost:8000/auth/reset-password/${token}?newPassword=${password}`
-      );
+     await axios.post(
+  "http://localhost:8082/api/auth/reset-password",
+  {
+    token: token,
+    newPassword: password
+  }
+);
 
       alert("Password reset successful");
       navigate("/login");

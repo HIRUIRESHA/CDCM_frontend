@@ -28,39 +28,52 @@ const Profile = () => {
   }, [user, baseUrl]);
 
   // 2. Handle Image Upload to Backend -> Cloudinary
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+ const handleImageUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    setUploading(true);
-    const data = new FormData();
-    data.append("file", file);
+  setUploading(true);
 
-    try {
-      const res = await fetch('http://localhost:8082/api/upload', {
+  const data = new FormData();
+  data.append("file", file);
+
+  const token = localStorage.getItem("token"); // 🔥 get JWT
+
+  try {
+    const res = await fetch('http://localhost:8082/api/upload', {
       method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`  // 🔥 VERY IMPORTANT
+      },
       body: data,
-  });
-      const result = await res.json();
-      
-      // Update the formData state with the NEW URL
-      setFormData(prev => ({ ...prev, profileImage: result.url }));
-    } catch (err) {
-      alert("Image upload failed");
-    } finally {
-      setUploading(false);
-    }
-  };
+    });
+
+    const result = await res.json();
+
+    setFormData(prev => ({
+      ...prev,
+      profileImage: result.url
+    }));
+
+  } catch (err) {
+    alert("Image upload failed");
+  } finally {
+    setUploading(false);
+  }
+};
 
   // 3. Save Changes (Send updated data + new image URL to DB)
   // 3. Save Changes (Send updated data + new image URL to DB)
  const handleSave = async () => {
   try {
     const res = await fetch(baseUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
-    });
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem("token")}`
+  },
+  body: JSON.stringify(formData)
+});
     
     if (res.ok) {
       setIsEditing(false);

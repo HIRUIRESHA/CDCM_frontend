@@ -23,12 +23,13 @@ const AddHospital = () => {
     setStatus({ type: 'loading', message: 'Registering hospital...' });
 
     try {
-      // Replace with your actual Backend URL
+      const token = localStorage.getItem("token"); 
+
       const response = await fetch('http://localhost:8082/api/admin/register-hospital', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            // 'Authorization': `Bearer ${token}` // Add this if you implemented JWT on frontend
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`  
         },
         body: JSON.stringify(formData),
       });
