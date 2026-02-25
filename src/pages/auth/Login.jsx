@@ -17,11 +17,36 @@ const Login = () => {
     setError(''); // Clear error when typing
   };
 
+  // ========== VALIDATION FUNCTION ==========
+  const validateForm = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const minPasswordLength = 8;
+
+    if (!emailRegex.test(formData.email.trim())) {
+      return "Please enter a valid email address";
+    }
+
+    if (formData.password.length < minPasswordLength) {
+      return `Password must be at least ${minPasswordLength} characters`;
+    }
+
+    return null; // No errors
+  };
+  // ========================================
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Frontend validation
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsSubmitting(true);
     
-    const result = await login(formData.email, formData.password);
+    const result = await login(formData.email.trim(), formData.password);
 
     if (result.success) {
       const user = JSON.parse(localStorage.getItem('user'));
