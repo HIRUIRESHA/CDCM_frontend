@@ -32,7 +32,6 @@ export const AuthProvider = ({ children }) => {
 
       const data = await response.json();
 
-      // 👇 ADDED data.token CHECK HERE 👇
       if (response.ok && data.token) { 
         
         // Backend sends: { message, userId, role, name, token }
@@ -40,7 +39,6 @@ export const AuthProvider = ({ children }) => {
           id: data.userId, 
           email: email,    
           role: data.role, 
-          // Use real name from backend, or fallback to email name if missing
           name: data.name || email.split('@')[0] 
         };
         
@@ -48,9 +46,7 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
         
-        // 🚀 VERY IMPORTANT: SAVE THE TOKEN 🚀
         localStorage.setItem('token', data.token); 
-        // ------------------------------------
         
         return { success: true };
       } else {
@@ -91,9 +87,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('user');
     
-    // 🚀 VERY IMPORTANT: CLEAR THE TOKEN 🚀
     localStorage.removeItem('token'); 
-    // ------------------------------------
     
     window.location.href = '/login'; 
   };
