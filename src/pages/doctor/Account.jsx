@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, Edit, Trash2, User } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit, Trash2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 const DoctorAccountPage = () => {
@@ -30,15 +30,68 @@ const DoctorAccountPage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     specialty: "",
-    qualificationsText: "", // multiline string
+    qualificationsText: "",
     experience: "",
-    hospitalsText: "", // multiline string
+    hospitalsText: "",
   });
 
   // API base
   const accountUrl = user?.id
     ? `http://localhost:8082/api/auth/doctors/${user.id}/account`
     : null;
+
+  // Helpers: convert multiline to array
+  const linesToArray = (text) =>
+    text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+  // Modal component
+  const Modal = ({ isOpen, onClose, title, children }) => {
+    if (!isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        {/* Backdrop */}
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+        {/* Modal box */}
+        <div className="relative z-10 w-full max-w-2xl mx-4 bg-white rounded-2xl shadow-xl">
+          <div className="flex items-center justify-between px-6 py-4 border-b">
+            <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-800 text-2xl leading-none"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="p-6">{children}</div>
+        </div>
+      </div>
+    );
+  };
+
+  const resetFormAndClose = () => {
+    setFormData({
+      specialty: doctorInfo.specialty,
+      qualificationsText: doctorInfo.qualifications.join("\n"),
+      experience: doctorInfo.experience,
+      hospitalsText: doctorInfo.hospitals.join("\n"),
+    });
+    setIsEditing(false);
+  };
+
+  // Disable background scroll when modal open
+  useEffect(() => {
+    document.body.style.overflow = isEditing ? "hidden" : "auto";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isEditing]);
 
   // 1) Fetch doctor account data
   useEffect(() => {
@@ -62,7 +115,7 @@ const DoctorAccountPage = () => {
 
         setDoctorInfo(normalized);
 
-        // prepare edit form fields
+        // Prepare edit form fields
         setFormData({
           specialty: normalized.specialty,
           qualificationsText: normalized.qualifications.join("\n"),
@@ -70,7 +123,6 @@ const DoctorAccountPage = () => {
           hospitalsText: normalized.hospitals.join("\n"),
         });
       } catch (e) {
-        // If backend not ready yet, keep defaults (so UI still works)
         console.error(e);
       } finally {
         setLoading(false);
@@ -79,13 +131,6 @@ const DoctorAccountPage = () => {
 
     fetchAccount();
   }, [accountUrl]);
-
-  // Helpers: convert multiline to array
-  const linesToArray = (text) =>
-    text
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean);
 
   // 2) Save (PUT) doctor account data
   const handleSaveAccount = async () => {
@@ -108,7 +153,6 @@ const DoctorAccountPage = () => {
 
       if (!res.ok) throw new Error("Failed to update account");
 
-      // Update UI after save
       setDoctorInfo(payload);
       setIsEditing(false);
       alert("Account details updated!");
@@ -141,25 +185,17 @@ const DoctorAccountPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header with Profile Icon */}
-      <div className="flex justify-end mb-6">
-        <div className="bg-gray-800 p-3 rounded-full">
-          <User size={24} className="text-white" />
-        </div>
-      </div>
-
-      {/* Main Card */}
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
-        {/* Doctor Info Header */}
+        {/* Header */}
         <div className="bg-[#2d3e7a] text-white text-center py-6">
           <h1 className="text-2xl font-bold">{displayName}</h1>
           <p className="text-lg mt-1">{doctorInfo.specialty || "Specialty not added"}</p>
         </div>
 
-        {/* Content Section */}
+        {/* Content */}
         <div className="p-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Profile Image */}
+            {/* Left Column */}
             <div className="lg:col-span-1">
               <div className="sticky top-6">
                 <img
@@ -167,15 +203,11 @@ const DoctorAccountPage = () => {
                   alt={displayName}
                   className="w-full rounded-lg shadow-md object-cover aspect-square"
                 />
-                {/* <p className="text-xs text-gray-500 mt-2">
-                  Profile image is updated from Profile page.
-                </p> */}
               </div>
             </div>
 
-            {/* Right Column - Details */}
+            {/* Right Column */}
             <div className="lg:col-span-2">
-              {/* Qualifications */}
               <CollapsibleSection
                 title="Qualifications"
                 isOpen={qualificationsOpen}
@@ -195,7 +227,6 @@ const DoctorAccountPage = () => {
                 )}
               </CollapsibleSection>
 
-              {/* Experience */}
               <CollapsibleSection
                 title="Experience"
                 isOpen={experienceOpen}
@@ -206,7 +237,6 @@ const DoctorAccountPage = () => {
                 </p>
               </CollapsibleSection>
 
-              {/* Hospitals */}
               <CollapsibleSection
                 title="Working Hospitals"
                 isOpen={hospitalsOpen}
@@ -241,114 +271,96 @@ const DoctorAccountPage = () => {
                   <span>Delete Account</span>
                 </button>
               </div>
-
-              {/* Edit Panel (appears under buttons) */}
-              {isEditing && (
-                <div className="mt-6 bg-white border border-gray-200 rounded-xl p-5">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4">
-                    Update Account Details
-                  </h2>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Specialty
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.specialty}
-                        onChange={(e) =>
-                          setFormData((p) => ({ ...p, specialty: e.target.value }))
-                        }
-                        className="mt-1 block w-full border border-gray-300 rounded p-2"
-                        placeholder="e.g., Dermatologist"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Qualifications (one per line)
-                      </label>
-                      <textarea
-                        rows={5}
-                        value={formData.qualificationsText}
-                        onChange={(e) =>
-                          setFormData((p) => ({
-                            ...p,
-                            qualificationsText: e.target.value,
-                          }))
-                        }
-                        className="mt-1 block w-full border border-gray-300 rounded p-2"
-                        placeholder={`MBBS\nMD Dermatology\nDiploma in Dermatology`}
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Experience
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={formData.experience}
-                        onChange={(e) =>
-                          setFormData((p) => ({ ...p, experience: e.target.value }))
-                        }
-                        className="mt-1 block w-full border border-gray-300 rounded p-2"
-                        placeholder="e.g., Over 5 years in Dermatology practice"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Working Hospitals (one per line)
-                      </label>
-                      <textarea
-                        rows={4}
-                        value={formData.hospitalsText}
-                        onChange={(e) =>
-                          setFormData((p) => ({ ...p, hospitalsText: e.target.value }))
-                        }
-                        className="mt-1 block w-full border border-gray-300 rounded p-2"
-                        placeholder={`Asiri Hospital Galle\nNawaloka Hospital Colombo`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-5 flex justify-end gap-3">
-                    <button
-                      onClick={() => {
-                        // Reset form to current doctorInfo and close
-                        setFormData({
-                          specialty: doctorInfo.specialty,
-                          qualificationsText: doctorInfo.qualifications.join("\n"),
-                          experience: doctorInfo.experience,
-                          hospitalsText: doctorInfo.hospitals.join("\n"),
-                        });
-                        setIsEditing(false);
-                      }}
-                      className="px-5 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-
-                    <button
-                      onClick={handleSaveAccount}
-                      disabled={saving}
-                      className="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-60"
-                    >
-                      {saving ? "Saving..." : "Save Changes"}
-                    </button>
-                  </div>
-
-                  {/* <p className="text-xs text-gray-500 mt-3">
-                    Note: This saves only account details. Profile image is handled in Profile page.
-                  </p> */}
-                </div>
-              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* MODAL (New Box) */}
+      <Modal
+        isOpen={isEditing}
+        title="Update Account Details"
+        onClose={resetFormAndClose}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Specialty
+            </label>
+            <input
+              type="text"
+              value={formData.specialty}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, specialty: e.target.value }))
+              }
+              className="mt-1 block w-full border border-gray-300 rounded p-2"
+              placeholder="e.g., Dermatologist"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Qualifications (one per line)
+            </label>
+            <textarea
+              rows={5}
+              value={formData.qualificationsText}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, qualificationsText: e.target.value }))
+              }
+              className="mt-1 block w-full border border-gray-300 rounded p-2"
+              placeholder={`MBBS\nMD Dermatology\nDiploma in Dermatology`}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Experience
+            </label>
+            <textarea
+              rows={3}
+              value={formData.experience}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, experience: e.target.value }))
+              }
+              className="mt-1 block w-full border border-gray-300 rounded p-2"
+              placeholder="e.g., Over 5 years in Dermatology practice"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Working Hospitals (one per line)
+            </label>
+            <textarea
+              rows={4}
+              value={formData.hospitalsText}
+              onChange={(e) =>
+                setFormData((p) => ({ ...p, hospitalsText: e.target.value }))
+              }
+              className="mt-1 block w-full border border-gray-300 rounded p-2"
+              placeholder={`Asiri Hospital Galle\nNawaloka Hospital Colombo`}
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            onClick={resetFormAndClose}
+            className="px-5 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={handleSaveAccount}
+            disabled={saving}
+            className="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-60"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

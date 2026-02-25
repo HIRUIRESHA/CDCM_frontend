@@ -11,7 +11,7 @@ const Profile = () => {
 
   // Define API endpoint based on role
   const baseUrl = user?.role === 'PATIENT' 
-    ? `http://localhost:8082/api/auth/patient/${user?.id}`
+    ? `http://localhost:8082/api/auth/patients/${user?.id}`
     : `http://localhost:8082/api/auth/doctors/${user?.id}`;
 
   // 1. Fetch User Data on Load
