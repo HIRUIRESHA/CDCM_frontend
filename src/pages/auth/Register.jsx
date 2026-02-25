@@ -9,9 +9,8 @@ const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
   
-  const [role, setRole] = useState('patient'); // 'patient' or 'doctor'
-  
-  // Form state
+  const [role, setRole] = useState('patient');
+
   const [formData, setFormData] = useState({
     title: 'Mr',
     firstName: '',
@@ -19,12 +18,10 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    // Patient
     dateOfBirth: '',
     nicOrPassport: '',
     contactNumber: '',
     residentialAddress: '',
-    // Doctor
     phone: '',
     specialization: '',
     medicalLicenseNumber: ''
@@ -32,8 +29,6 @@ const Register = () => {
 
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -41,12 +36,51 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // ================= VALIDATION FUNCTION =================
+  const validateForm = () => {
+    const phoneRegex = /^07\d{8}$/;
+    const nicRegex = /^([0-9]{9}[vVxX]|[0-9]{12})$/;
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
+    if (!strongPasswordRegex.test(formData.password)) {
+      return "Password must contain:\n• Minimum 8 characters\n• 1 uppercase letter\n• 1 lowercase letter\n• 1 number\n• 1 special character";
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      return "Passwords do not match";
+    }
+
+    if (role === 'patient') {
+      if (!nicRegex.test(formData.nicOrPassport)) {
+        return "Invalid NIC format";
+      }
+
+      if (!phoneRegex.test(formData.contactNumber)) {
+        return "Contact number must be 10 digits and start with 07";
+      }
+    }
+
+    if (role === 'doctor') {
+      if (!phoneRegex.test(formData.phone)) {
+        return "Phone number must be 10 digits and start with 07";
+      }
+
+      if (!formData.specialization) {
+        return "Please select a specialization";
+      }
+    }
+
+    return null;
+  };
+  // =======================================================
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -59,27 +93,26 @@ const Register = () => {
       endpoint = 'register/patient';
       payload = {
         title: formData.title,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        dateOfBirth: formData.dateOfBirth,
-        nicOrPassport: formData.nicOrPassport,
-        contactNumber: formData.contactNumber,
-        residentialAddress: formData.residentialAddress,
-        email: formData.email,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
         password: formData.password,
-        confirmPassword: formData.confirmPassword
+        dateOfBirth: formData.dateOfBirth, // send as yyyy-MM-dd
+        nicOrPassport: formData.nicOrPassport.trim(),
+        contactNumber: formData.contactNumber.trim(),
+        residentialAddress: formData.residentialAddress.trim()
       };
     } else {
       endpoint = 'register/doctor';
       payload = {
         title: formData.title,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone: formData.phone,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        phone: formData.phone.trim(),
         specialization: formData.specialization,
-        medicalLicenseNumber: formData.medicalLicenseNumber,
-        email: formData.email,
-        password: formData.password
+        medicalLicenseNumber: formData.medicalLicenseNumber.trim()
       };
     }
 
@@ -111,7 +144,7 @@ const Register = () => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 text-red-700 text-sm rounded-lg flex items-center gap-2">
+          <div className="mb-6 p-4 bg-red-50 text-red-700 text-sm rounded-lg flex items-start gap-2 whitespace-pre-line">
             <AlertCircle size={16} />
             {error}
           </div>
