@@ -29,6 +29,8 @@ import ResetPassword from "./pages/public/ResetPassword";
 
 
 import HospitalDashboard from './pages/hospital/HospitalDashboard';
+import AssignedDoctors from './pages/hospital/AssignedDoctors';
+import AssignDoctor from './pages/hospital/AssignDoctor';
 
 import DoctorManagement from './pages/hospital/DoctorManagement';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -93,6 +95,8 @@ function App() {
             <Route path="hospital">
               <Route path="dashboard" element={<HospitalDashboard />} />
               <Route path="doctors" element={<DoctorManagement />} />
+              <Route path="assigned-doctors" element={<AssignedDoctors />} />
+              <Route path="assign-doctor" element={<AssignDoctor />} />
               <Route path="staff" element={<Placeholder title="Manage Staff" />} />
             </Route>
 
