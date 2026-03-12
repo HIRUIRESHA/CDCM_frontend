@@ -64,6 +64,7 @@ function App() {
             <Route path="/find-doctor" element={<FindDoctor />} />
              <Route path="/forgot-password" element={<ForgotPassword />} />
              <Route path="/reset-password/:token" element={<ResetPassword />} />
+             <Route path="/doctor/account/:id" element={<DoctorAccountPage />} />
 
           </Route>
 
