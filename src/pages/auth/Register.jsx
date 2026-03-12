@@ -42,6 +42,17 @@ const Register = () => {
     const nicRegex = /^([0-9]{9}[vVxX]|[0-9]{12})$/;
     const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
+    // Date of Birth Validation
+    if (formData.dateOfBirth) {
+      const selectedDate = new Date(formData.dateOfBirth);
+      const today = new Date();
+      if (selectedDate >= today) {
+        return "Date of Birth must be in the past";
+      }
+    } else if (role === 'patient') {
+      return "Date of Birth is required";
+    }
+
     if (!strongPasswordRegex.test(formData.password)) {
       return "Password must contain:\n• Minimum 8 characters\n• 1 uppercase letter\n• 1 lowercase letter\n• 1 number\n• 1 special character";
     }
@@ -204,7 +215,7 @@ const Register = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input type="date" name="dateOfBirth" required className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={formData.dateOfBirth} onChange={handleChange} />
+                    <input type="date" name="dateOfBirth" required max={new Date().toISOString().split("T")[0]} className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={formData.dateOfBirth} onChange={handleChange} />
                   </div>
                 </div>
                 <div>
