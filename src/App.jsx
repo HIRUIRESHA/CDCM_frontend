@@ -38,7 +38,7 @@ import Laboratory from './pages/hospital/Laboratory';
 import Notifications from './pages/hospital/Notifications';
 import PatientManagement from './pages/hospital/PatientManagement';
 import Schedule from './pages/hospital/Schedule';
-
+import AddSchedule from './pages/hospital/AddSchedule';
 
 import DoctorManagement from './pages/hospital/DoctorManagement';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -114,6 +114,7 @@ function App() {
               <Route path="notifications" element={<Notifications />} />
               <Route path="patient-management" element={<PatientManagement />} />
               <Route path="schedule" element={<Schedule />} />
+            <Route path="schedule/add" element={<AddSchedule />} />
             </Route>
 
            <Route path="doctor">
