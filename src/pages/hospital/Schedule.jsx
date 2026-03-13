@@ -132,7 +132,8 @@ export default function HospitalSchedulePage() {
             <div className="space-y-3">
               {schedules.map((schedule, index) => {
                 const cfg = STATUS_CONFIG[schedule.status] || STATUS_CONFIG.PENDING;
-                const name = schedule.doctorName || schedule.doctorId;
+                const name = schedule.doctorName || "Unknown Doctor";
+                const specialty = schedule.specialty || "General";
                 const highlightToday = isToday(schedule.date);
 
                 return (
@@ -151,13 +152,16 @@ export default function HospitalSchedulePage() {
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900 text-sm">{name}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">ID: {schedule.doctorId}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{specialty}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{formatDate(schedule.date)}</p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className="text-gray-900 font-mono font-semibold text-sm">{formatTime(schedule.startTime)} — {formatTime(schedule.endTime)}</p>
+                          <p className="text-gray-900 font-mono font-semibold text-sm">
+                            {formatTime(schedule.startTime)} — {formatTime(schedule.endTime)}
+                          </p>
                           <p className="text-xs text-gray-500 mt-0.5">
                             {(() => {
                               const [sh, sm] = schedule.startTime.split(":").map(Number);
