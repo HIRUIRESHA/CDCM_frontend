@@ -4,8 +4,12 @@ import axios from "axios";
 
 export default function AddSchedulePage() {
   const navigate = useNavigate();
-  const hospitalId = "H1"; // Replace with auth context
 
+  // ----------------- Get logged-in hospital -----------------
+  const hospital = JSON.parse(localStorage.getItem("hospital"));
+  const hospitalId = hospital?.id; // Use real _id automatically
+
+  // ----------------- Form state -----------------
   const [form, setForm] = useState({
     doctorId: "",
     date: "",
@@ -15,51 +19,56 @@ export default function AddSchedulePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Store doctors from backend
+  // ----------------- Doctors list from backend -----------------
   const [doctors, setDoctors] = useState([]);
   const [loadingDoctors, setLoadingDoctors] = useState(true);
 
- useEffect(() => {
-  const loadDoctors = async () => {
-    try {
-      const res = await axios.get(
-        "http://localhost:8082/api/hospital/doctors/search?keyword="
-      );
+  useEffect(() => {
+    const loadDoctors = async () => {
+      try {
+        const res = await axios.get(
+          "http://localhost:8082/api/hospital/doctors/search?keyword="
+        );
+        setDoctors(res.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingDoctors(false);
+      }
+    };
 
-      setDoctors(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingDoctors(false);
-    }
-  };
+    loadDoctors();
+  }, []);
 
-  loadDoctors();
-}, []);
-  
-
+  // ----------------- Handle input changes -----------------
   const handleChange = (e) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setError("");
   };
 
+  // ----------------- Submit form -----------------
   const handleSubmit = async () => {
-    // Validation
     if (!form.doctorId || !form.date || !form.startTime || !form.endTime) {
       setError("Please fill all fields");
       return;
     }
 
+    if (!hospitalId) {
+      setError("Hospital not found. Please log in again.");
+      return;
+    }
+
     setSubmitting(true);
+
     try {
       await axios.post("http://localhost:8082/api/schedules", {
-        ...form,
         doctorId: form.doctorId,
-  hospitalId: hospitalId,
-  date: form.date,
-  startTime: form.startTime,
-  endTime: form.endTime
+        hospitalId: hospitalId, // Automatically from logged-in hospital
+        date: form.date,
+        startTime: form.startTime,
+        endTime: form.endTime,
       });
+
       navigate("/hospital/schedule");
     } catch (err) {
       console.error(err);
@@ -69,7 +78,8 @@ export default function AddSchedulePage() {
     }
   };
 
-  const selectedDoctor = doctors.find(d => d.id === form.doctorId);
+  // ----------------- Selected doctor info (optional) -----------------
+  const selectedDoctor = doctors.find((d) => d.id === form.doctorId);
 
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans p-6">
@@ -85,14 +95,14 @@ export default function AddSchedulePage() {
         disabled={loadingDoctors}
       >
         <option value="">— Choose a doctor —</option>
-        {doctors.map(d => (
+        {doctors.map((d) => (
           <option key={d.id} value={d.id}>
-           {d.title} {d.firstName} {d.lastName} · {d.specialization}
+            {d.title} {d.firstName} {d.lastName} · {d.specialization}
           </option>
         ))}
       </select>
 
-      {/* Other inputs */}
+      {/* Date Input */}
       <div className="mb-4">
         <label className="block mb-2 text-sm font-semibold">Date</label>
         <input
@@ -105,6 +115,7 @@ export default function AddSchedulePage() {
         />
       </div>
 
+      {/* Start/End Time */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
           <label className="block mb-2 text-sm font-semibold">Start Time</label>
@@ -128,8 +139,10 @@ export default function AddSchedulePage() {
         </div>
       </div>
 
+      {/* Error */}
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
+      {/* Buttons */}
       <div className="flex gap-4">
         <button
           onClick={() => navigate("/hospital/schedule")}
