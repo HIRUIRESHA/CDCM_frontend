@@ -2,218 +2,268 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
   .schedule-root {
     min-height: 100vh;
-    background: #f0f2f5;
-    font-family: 'DM Sans', sans-serif;
-    padding: 2.5rem;
-    background-image: radial-gradient(circle at 20% 20%, #e8f0fe 0%, transparent 50%),
-                      radial-gradient(circle at 80% 80%, #fce8e6 0%, transparent 50%);
+    background: #f0f2f8;
+    font-family: 'Inter', sans-serif;
+    padding: 2.5rem 2.5rem 2.5rem 2rem;
   }
 
   .schedule-header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;
   }
 
-  .schedule-title-block {}
-
-  .schedule-eyebrow {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.7rem;
+  .schedule-greeting {
+    font-size: 0.78rem;
     font-weight: 500;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: #6b7ae8;
-    margin-bottom: 0.35rem;
+    color: #8890b0;
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.02em;
   }
 
   .schedule-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 2rem;
-    font-weight: 800;
+    font-size: 1.75rem;
+    font-weight: 700;
     color: #1a1d2e;
-    line-height: 1.1;
+    margin: 0 0 0.35rem;
+    line-height: 1.2;
+  }
+
+  .schedule-subtitle {
+    font-size: 0.85rem;
+    color: #8890b0;
     margin: 0;
   }
 
-  .schedule-count-badge {
-    background: #1a1d2e;
-    color: #fff;
-    font-family: 'Syne', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 700;
-    padding: 0.4rem 0.9rem;
-    border-radius: 100px;
-    letter-spacing: 0.05em;
+  /* Stat Cards */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
   }
 
-  /* Card Table Container */
-  .schedule-card {
-    background: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(26, 29, 46, 0.07), 0 1px 4px rgba(26, 29, 46, 0.04);
+  .stat-card {
+    border-radius: 16px;
+    padding: 1.4rem 1.6rem;
+    color: #fff;
+    position: relative;
     overflow: hidden;
   }
 
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; right: 20px;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+
+  .stat-card-blue   { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  .stat-card-teal   { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+  .stat-card-orange { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); }
+
+  .stat-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.22);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    margin-bottom: 0.85rem;
+    position: relative; z-index: 1;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    opacity: 0.85;
+    margin-bottom: 0.25rem;
+    position: relative; z-index: 1;
+  }
+
+  .stat-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+    position: relative; z-index: 1;
+  }
+
+  .stat-sub {
+    font-size: 0.72rem;
+    opacity: 0.75;
+    margin-top: 0.2rem;
+    position: relative; z-index: 1;
+  }
+
+  /* Main Card */
+  .schedule-card {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 2px 16px rgba(26, 29, 46, 0.07);
+    overflow: hidden;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.4rem 1.8rem;
+    border-bottom: 1px solid #f0f2f8;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1a1d2e;
+    margin: 0;
+  }
+
+  .card-badge {
+    background: #1a1d2e;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.3rem 0.85rem;
+    border-radius: 100px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Table */
   .schedule-table {
     width: 100%;
     border-collapse: collapse;
   }
 
   .schedule-table thead tr {
-    background: #1a1d2e;
+    background: #f7f8ff;
+    border-bottom: 1px solid #edf0f7;
   }
 
   .schedule-table thead th {
-    font-family: 'Syne', sans-serif;
-    font-size: 0.68rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.55);
-    padding: 1.1rem 1.4rem;
+    color: #8890b0;
+    padding: 0.9rem 1.6rem;
     text-align: left;
   }
 
-  .schedule-table thead th:first-child {
-    border-radius: 0;
-  }
-
   .schedule-table tbody tr {
-    border-bottom: 1px solid #f0f2f5;
+    border-bottom: 1px solid #f4f5fb;
     transition: background 0.15s ease;
   }
 
-  .schedule-table tbody tr:last-child {
-    border-bottom: none;
-  }
-
-  .schedule-table tbody tr:hover {
-    background: #f7f8ff;
-  }
+  .schedule-table tbody tr:last-child { border-bottom: none; }
+  .schedule-table tbody tr:hover { background: #fafbff; }
 
   .schedule-table tbody td {
-    padding: 1.1rem 1.4rem;
-    font-size: 0.88rem;
+    padding: 1rem 1.6rem;
+    font-size: 0.875rem;
     color: #2d3148;
-    font-weight: 400;
     vertical-align: middle;
   }
 
-  /* Date cell */
   .date-cell {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 0.9rem;
+    font-weight: 600;
+    font-size: 0.875rem;
     color: #1a1d2e;
   }
 
-  /* Time cell */
   .time-range {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.85rem;
+    gap: 0.45rem;
+    font-size: 0.84rem;
     color: #4a5080;
+    background: #f4f5fb;
+    padding: 0.3rem 0.75rem;
+    border-radius: 8px;
+    font-weight: 500;
   }
 
   .time-sep {
-    width: 16px;
-    height: 1px;
-    background: #c0c4db;
+    width: 14px; height: 1px;
+    background: #b0b6d0;
     display: inline-block;
+    flex-shrink: 0;
   }
 
-  /* Hospital cell */
   .hospital-name {
     font-weight: 500;
     color: #1a1d2e;
     display: block;
-    font-size: 0.88rem;
+    font-size: 0.875rem;
   }
 
   .hospital-location {
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     color: #8890b0;
-    margin-top: 0.1rem;
+    margin-top: 0.15rem;
     display: block;
   }
 
-  /* Status badges */
+  /* Badges */
   .badge {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    font-family: 'Syne', sans-serif;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 0.3rem 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0.3rem 0.8rem;
     border-radius: 100px;
   }
 
   .badge-dot {
-    width: 6px;
-    height: 6px;
+    width: 6px; height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
   }
 
-  .badge-pending {
-    background: #fff8e6;
-    color: #b07c00;
-    border: 1px solid #f5d780;
-  }
+  .badge-pending  { background: #fff8e6; color: #b07c00; border: 1px solid #f5d780; }
   .badge-pending .badge-dot { background: #f0b429; }
 
-  .badge-accepted {
-    background: #e8faf0;
-    color: #1a7a45;
-    border: 1px solid #86e0b0;
-  }
+  .badge-accepted { background: #e8faf0; color: #1a7a45; border: 1px solid #86e0b0; }
   .badge-accepted .badge-dot { background: #22c55e; }
 
-  .badge-rejected {
-    background: #fff0f0;
-    color: #b02020;
-    border: 1px solid #f0a0a0;
-  }
+  .badge-rejected { background: #fff0f0; color: #b02020; border: 1px solid #f0a0a0; }
   .badge-rejected .badge-dot { background: #ef4444; }
 
-  /* Action buttons */
-  .action-group {
-    display: flex;
-    gap: 0.5rem;
-  }
+  /* Buttons */
+  .action-group { display: flex; gap: 0.5rem; }
 
   .btn {
-    font-family: 'Syne', sans-serif;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 0.45rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.42rem 1.1rem;
     border-radius: 8px;
     border: none;
     cursor: pointer;
     transition: all 0.18s ease;
     outline: none;
+    letter-spacing: 0.02em;
   }
 
   .btn-accept {
-    background: #1a7a45;
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
     color: #fff;
-    box-shadow: 0 2px 8px rgba(26, 122, 69, 0.25);
+    box-shadow: 0 2px 8px rgba(17, 153, 142, 0.3);
   }
   .btn-accept:hover {
-    background: #155e35;
-    box-shadow: 0 4px 14px rgba(26, 122, 69, 0.35);
+    box-shadow: 0 4px 14px rgba(17, 153, 142, 0.45);
     transform: translateY(-1px);
   }
   .btn-accept:active { transform: translateY(0); }
@@ -222,7 +272,6 @@ const styles = `
     background: #fff0f0;
     color: #b02020;
     border: 1px solid #f0a0a0;
-    box-shadow: none;
   }
   .btn-reject:hover {
     background: #ffe0e0;
@@ -231,71 +280,49 @@ const styles = `
   }
   .btn-reject:active { transform: translateY(0); }
 
-  /* Empty state */
-  .empty-state {
-    text-align: center;
-    padding: 5rem 2rem;
-  }
-
+  /* States */
+  .empty-state { text-align: center; padding: 5rem 2rem; }
   .empty-icon {
-    width: 64px;
-    height: 64px;
-    background: #f0f2f5;
+    width: 64px; height: 64px;
+    background: #f0f2f8;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.5rem;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.25rem;
     font-size: 1.6rem;
   }
+  .empty-title { font-size: 1rem; font-weight: 700; color: #1a1d2e; margin: 0 0 0.4rem; }
+  .empty-sub   { font-size: 0.84rem; color: #8890b0; margin: 0; }
 
-  .empty-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #1a1d2e;
-    margin: 0 0 0.4rem;
-  }
-
-  .empty-sub {
-    font-size: 0.85rem;
-    color: #8890b0;
-    margin: 0;
-  }
-
-  /* Loading state */
   .loading-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 5rem 2rem;
-    color: #8890b0;
-    font-size: 0.88rem;
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.75rem; padding: 5rem 2rem;
+    color: #8890b0; font-size: 0.875rem;
   }
 
   .spinner {
-    width: 18px;
-    height: 18px;
+    width: 18px; height: 18px;
     border: 2px solid #e0e2ef;
-    border-top-color: #6b7ae8;
+    border-top-color: #667eea;
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
   }
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 900px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 640px) {
     .schedule-root { padding: 1.25rem; }
-    .schedule-title { font-size: 1.5rem; }
+    .schedule-title { font-size: 1.4rem; }
+    .stats-row { grid-template-columns: 1fr; }
     .schedule-table thead { display: none; }
     .schedule-table tbody tr {
       display: block;
-      padding: 1rem;
+      padding: 1rem 1.2rem;
       margin-bottom: 0.75rem;
-      border-radius: 12px;
+      border-radius: 14px;
       background: #fff;
       box-shadow: 0 2px 10px rgba(26,29,46,0.07);
       border: none;
@@ -310,7 +337,6 @@ const styles = `
     }
     .schedule-table tbody td::before {
       content: attr(data-label);
-      font-family: 'Syne', sans-serif;
       font-size: 0.65rem;
       font-weight: 700;
       letter-spacing: 0.1em;
@@ -368,46 +394,69 @@ export default function SchedulePage() {
     }
   };
 
-  const pendingCount = schedules.filter((s) => s.status === "PENDING").length;
+  const pendingCount  = schedules.filter((s) => s.status === "PENDING").length;
+  const acceptedCount = schedules.filter((s) => s.status === "ACCEPTED").length;
 
   return (
     <>
       <style>{styles}</style>
 
       <div className="schedule-root">
+
+        {/* Header */}
         <div className="schedule-header">
-          <div className="schedule-title-block">
-            <p className="schedule-eyebrow">Doctor Portal</p>
-            <h1 className="schedule-title">My Schedules</h1>
-          </div>
-          {!loading && schedules.length > 0 && (
-            <span className="schedule-count-badge">
-              {pendingCount > 0
-                ? `${pendingCount} Pending`
-                : `${schedules.length} Total`}
-            </span>
-          )}
+          <p className="schedule-greeting">Doctor Portal</p>
+          <h1 className="schedule-title">My Schedule</h1>
+          <p className="schedule-subtitle">Manage and review your assigned hospital shifts</p>
         </div>
 
-        {loading ? (
-          <div className="schedule-card">
+        {/* Stat Cards */}
+        {!loading && schedules.length > 0 && (
+          <div className="stats-row">
+            <div className="stat-card stat-card-blue">
+              <div className="stat-icon">📅</div>
+              <div className="stat-label">Total Schedules</div>
+              <div className="stat-value">{schedules.length}</div>
+              <div className="stat-sub">All assigned shifts</div>
+            </div>
+            <div className="stat-card stat-card-teal">
+              <div className="stat-icon">✅</div>
+              <div className="stat-label">Accepted</div>
+              <div className="stat-value">{acceptedCount}</div>
+              <div className="stat-sub">Confirmed shifts</div>
+            </div>
+            <div className="stat-card stat-card-orange">
+              <div className="stat-icon">⏳</div>
+              <div className="stat-label">Pending</div>
+              <div className="stat-value">{pendingCount}</div>
+              <div className="stat-sub">Awaiting your response</div>
+            </div>
+          </div>
+        )}
+
+        {/* Table Card */}
+        <div className="schedule-card">
+          <div className="card-header">
+            <h2 className="card-title">Schedule Overview</h2>
+            {!loading && schedules.length > 0 && (
+              <span className="card-badge">
+                {pendingCount > 0 ? `${pendingCount} Pending` : `${schedules.length} Total`}
+              </span>
+            )}
+          </div>
+
+          {loading ? (
             <div className="loading-state">
               <div className="spinner" />
               Loading schedules…
             </div>
-          </div>
-        ) : schedules.length === 0 ? (
-          <div className="schedule-card">
+          ) : schedules.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon">📅</div>
               <p className="empty-title">No schedules yet</p>
-              <p className="empty-sub">
-                Schedules assigned to you will appear here.
-              </p>
+              <p className="empty-sub">Schedules assigned to you will appear here.</p>
             </div>
-          </div>
-        ) : (
-          <div className="schedule-card">
+          ) : (
             <table className="schedule-table">
               <thead>
                 <tr>
@@ -449,20 +498,17 @@ export default function SchedulePage() {
                       <td data-label="Status">
                         {s.status === "PENDING" && (
                           <span className="badge badge-pending">
-                            <span className="badge-dot" />
-                            Pending
+                            <span className="badge-dot" /> Pending
                           </span>
                         )}
                         {s.status === "ACCEPTED" && (
                           <span className="badge badge-accepted">
-                            <span className="badge-dot" />
-                            Accepted
+                            <span className="badge-dot" /> Accepted
                           </span>
                         )}
                         {s.status === "REJECTED" && (
                           <span className="badge badge-rejected">
-                            <span className="badge-dot" />
-                            Rejected
+                            <span className="badge-dot" /> Rejected
                           </span>
                         )}
                       </td>
@@ -490,8 +536,8 @@ export default function SchedulePage() {
                 })}
               </tbody>
             </table>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </>
   );
