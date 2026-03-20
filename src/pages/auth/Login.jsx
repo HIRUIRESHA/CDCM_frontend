@@ -47,14 +47,25 @@ const Login = () => {
     setIsSubmitting(true);
     
     const result = await login(formData.email.trim(), formData.password);
+if (result.success) {
 
-    if (result.success) {
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (user.role === 'ADMIN') navigate('/admin/dashboard');
-      else if (user.role === 'HOSPITAL') navigate('/hospital/dashboard');
-      else if (user.role === 'DOCTOR') navigate('/doctor/dashboard');
-      else navigate('/patient/dashboard');
-    } else {
+  const user = JSON.parse(localStorage.getItem('user'));
+
+  if (user.role === "HOSPITAL") {
+    localStorage.setItem(
+      "hospital",
+      JSON.stringify({
+        id: user.id,
+        name: user.name
+      })
+    );
+  }
+
+  if (user.role === 'ADMIN') navigate('/admin/dashboard');
+  else if (user.role === 'HOSPITAL') navigate('/hospital/dashboard');
+  else if (user.role === 'DOCTOR') navigate('/doctor/dashboard');
+  else navigate('/patient/dashboard');
+} else {
       setError(result.message);
       setIsSubmitting(false);
     }

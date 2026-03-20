@@ -31,6 +31,14 @@ import ResetPassword from "./pages/public/ResetPassword";
 import HospitalDashboard from './pages/hospital/HospitalDashboard';
 import AssignedDoctors from './pages/hospital/AssignedDoctors';
 import AssignDoctor from './pages/hospital/AssignDoctor';
+import Appointment from './pages/hospital/Appointment';
+import Analytics from './pages/hospital/Analytics';
+import Emergency from './pages/hospital/Emergency';
+import Laboratory from './pages/hospital/Laboratory';
+import Notifications from './pages/hospital/Notifications';
+import PatientManagement from './pages/hospital/PatientManagement';
+import Schedule from './pages/hospital/Schedule';
+import AddSchedule from './pages/hospital/AddSchedule';
 
 import DoctorManagement from './pages/hospital/DoctorManagement';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -99,6 +107,14 @@ function App() {
               <Route path="assigned-doctors" element={<AssignedDoctors />} />
               <Route path="assign-doctor" element={<AssignDoctor />} />
               <Route path="staff" element={<Placeholder title="Manage Staff" />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="appointment" element={<Appointment />} />
+              <Route path="emergency" element={<Emergency />} />
+              <Route path="laboratory" element={<Laboratory />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="patient-management" element={<PatientManagement />} />
+              <Route path="schedule" element={<Schedule />} />
+            <Route path="schedule/add" element={<AddSchedule />} />
             </Route>
 
            <Route path="doctor">

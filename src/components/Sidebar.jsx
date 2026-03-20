@@ -128,6 +128,7 @@ export const HospitalSidebar = () => {
             <SidebarLink to="/hospital/emergency" icon={<AlertCircle size={20} />} label="Emergency" />
             <SidebarLink to="/hospital/analytics" icon={<BarChart3 size={20} />} label="Analytics" />
             <SidebarLink to="/hospital/notifications" icon={<Bell size={20} />} label="Notifications" />
+             <SidebarLink to="/hospital/schedule" icon={<Bell size={20} />} label="Schedule" />
         </SidebarContainer>
     );
 };
