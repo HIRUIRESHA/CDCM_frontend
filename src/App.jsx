@@ -20,6 +20,7 @@ import PatientAppointments from './pages/patient/Appointment';
 import MedicalHistory from './pages/patient/MedicalHistory';
 import Messages from './pages/patient/Messages';
 import MyDoctors from './pages/patient/MyDoctors';
+import DoctorFeedback from './pages/patient/DoctorFeedback';
 import Notification from './pages/patient/Notification';
 import Payment from './pages/patient/Payment';
 import Reports from './pages/patient/Reports';
@@ -93,6 +94,7 @@ function App() {
              <Route path="medical-history" element={<MedicalHistory />} />
              <Route path="messages" element={<Messages />} />
              <Route path="my-doctors" element={<MyDoctors />} />
+             <Route path="add-feedback" element={<DoctorFeedback />} />
              <Route path="notifications" element={<Notification />} />  
              <Route path="reports" element={<Reports />} />
              <Route path="settings" element={<Settings />} />

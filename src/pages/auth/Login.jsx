@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom'; // ✅ Added useLocation
 import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -11,13 +11,16 @@ const Login = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ Hook to read route state
+
+  // ✅ Check if we were redirected from another page (like /find-doctor)
+  const from = location.state?.from || null;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError(''); // Clear error when typing
+    setError(''); 
   };
 
-  // ========== VALIDATION FUNCTION ==========
   const validateForm = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const minPasswordLength = 8;
@@ -30,14 +33,12 @@ const Login = () => {
       return `Password must be at least ${minPasswordLength} characters`;
     }
 
-    return null; // No errors
+    return null; 
   };
-  // ========================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Frontend validation
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -47,25 +48,35 @@ const Login = () => {
     setIsSubmitting(true);
     
     const result = await login(formData.email.trim(), formData.password);
-if (result.success) {
+    
+    if (result.success) {
+      const user = JSON.parse(localStorage.getItem('user'));
 
-  const user = JSON.parse(localStorage.getItem('user'));
+      if (user.role === "HOSPITAL") {
+        localStorage.setItem(
+          "hospital",
+          JSON.stringify({
+            id: user.id,
+            name: user.name
+          })
+        );
+      }
 
-  if (user.role === "HOSPITAL") {
-    localStorage.setItem(
-      "hospital",
-      JSON.stringify({
-        id: user.id,
-        name: user.name
-      })
-    );
-  }
-
-  if (user.role === 'ADMIN') navigate('/admin/dashboard');
-  else if (user.role === 'HOSPITAL') navigate('/hospital/dashboard');
-  else if (user.role === 'DOCTOR') navigate('/doctor/dashboard');
-  else navigate('/patient/dashboard');
-} else {
+      if (user.role === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else if (user.role === 'HOSPITAL') {
+        navigate('/hospital/dashboard');
+      } else if (user.role === 'DOCTOR') {
+        navigate('/doctor/dashboard');
+      } else {
+        // ✅ PATIENT ROUTING: Go back to where they came from, or default to dashboard
+        if (from) {
+          navigate(from);
+        } else {
+          navigate('/patient/dashboard');
+        }
+      }
+    } else {
       setError(result.message);
       setIsSubmitting(false);
     }
@@ -81,7 +92,9 @@ if (result.success) {
             <LogIn size={24} />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="text-gray-500 text-sm mt-2">Sign in to access your dashboard</p>
+          <p className="text-gray-500 text-sm mt-2">
+            {from ? "Sign in to continue booking" : "Sign in to access your dashboard"}
+          </p>
         </div>
 
         {/* Error Message */}

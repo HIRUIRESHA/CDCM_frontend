@@ -92,7 +92,7 @@ export const PatientSidebar = () => {
         <SidebarLink to="/patient/dashboard" icon={<LayoutDashboard size={20} />} label="Dashboard" />
         <SidebarLink to="/patient/appointments" icon={<Calendar size={20} />} label="My Appointment" />
         <SidebarLink to="/patient/medical-history" icon={<FileText size={20} />} label="Medical History" />
-        <SidebarLink to="/patient/doctors" icon={<UserCog size={20} />} label="My Doctors" />
+        <SidebarLink to="/patient/my-doctors" icon={<UserCog size={20} />} label="My Doctors" />
         <SidebarLink to="/patient/reports" icon={<FileBarChart size={20} />} label="Reports" />
         <SidebarLink to="/patient/messages" icon={<MessageSquare size={20} />} label="Messages" />
         <SidebarLink to="/patient/notifications" icon={<Bell size={20} />} label="Notification" />
