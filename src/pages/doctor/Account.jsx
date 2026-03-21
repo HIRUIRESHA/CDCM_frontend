@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { ChevronDown, ChevronUp, Edit, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Edit, Trash2, Star } from "lucide-react"; // Added Star icon
 import { useAuth } from "../../context/AuthContext";
 
 const DoctorAccountPage = () => {
@@ -13,6 +13,7 @@ const DoctorAccountPage = () => {
   const [qualificationsOpen, setQualificationsOpen] = useState(true);
   const [experienceOpen, setExperienceOpen] = useState(true);
   const [hospitalsOpen, setHospitalsOpen] = useState(true);
+  const [feedbackOpen, setFeedbackOpen] = useState(true); // State for feedback section
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -20,16 +21,16 @@ const DoctorAccountPage = () => {
   const [doctorInfo, setDoctorInfo] = useState({
     name: "",
     profileImage: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-    specialty: "", // This will be auto-updated from registration data
+    specialty: "",
     qualifications: [],
     experience: "",
     hospitals: [], 
   });
 
   const [allHospitals, setAllHospitals] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]); // State to store patient feedback
   const [isEditing, setIsEditing] = useState(false);
 
-  // Specialty removed from formData as it's now auto-updated
   const [formData, setFormData] = useState({
     qualificationsText: "",
     experience: "",
@@ -74,10 +75,12 @@ const DoctorAccountPage = () => {
       try {
         setLoading(true);
         
-        const [accountRes, profileRes, hospListRes] = await Promise.all([
+        // Added the fetch call for feedback assuming you have this endpoint
+        const [accountRes, profileRes, hospListRes, feedbackRes] = await Promise.all([
           fetch(`http://localhost:8082/api/auth/doctors/${doctorId}/account`),
           fetch(`http://localhost:8082/api/auth/doctors/${doctorId}`),
-          fetch(`http://localhost:8082/api/hospital/doctors/all-hospitals`)
+          fetch(`http://localhost:8082/api/hospital/doctors/all-hospitals`),
+          fetch(`http://localhost:8082/api/feedback/doctor/${doctorId}`) // 👈 New Feedback Fetch
         ]);
 
         if (!accountRes.ok || !profileRes.ok || !hospListRes.ok) throw new Error("Failed to fetch data");
@@ -85,20 +88,24 @@ const DoctorAccountPage = () => {
         const accountData = await accountRes.json();
         const profileData = await profileRes.json();
         const hospListData = await hospListRes.json();
+        
+        // Handle feedback data gracefully if the endpoint doesn't exist yet
+        let feedbackData = [];
+        if (feedbackRes.ok) {
+           feedbackData = await feedbackRes.json();
+        }
 
         setAllHospitals(hospListData);
+        setFeedbacks(feedbackData);
 
-       const combinedData = {
-  name: `${profileData.title} ${profileData.firstName} ${profileData.lastName}`,
-  profileImage: profileData.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-  
-  // FIX: Change profileData.specialty to profileData.specialization
-  specialty: profileData.specialization || "Specialty not assigned", 
-  
-  qualifications: Array.isArray(accountData.qualifications) ? accountData.qualifications : [],
-  experience: accountData.experience || "",
-  hospitals: Array.isArray(accountData.hospitals) ? accountData.hospitals : [],
-};
+        const combinedData = {
+          name: `${profileData.title} ${profileData.firstName} ${profileData.lastName}`,
+          profileImage: profileData.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+          specialty: profileData.specialization || "Specialty not assigned", 
+          qualifications: Array.isArray(accountData.qualifications) ? accountData.qualifications : [],
+          experience: accountData.experience || "",
+          hospitals: Array.isArray(accountData.hospitals) ? accountData.hospitals : [],
+        };
 
         setDoctorInfo(combinedData);
 
@@ -120,7 +127,6 @@ const DoctorAccountPage = () => {
   const handleSaveAccount = async () => {
     if (!isOwnProfile) return;
 
-    // Specialty is excluded from payload to prevent manual overrides
     const payload = {
       qualifications: linesToArray(formData.qualificationsText),
       experience: formData.experience.trim(),
@@ -164,6 +170,17 @@ const DoctorAccountPage = () => {
       )}
     </div>
   );
+
+  // Helper function to render stars
+  const renderStars = (rating) => {
+    return (
+      <div className="flex text-yellow-400">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star key={star} size={16} fill={star <= rating ? "currentColor" : "none"} strokeWidth={1.5} />
+        ))}
+      </div>
+    );
+  };
 
   if (loading) return <div className="p-10 text-center">Loading Profile...</div>;
 
@@ -228,6 +245,25 @@ const DoctorAccountPage = () => {
                 )}
               </CollapsibleSection>
 
+              {/* NEW FEEDBACK SECTION */}
+              <CollapsibleSection title="Patient Feedback" isOpen={feedbackOpen} setIsOpen={setFeedbackOpen}>
+                {feedbacks.length > 0 ? (
+                  <div className="space-y-4">
+                    {feedbacks.map((fb, index) => (
+                      <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-gray-700">Patient Review</span>
+                          {renderStars(fb.rating)}
+                        </div>
+                        <p className="text-sm text-gray-600 italic">"{fb.comment}"</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No feedback received yet.</p>
+                )}
+              </CollapsibleSection>
+
               {isOwnProfile && (
                 <div className="mt-8 flex gap-4">
                   <button onClick={() => setIsEditing(true)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors">
@@ -243,9 +279,9 @@ const DoctorAccountPage = () => {
         </div>
       </div>
 
+      {/* Edit Modal Logic Remains the same... */}
       <Modal isOpen={isEditing} title="Update Account Details" onClose={resetFormAndClose}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Specialty Label is removed from Modal for automatic synchronization */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700">Qualifications (one per line)</label>
             <textarea rows={5} value={formData.qualificationsText} onChange={(e) => setFormData(p => ({ ...p, qualificationsText: e.target.value }))} className="mt-1 block w-full border border-gray-300 rounded p-2" />
