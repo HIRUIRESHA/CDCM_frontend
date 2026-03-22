@@ -25,20 +25,28 @@ export default function AddSchedulePage() {
 
   useEffect(() => {
     const loadDoctors = async () => {
+      if (!hospitalId) {
+        setError("Hospital not found. Please log in again.");
+        setLoadingDoctors(false);
+        return;
+      }
+
       try {
+        // Fetch doctors assigned to this hospital
         const res = await axios.get(
-          "http://localhost:8082/api/hospital/doctors/search?keyword="
+          `http://localhost:8082/api/hospital/doctors/hospital/${hospitalId}`
         );
         setDoctors(res.data);
       } catch (err) {
         console.error(err);
+        setError("Failed to load doctors");
       } finally {
         setLoadingDoctors(false);
       }
     };
 
     loadDoctors();
-  }, []);
+  }, [hospitalId]);
 
   // ----------------- Handle input changes -----------------
   const handleChange = (e) => {
