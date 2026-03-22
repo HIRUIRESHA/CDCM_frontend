@@ -67,13 +67,14 @@ export const AuthProvider = ({ children }) => {
           }
         }
 
-      const userData = {
-        id: data.userId,
-        email,
-        role: data.role,
-        name: data.name || email.split('@')[0],
-        profileImage, // ✅ now sidebar has it after login
-      };
+        // Build user object
+        const userData = {
+          id: data.userId,
+          email,
+          role: data.role,
+          name: profile?.name || data.name || email.split('@')[0],
+          profileImage: profile?.profileImage || null,
+        };
 
         // Update state and localStorage
         setUser(userData);
