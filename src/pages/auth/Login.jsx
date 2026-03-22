@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom'; // ✅ Added useLocation
+import { Link, useNavigate, useLocation } from 'react-router-dom'; // Added useLocation
 import { Mail, Lock, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -11,9 +11,9 @@ const Login = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation(); // ✅ Hook to read route state
+  const location = useLocation(); // Hook to read route state
 
-  // ✅ Check if we were redirected from another page (like /find-doctor)
+  // Check if we were redirected from another page (like /find-doctor)
   const from = location.state?.from || null;
 
   const handleChange = (e) => {
@@ -69,7 +69,7 @@ const Login = () => {
       } else if (user.role === 'DOCTOR') {
         navigate('/doctor/dashboard');
       } else {
-        // ✅ PATIENT ROUTING: Go back to where they came from, or default to dashboard
+        // PATIENT ROUTING: Go back to where they came from, or default to dashboard
         if (from) {
           navigate(from);
         } else {

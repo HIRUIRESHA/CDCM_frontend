@@ -29,6 +29,7 @@ import ForgotPassword from "./pages/public/ForgotPassword";
 import ResetPassword from "./pages/public/ResetPassword";
 
 
+
 import HospitalDashboard from './pages/hospital/HospitalDashboard';
 import AssignedDoctors from './pages/hospital/AssignedDoctors';
 import AssignDoctor from './pages/hospital/AssignDoctor';
@@ -40,6 +41,7 @@ import Notifications from './pages/hospital/Notifications';
 import PatientManagement from './pages/hospital/PatientManagement';
 import Schedule from './pages/hospital/Schedule';
 import AddSchedule from './pages/hospital/AddSchedule';
+import UploadReport from './pages/hospital/UploadReport';
 
 import DoctorManagement from './pages/hospital/DoctorManagement';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -54,6 +56,7 @@ import AddHospital from './pages/admin/AddHospital';
 import ManageHospitals from './pages/admin/ManageHospitals';
 import ManageDoctors from './pages/admin/ManageDoctors';
 import ManagePatients from './pages/admin/ManagePatients';
+
 
 // Placeholder for missing pages
 const Placeholder = ({ title }) => <h1 className="text-2xl p-4">{title} Page</h1>;
@@ -74,6 +77,7 @@ function App() {
              <Route path="/forgot-password" element={<ForgotPassword />} />
              <Route path="/reset-password/:token" element={<ResetPassword />} />
              <Route path="/doctor/account/:id" element={<DoctorAccountPage />} />
+             <Route path="/upload-report/:id" element={<UploadReport />} />
 
           </Route>
 

@@ -67,7 +67,7 @@ const login = async (email, password) => {
         email,
         role: data.role,
         name: data.name || email.split('@')[0],
-        profileImage, // ✅ now sidebar has it after login
+        profileImage, // now sidebar has it after login
       };
 
       setUser(userData);
