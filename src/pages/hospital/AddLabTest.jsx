@@ -16,12 +16,10 @@ export default function AddLabTest({ onBack }) {
   const [patients, setPatients] = useState([]);
   const [categories, setCategories] = useState([]);
   const [labTests, setLabTests] = useState([]);
-  
-  // New States for Search and Filter
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
-  // New States for Searchable Selection in Form
   const [patientSearch, setPatientSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
   const [showPatientList, setShowPatientList] = useState(false);
@@ -54,12 +52,12 @@ export default function AddLabTest({ onBack }) {
     setCategories(res.data);
   };
 
+  
   const loadLabTests = async () => {
-    const res = await getAllLabTests();
+    const res = await getAllLabTests(hospitalId);
     setLabTests(res.data);
   };
 
-  // Search logic for Patient selection
   const selectPatient = (p) => {
     setForm({
       ...form,
@@ -72,7 +70,6 @@ export default function AddLabTest({ onBack }) {
     setShowPatientList(false);
   };
 
-  // Search logic for Category selection
   const selectCategory = (c) => {
     setForm({
       ...form,
@@ -97,7 +94,8 @@ export default function AddLabTest({ onBack }) {
       price: form.price,
       testDate: form.testDate,
       requestedDate: form.requestedDate,
-      status: "Pending"
+      status: "Pending",
+      hospitalId: hospitalId
     });
 
     setForm({
@@ -110,6 +108,7 @@ export default function AddLabTest({ onBack }) {
       testDate: "",
       requestedDate: ""
     });
+
     setPatientSearch("");
     setCategorySearch("");
 
@@ -118,7 +117,10 @@ export default function AddLabTest({ onBack }) {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      setLabTests(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
+      setLabTests(prev =>
+        prev.map(t => (t.id === id ? { ...t, status: newStatus } : t))
+      );
+
       await updateLabTest(id, { status: newStatus });
     } catch (error) {
       loadLabTests();
@@ -133,7 +135,7 @@ export default function AddLabTest({ onBack }) {
   };
 
   const getPatient = (id) => {
-    return patients.find(p => p.id == id);
+    return patients.find(p => p.id === id);
   };
 
   const counts = {
@@ -143,20 +145,25 @@ export default function AddLabTest({ onBack }) {
     completed: labTests.filter(t => t.status === "Completed").length,
   };
 
+  
   const filteredTests = labTests.filter(t => {
     const p = getPatient(t.patientId);
-    const matchesSearch = 
-      p?.firstName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      p?.lastName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      t.testType.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "All" || t.status === statusFilter;
-    
+
+    const matchesSearch =
+      (p?.firstName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (p?.lastName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (t?.testType?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "All" || t.status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
 
   return (
     <div className="min-h-screen bg-[#F1F5F9] pb-20 font-sans">
+
+      
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-600"> ← </button>
@@ -172,7 +179,7 @@ export default function AddLabTest({ onBack }) {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 mt-8 flex flex-col gap-8">
-        {/* FORM SECTION */}
+        
         <div className="w-full">
           <div className="bg-white p-8 rounded-3xl shadow-xl">
             <h3 className="text-xl font-bold mb-6 text-slate-800 border-l-4 border-blue-600 pl-4">Add New Test Request</h3>
@@ -267,7 +274,7 @@ export default function AddLabTest({ onBack }) {
           </div>
         </div>
 
-        {/* TABLE SECTION */}
+
         <div className="w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
           <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center bg-slate-50/50 gap-4">
               <div className="flex gap-2">

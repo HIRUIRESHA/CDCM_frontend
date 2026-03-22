@@ -7,7 +7,7 @@ import {
   getAllLabTests
 } from "../../api/labApi";
 
-// IMPORT YOUR LOCAL IMAGE HERE
+
 import labBackground from "../../assets/lab.jpg"; 
 
 import TestCategory from "./TestCategory";
@@ -89,12 +89,12 @@ export default function Laboratory() {
           backgroundImage: `url(${labBackground})` 
         }}
       >
-        {/* Modern Dark Overlay with Blur */}
+       
         <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px]"></div>
 
         <div className="relative z-10 w-full max-w-4xl text-center px-2">
           
-          {/* TIME & DATE SECTION - SMALLER */}
+          {/*  time & date section */}
           <div className="mb-6 animate-in fade-in zoom-in duration-700">
             <h2 className="text-5xl font-black text-white tracking-tighter drop-shadow-2xl mb-1">
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -108,7 +108,7 @@ export default function Laboratory() {
             </div>
           </div>
 
-          {/* MAIN CONTAINER - SMALLER PADDING/ROUNDING */}
+          
           <div className="bg-white/5 backdrop-blur-3xl border border-white/10 p-8 md:p-12 rounded-[40px] shadow-2xl ring-1 ring-white/20">
             <div className="inline-flex p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl mb-4 border border-blue-400/30 shadow-inner">
               <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,7 +120,7 @@ export default function Laboratory() {
               Laboratory <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Portal</span>
             </h1>
 
-            {/* ACTION BUTTONS - SMALLER PADDING/TEXT */}
+            
             <div className="flex flex-col md:flex-row gap-4 justify-center mb-10">
               <button
                 onClick={() => setView("manage")}
@@ -139,7 +139,7 @@ export default function Laboratory() {
               </button>
             </div>
 
-            {/* ANALYTICS GRID - COMPACT */}
+           
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-6 border-t border-white/10">
               <StatCard label="Categories" value={tests.length} color="border-blue-500/30" />
               <StatCard label="Pending" value={testCounts.pending} color="border-amber-500/30" dot="bg-amber-500 animate-pulse" />

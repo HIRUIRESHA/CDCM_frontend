@@ -15,7 +15,7 @@ const TestCategory = ({
   return (
     <div className="min-h-screen bg-[#F1F5F9] pb-20 font-sans">
 
-      {/* HEADER */}
+      
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <button
@@ -36,17 +36,15 @@ const TestCategory = ({
         </div>
       </div>
 
-      {/* BODY */}
-      {/* Increased gap from 10 to 16 for more space between Form and Table */}
+     
       <div className="max-w-7xl mx-auto px-6 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-16">
-        {/* FORM */}
+        {/* form */}
         <div className="lg:col-span-4">
           <div className="bg-white p-8 rounded-3xl shadow-xl ">
             <h3 className="text-xl font-bold mb-6">
               {editId ? "Update Test" : "Add New Test"}
             </h3>
 
-            {/* TEST NAME */}
             <input
               value={form.testName}
               onChange={(e) =>
@@ -56,7 +54,7 @@ const TestCategory = ({
               className="w-full mb-4 p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
             />
 
-            {/* PRICE */}
+            {/* price */}
             <input
               type="number"
               value={form.price}
@@ -67,7 +65,7 @@ const TestCategory = ({
               className="w-full mb-6 p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
             />
 
-            {/* SAVE/UPDATE BUTTON */}
+            
             <button
               onClick={handleSave}
               className={`w-full py-3 rounded-xl font-bold text-white transition-all shadow-md active:scale-95 ${
@@ -79,7 +77,6 @@ const TestCategory = ({
               {editId ? "Update Test" : "Save Test"}
             </button>
 
-            {/* CANCEL BUTTON - Updated with styling */}
             {editId && (
               <button
                 onClick={() => {
@@ -94,7 +91,7 @@ const TestCategory = ({
           </div>
         </div>
 
-        {/* TABLE */}
+      
         <div className="lg:col-span-8 bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
           <table className="w-full">
             <thead className="bg-slate-50">
