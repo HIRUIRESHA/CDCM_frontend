@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { uploadLabReport, getAllLabTests, getPatients, addLabTest } from "../../api/labApi";
+import { uploadLabReport, getAllLabTests, getPatients } from "../../api/labApi";
 
 export default function UploadReport() {
   const { id } = useParams();
@@ -36,6 +36,13 @@ export default function UploadReport() {
   }, [id]);
 
   const handleSubmit = async () => {
+
+    // 🔒 FRONTEND PAYMENT CHECK
+    if (!testData?.isPaid) {
+      alert("Payment required before uploading report");
+      return;
+    }
+
     setUploading(true);
 
     let reportData = {
@@ -62,7 +69,6 @@ export default function UploadReport() {
         reportData.reportUrl = data.secure_url;
       }
 
-      // Sends only reportText and reportUrl to the backend
       await uploadLabReport(id, reportData);
 
       alert(
@@ -74,8 +80,9 @@ export default function UploadReport() {
       navigate(-1);
     } catch (error) {
       console.error("Upload failed", error);
-      
-      const errorMessage = error.response?.data || "Upload failed. Please try again.";
+
+      const errorMessage =
+        error.response?.data || "Upload failed. Please try again.";
       alert(errorMessage);
     } finally {
       setUploading(false);
@@ -84,7 +91,7 @@ export default function UploadReport() {
 
   return (
     <div className="min-h-screen bg-[#F1F5F9] pb-20 font-sans">
-      
+
       {/* header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -104,20 +111,34 @@ export default function UploadReport() {
             </p>
           </div>
 
-          <div
-            className={`px-4 py-1 rounded-full text-xs font-bold border ${
-              testData?.status === "Completed"
-                ? "bg-green-50 text-green-600 border-green-200"
-                : "bg-amber-50 text-amber-600 border-amber-200"
-            }`}
-          >
-            {testData?.status || "Loading..."}
+          <div className="flex flex-col items-end gap-1">
+            <div
+              className={`px-4 py-1 rounded-full text-xs font-bold border ${
+                testData?.status === "Completed"
+                  ? "bg-green-50 text-green-600 border-green-200"
+                  : "bg-amber-50 text-amber-600 border-amber-200"
+              }`}
+            >
+              {testData?.status || "Loading..."}
+            </div>
+
+            {/* 💰 PAYMENT STATUS */}
+            <div
+              className={`px-3 py-1 rounded-full text-[10px] font-bold ${
+                testData?.isPaid
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-600"
+              }`}
+            >
+              {testData?.isPaid ? "Paid" : "Unpaid"}
+            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-6 mt-10 grid grid-cols-1 md:grid-cols-12 gap-8">
-        
+
+        {/* LEFT SIDE */}
         <div className="md:col-span-5 space-y-6">
           <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">
@@ -182,65 +203,43 @@ export default function UploadReport() {
           </div>
         </div>
 
+        {/* RIGHT SIDE */}
         <div className="md:col-span-7">
           <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
+
+            {/* 🔴 PAYMENT WARNING */}
+            {!testData?.isPaid && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-semibold">
+                ⚠ Payment required before uploading report
+              </div>
+            )}
+
             <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
               <span className="w-2 h-6 bg-green-500 rounded-full"></span>
               {existingUrl || text ? "Edit Findings" : "Upload Final Findings"}
             </h3>
 
             <div className="space-y-6">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
-                  Medical Observations
-                </label>
-                <textarea
-                  placeholder="Enter detailed test results, observations, or doctor's notes here..."
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  className="w-full min-h-[200px] p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all resize-none bg-slate-50/50"
-                />
-              </div>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                className="w-full min-h-[200px] p-4 border rounded-2xl"
+              />
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-2 ml-1">
-                  {existingUrl ? "Replace Attachment (Optional)" : "Attachment (PDF/Image)"}
-                </label>
-
-                <div className="relative group">
-                  <input
-                    type="file"
-                    onChange={(e) => setFile(e.target.files[0])}
-                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer border border-dashed border-slate-300 p-2 rounded-2xl group-hover:border-blue-400 transition-colors"
-                  />
-                </div>
-
-                <p className="text-[10px] text-slate-400 mt-2 ml-1 italic">
-                  *Supported formats: PDF, JPG, PNG (Max 5MB)
-                </p>
-              </div>
+              <input type="file" onChange={(e) => setFile(e.target.files[0])} />
 
               <button
                 onClick={handleSubmit}
-                disabled={uploading}
-                className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-all active:scale-[0.98] flex justify-center items-center gap-3 ${
-                  uploading
-                    ? "bg-slate-400 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-700 shadow-green-200"
+                disabled={uploading || !testData?.isPaid}
+                className={`w-full py-4 rounded-2xl font-bold text-white ${
+                  uploading || !testData?.isPaid
+                    ? "bg-slate-400"
+                    : "bg-green-600 hover:bg-green-700"
                 }`}
               >
-                {uploading ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Processing...
-                  </>
-                ) : (
-                  existingUrl || text ? "Update Report" : "Finalize & Upload Report"
-                )}
+                {uploading ? "Processing..." : "Upload Report"}
               </button>
+
             </div>
           </div>
         </div>
