@@ -42,6 +42,7 @@ import PatientManagement from './pages/hospital/PatientManagement';
 import Schedule from './pages/hospital/Schedule';
 import AddSchedule from './pages/hospital/AddSchedule';
 import UploadReport from './pages/hospital/UploadReport';
+import AddLabTest from './pages/hospital/AddLabTest';
 
 import DoctorManagement from './pages/hospital/DoctorManagement';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -121,6 +122,8 @@ function App() {
               <Route path="patient-management" element={<PatientManagement />} />
               <Route path="schedule" element={<Schedule />} />
             <Route path="schedule/add" element={<AddSchedule />} />
+            <Route path="addLabTest" element={<AddLabTest />} />
+            <Route path="upload-report/:id" element={<UploadReport />} />
             </Route>
 
            <Route path="doctor">
