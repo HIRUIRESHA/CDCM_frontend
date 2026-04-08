@@ -1,7 +1,5 @@
-// src/api/notificationApi.js
 import api from "./api"; 
 
-// Change this to match @RequestMapping("/api/notifications") in Java
 const BASE_URL = "/api/notifications"; 
 
 export const getNotifications = (userId) => {

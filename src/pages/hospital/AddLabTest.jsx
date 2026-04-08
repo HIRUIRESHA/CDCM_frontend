@@ -166,7 +166,12 @@ export default function AddLabTest({ onBack }) {
       
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-600"> ← </button>
+          <button
+            onClick={() => navigate("/hospital/laboratory")}
+            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-600 font-semibold"
+          >
+            ← 
+          </button>
           <div className="text-center">
             <h2 className="text-xl font-bold">Laboratory Management</h2>
             <p className="text-xs text-slate-500">Register and monitor lab tests</p>
