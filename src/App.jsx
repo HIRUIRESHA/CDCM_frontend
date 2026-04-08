@@ -120,7 +120,7 @@ function App() {
               <Route path="emergency" element={<Emergency />} />
               <Route path="laboratory" element={<Laboratory />} />
               <Route path="notifications" element={<Notifications />} />
-              <Route path="patient-management" element={<PatientManagement />} />
+              <Route path="patients" element={<PatientManagement />} />
               <Route path="schedule" element={<Schedule />} />
             <Route path="schedule/add" element={<AddSchedule />} />
             <Route path="addLabTest" element={<AddLabTest />} />
