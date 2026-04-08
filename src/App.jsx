@@ -38,7 +38,7 @@ import Analytics from './pages/hospital/Analytics';
 import Emergency from './pages/hospital/Emergency';
 import Laboratory from './pages/hospital/Laboratory';
 import Notifications from './pages/hospital/Notifications';
-import PatientManagement from './pages/hospital/PatientManagement';
+import PatientManagement from './pages/hospital/patientManagement';
 import Schedule from './pages/hospital/Schedule';
 import AddSchedule from './pages/hospital/AddSchedule';
 import UploadReport from './pages/hospital/UploadReport';
@@ -48,10 +48,11 @@ import DoctorManagement from './pages/hospital/DoctorManagement';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import DoctorAccountPage from './pages/doctor/Account';
 import DoctorSchedulePage from './pages/doctor/Schedule';
-import DoctorFeedbackPage from './pages/doctor/Feedback';
+import MyPatientsPage from './pages/doctor/MyPatients';
 import DoctorMessagesPage from './pages/doctor/Messages';
 import DoctorNotificationsPage from './pages/doctor/Notifications';
 import DoctorVideoConferencePage from './pages/doctor/VideoConference';
+import UpdateMedicalHistory from "./pages/doctor/UpdateMedicalHistory";
 
 import AddHospital from './pages/admin/AddHospital';
 import ManageHospitals from './pages/admin/ManageHospitals';
@@ -132,9 +133,10 @@ function App() {
               <Route path="schedule" element={<DoctorSchedulePage />} />
               <Route path="account" element={<DoctorAccountPage />} />
               <Route path="video-conference" element={<DoctorVideoConferencePage />} />
-              <Route path="feedback" element={<DoctorFeedbackPage />} />
+              <Route path="mypatients" element={<MyPatientsPage />} />
               <Route path="notifications" element={<DoctorNotificationsPage />} />
               <Route path="messages" element={<DoctorMessagesPage />} />
+              <Route path="update-history/:patientId" element={<UpdateMedicalHistory />} />
           </Route>
 
 

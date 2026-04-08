@@ -108,7 +108,7 @@ export const DoctorSidebar = () => {
         <SidebarLink to="/doctor/dashboard" icon={<LayoutDashboard size={20} />} label="Dashboard" />
         <SidebarLink to="/doctor/account" icon={<User size={20} />} label="Account" />
         <SidebarLink to="/doctor/schedule" icon={<Calendar size={20} />} label="My Schedule" />
-        <SidebarLink to="/doctor/feedback" icon={<MessageCircle size={20} />} label="Feedback" />
+        <SidebarLink to="/doctor/mypatients" icon={<MessageCircle size={20} />} label="My Patients" />
         <SidebarLink to="/doctor/messages" icon={<MessageSquare size={20} />} label="Messages" />
         <SidebarLink to="/doctor/notifications" icon={<Bell size={20} />} label="Notification" />
         <SidebarLink to="/doctor/video-conference" icon={<Video size={20} />} label="Video Conference" />
