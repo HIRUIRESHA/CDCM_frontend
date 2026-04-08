@@ -78,12 +78,13 @@ function App() {
              <Route path="/forgot-password" element={<ForgotPassword />} />
              <Route path="/reset-password/:token" element={<ResetPassword />} />
              <Route path="/doctor/account/:id" element={<DoctorAccountPage />} />
-             <Route path="/upload-report/:id" element={<UploadReport />} />
+             
 
           </Route>
 
 
           {/* GROUP 2: PROTECTED DASHBOARD ROUTES */}
+          <Route path="/upload-report/:id" element={<UploadReport />} />
           <Route element={<DashboardLayout />}>
             
             {/* 2. ADD PROFILE ROUTE HERE */}
