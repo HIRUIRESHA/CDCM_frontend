@@ -94,7 +94,7 @@ const PatientManagement = () => {
 
   // Initial load
   useEffect(() => {
-    if (token && userRole === 'HOSPITAL' && hospitalId) {
+    if (token) {
       fetchPatients();
     } else {
       setError('Please login as a hospital administrator');
