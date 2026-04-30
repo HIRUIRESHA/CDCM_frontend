@@ -26,6 +26,9 @@ function FindDoctor() {
 
   const [notification, setNotification] = useState(null);
 
+  const [isPaymentStep, setIsPaymentStep] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("");
+
   useEffect(() => {
     const fetchData = async () => {
       try {
