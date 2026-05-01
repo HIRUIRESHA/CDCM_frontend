@@ -5,10 +5,11 @@ import { PatientSidebar, DoctorSidebar, HospitalSidebar, AdminSidebar } from '..
 
 const DashboardLayout = () => {
     const { user } = useAuth();
+    const hospital = JSON.parse(localStorage.getItem("hospital"));
     const location = useLocation();
 
     // 1. Security Check: If no user is logged in, redirect to login
-    if (!user) {
+    if (!user && !hospital) {
         // Save the current location they were trying to go to, so we can send them back after login
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
