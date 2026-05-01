@@ -40,7 +40,7 @@ const styles = `
   /* Stat Cards */
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 1rem;
     margin-bottom: 2rem;
   }
@@ -242,6 +242,9 @@ const styles = `
   .badge-rejected { background: #fff0f0; color: #b02020; border: 1px solid #f0a0a0; }
   .badge-rejected .badge-dot { background: #ef4444; }
 
+  .badge-cancelled { background: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; }
+  .badge-cancelled .badge-dot { background: #6b7280; }
+
   /* Buttons */
   .action-group { display: flex; gap: 0.5rem; }
 
@@ -279,6 +282,18 @@ const styles = `
     transform: translateY(-1px);
   }
   .btn-reject:active { transform: translateY(0); }
+
+  .btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+.btn-cancel:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+}
+.btn-cancel:active { transform: translateY(0); }
 
   /* States */
   .empty-state { text-align: center; padding: 5rem 2rem; }
@@ -394,8 +409,33 @@ export default function SchedulePage() {
     }
   };
 
+const [cancelTargetId, setCancelTargetId] = useState(null);
+const [toast, setToast] = useState(null);
+
+const showToast = (type, msg) => {
+  setToast({ type, msg });
+  setTimeout(() => setToast(null), 3500);
+};
+
+const cancelSchedule = async (id) => {
+  setCancelTargetId(id); // opens modal instead of window.confirm
+};
+
+const confirmCancel = async () => {
+  try {
+    await axios.put(`http://localhost:8082/api/schedules/cancel/${cancelTargetId}`);
+    showToast("success", "Schedule cancelled successfully.");
+    loadSchedules();
+  } catch (err) {
+    console.error("Error cancelling schedule:", err);
+    showToast("error", "Failed to cancel schedule. Please try again.");
+  } finally {
+    setCancelTargetId(null);
+  }
+};
   const pendingCount  = schedules.filter((s) => s.status === "PENDING").length;
   const acceptedCount = schedules.filter((s) => s.status === "ACCEPTED").length;
+  const cancelledCount = schedules.filter((s) => s.status === "CANCELLED").length;
 
   return (
     <>
@@ -431,6 +471,12 @@ export default function SchedulePage() {
               <div className="stat-value">{pendingCount}</div>
               <div className="stat-sub">Awaiting your response</div>
             </div>
+              <div className="stat-card stat-card-orange">
+    <div className="stat-icon">❌</div>
+    <div className="stat-label">Cancelled</div>
+    <div className="stat-value">{cancelledCount}</div>
+    <div className="stat-sub">Cancelled shifts</div>
+  </div>
           </div>
         )}
 
@@ -445,7 +491,7 @@ export default function SchedulePage() {
             )}
           </div>
 
-          {loading ? (
+          {loading ?  (
             <div className="loading-state">
               <div className="spinner" />
               Loading schedules…
@@ -511,33 +557,121 @@ export default function SchedulePage() {
                             <span className="badge-dot" /> Rejected
                           </span>
                         )}
+                        {s.status === "CANCELLED" && (
+    <span className="badge badge-cancelled">
+      <span className="badge-dot" /> Cancelled
+    </span>
+  )}
                       </td>
 
                       <td data-label="Action">
-                        {s.status === "PENDING" && (
-                          <div className="action-group">
-                            <button
-                              onClick={() => acceptSchedule(scheduleId)}
-                              className="btn btn-accept"
-                            >
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => rejectSchedule(scheduleId)}
-                              className="btn btn-reject"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
-                      </td>
+  {s.status === "PENDING" && (
+    <div className="action-group">
+      <button
+        onClick={() => acceptSchedule(scheduleId)}
+        className="btn btn-accept"
+      >
+        Accept
+      </button>
+      <button
+        onClick={() => rejectSchedule(scheduleId)}
+        className="btn btn-reject"
+      >
+        Reject
+      </button>
+    </div>
+  )}
+
+  
+
+  {s.status === "ACCEPTED" && (
+    <div className="action-group">
+      <button
+        onClick={() => cancelSchedule(scheduleId)}
+        className="btn btn-cancel"
+      >
+        Cancel
+      </button>
+    </div>
+  )}
+</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           )}
-        </div>
+       </div>
+
+        {/* Cancel Modal */}
+        {cancelTargetId && (
+          <div
+            className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+            onClick={() => setCancelTargetId(null)}
+          >
+            <div
+              className="bg-white rounded-2xl border border-gray-100 shadow-xl p-6 w-[360px] max-w-[90%]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-base shrink-0">
+                  ⚠️
+                </div>
+                <p className="text-[15px] font-semibold text-gray-900 m-0">
+                  Cancel this schedule?
+                </p>
+              </div>
+              <p className="text-[13px] text-gray-400 mb-5 leading-relaxed">
+                This action cannot be undone. The schedule will be permanently cancelled.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  className="text-[13px] font-medium px-4 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                  onClick={() => setCancelTargetId(null)}
+                >
+                  Keep it
+                </button>
+                <button
+                  className="text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+                  onClick={confirmCancel}
+                >
+                  Yes, cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Toast */}
+        {toast && (
+          <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border
+            ${toast.type === "success"
+              ? "bg-white border-green-100"
+              : "bg-white border-red-100"
+            }`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm
+              ${toast.type === "success" ? "bg-green-50" : "bg-red-50"}`}
+            >
+              {toast.type === "success" ? "✅" : "❌"}
+            </div>
+            <div>
+              <p className={`text-[13px] font-semibold m-0
+                ${toast.type === "success" ? "text-green-800" : "text-red-800"}`}
+              >
+                {toast.type === "success" ? "Cancelled" : "Failed"}
+              </p>
+              <p className="text-[12px] text-gray-400 m-0">{toast.msg}</p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="ml-2 text-gray-300 hover:text-gray-500 text-lg leading-none"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
       </div>
     </>
   );

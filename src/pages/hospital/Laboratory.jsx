@@ -7,9 +7,6 @@ import {
   getAllLabTests
 } from "../../api/labApi";
 
-
-import labBackground from "../../assets/lab.jpg"; 
-
 import TestCategory from "./TestCategory";
 import AddLabTest from "./AddLabTest";
 
@@ -83,71 +80,59 @@ export default function Laboratory() {
 
   if (view === "landing") {
     return (
-      <div 
-        className="h-full w-full flex flex-col justify-center items-center p-4 bg-cover bg-center bg-no-repeat relative overflow-hidden font-sans rounded-3xl"
-        style={{ 
-          backgroundImage: `url(${labBackground})` 
-        }}
-      >
-       
-        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px]"></div>
-
-        <div className="relative z-10 w-full max-w-4xl text-center px-2">
+      <div className="min-h-full w-full bg-slate-50 p-6 font-sans">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">Laboratory Portal</h1>
+            <p className="text-slate-500 text-sm mt-1">Manage diagnostic categories and patient test assignments.</p>
+          </div>
           
-          {/*  time & date section */}
-          <div className="mb-6 animate-in fade-in zoom-in duration-700">
-            <h2 className="text-5xl font-black text-white tracking-tighter drop-shadow-2xl mb-1">
-              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </h2>
-            <div className="flex items-center justify-center gap-2">
-               <div className="h-[1px] w-8 bg-blue-500"></div>
-               <p className="text-xs text-blue-400 font-bold uppercase tracking-[0.3em]">
-                 {currentTime.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
-               </p>
-               <div className="h-[1px] w-8 bg-blue-500"></div>
-            </div>
+          <div className="mt-4 md:mt-0 text-right">
+            <p className="text-lg font-mono font-bold text-blue-600">
+              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+              {currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+            </p>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Quick Stats Area */}
+          <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard label="Categories" value={tests.length} icon="📋" color="text-blue-600" />
+            <StatCard label="Pending" value={testCounts.pending} icon="⏳" color="text-amber-600" />
+            <StatCard label="In Progress" value={testCounts.inProgress} icon="🔬" color="text-cyan-600" />
+            <StatCard label="Total Tests" value={testCounts.total} icon="📊" color="text-emerald-600" />
           </div>
 
-          
-          <div className="bg-white/5 backdrop-blur-3xl border border-white/10 p-8 md:p-12 rounded-[40px] shadow-2xl ring-1 ring-white/20">
-            <div className="inline-flex p-3 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl mb-4 border border-blue-400/30 shadow-inner">
-              <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-              </svg>
-            </div>
-            
-            <h1 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight leading-none">
-              Laboratory <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">Portal</span>
-            </h1>
+          {/* Action Cards */}
+          <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+            <button
+              onClick={() => setView("manage")}
+              className="group flex flex-col items-center justify-center p-10 bg-white border-2 border-dashed border-slate-200 rounded-3xl hover:border-blue-400 hover:bg-blue-50/30 transition-all"
+            >
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                ⚙️
+              </div>
+              <h3 className="text-xl font-bold text-slate-800">Manage Categories</h3>
+              <p className="text-slate-500 text-sm mt-2">Edit test names, pricing, and lab catalog</p>
+            </button>
 
-            
-            <div className="flex flex-col md:flex-row gap-4 justify-center mb-10">
-              <button
-                onClick={() => setView("manage")}
-                className="group flex items-center gap-3 bg-white text-slate-900 px-6 py-3 rounded-[16px] font-extrabold text-sm transition-all hover:scale-105 active:scale-95 shadow-2xl hover:bg-blue-50"
-              >
-                <span className="text-lg transition-transform group-hover:rotate-12">⚙️</span>
-                Manage Categories
-              </button>
-
-              <button
-                onClick={() => setView("addTest")}
-                className="group flex items-center gap-3 bg-blue-600 text-white px-6 py-3 rounded-[16px] font-extrabold text-sm transition-all hover:bg-blue-500 hover:scale-105 active:scale-95 shadow-xl shadow-blue-600/40"
-              >
-                <span className="text-lg transition-transform group-hover:scale-125">➕</span>
-                Assign Lab Test
-              </button>
-            </div>
-
-           
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-6 border-t border-white/10">
-              <StatCard label="Categories" value={tests.length} color="border-blue-500/30" />
-              <StatCard label="Pending" value={testCounts.pending} color="border-amber-500/30" dot="bg-amber-500 animate-pulse" />
-              <StatCard label="In Progress" value={testCounts.inProgress} color="border-cyan-500/30" dot="bg-cyan-400 animate-bounce" />
-              <StatCard label="Total Tests" value={testCounts.total} color="border-green-500/30" />
-            </div>
-
+            <button
+              onClick={() => setView("addTest")}
+              className="group flex flex-col items-center justify-center p-10 bg-blue-600 rounded-3xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all"
+            >
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
+                ➕
+              </div>
+              <h3 className="text-xl font-bold text-white">Assign Lab Test</h3>
+              <p className="text-blue-100 text-sm mt-2">Create new test orders for hospital patients</p>
+            </button>
           </div>
+          
         </div>
       </div>
     );
@@ -168,13 +153,13 @@ export default function Laboratory() {
   );
 }
 
-function StatCard({ label, value, color, dot }) {
+function StatCard({ label, value, icon, color }) {
   return (
-    <div className={`px-3 py-2 bg-white/5 border ${color} rounded-[16px] flex flex-col items-center gap-1 transition-all hover:bg-white/10`}>
-      <span className="text-[8px] text-slate-400 font-black uppercase tracking-[0.1em]">{label}</span>
-      <div className="flex items-center gap-1">
-        {dot && <span className={`w-1.5 h-1.5 rounded-full ${dot}`}></span>}
-        <span className="text-lg font-black text-white">{value}</span>
+    <div className="bg-white p-5 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
+      <div className="text-2xl">{icon}</div>
+      <div>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+        <p className={`text-2xl font-black ${color}`}>{value}</p>
       </div>
     </div>
   );

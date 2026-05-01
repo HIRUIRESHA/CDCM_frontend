@@ -24,8 +24,7 @@ const PatientManagement = () => {
   const userRole = localStorage.getItem('userRole');
   const hospitalData = JSON.parse(localStorage.getItem('hospital'));
 const hospitalId = hospitalData?.id;
-  const hospitalName = localStorage.getItem('hospitalName') || 'Hospital';
-
+const hospitalName = hospitalData?.name || 'Hospital';
   // Fetch patients with appointments for this hospital
   const fetchPatients = async () => {
     try {
@@ -93,9 +92,9 @@ const hospitalId = hospitalData?.id;
     setCurrentPage(1);
   }, [searchTerm, patients]);
 
-  // Initial load
+  // Initial load 
   useEffect(() => {
-    if (token) {
+    if (token ) {
       fetchPatients();
     } else {
       setError('Please login as a hospital administrator');

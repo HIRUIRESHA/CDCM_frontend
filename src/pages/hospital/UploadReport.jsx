@@ -21,7 +21,7 @@ export default function UploadReport() {
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  // ------------------ FETCH TEST AND PATIENT DATA ------------------
+  // fetch test and patient data
   const fetchTestData = async () => {
     try {
       if (!user?.id) {
@@ -61,7 +61,7 @@ export default function UploadReport() {
     }
   }, [id, user]);
 
-  // ------------------ VALIDATE BEFORE UPLOAD ------------------
+  // validat ebefore upload
   const validateUpload = () => {
     if (!text.trim() && !file) {
       alert("⚠ Please either enter report text OR upload a file before submitting.");
@@ -70,7 +70,7 @@ export default function UploadReport() {
     return true;
   };
 
-  // ------------------ HANDLE REPORT UPLOAD ------------------
+  // handle report upload
   const handleSubmit = async () => {
     if (!user?.id) {
       alert("Please login again.");
@@ -149,7 +149,7 @@ export default function UploadReport() {
     }
   };
 
-  // ------------------ HANDLE VIEW/DOWNLOAD REPORT ------------------
+  // HANDLE VIEW/DOWNLOAD REPORT
   const handleViewDownloadReport = () => {
     // Directly use the reportUrl from testData instead of making an API call
     const fileUrl = testData?.reportUrl;
@@ -198,7 +198,7 @@ export default function UploadReport() {
             onClick={() => navigate("/hospital/addLabTest")}
             className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-600 font-semibold"
           >
-            ← Back
+            ← 
           </button>
 
           <div className="text-center">
