@@ -122,7 +122,7 @@ export const HospitalSidebar = () => {
          <SidebarContainer title="HealthRoute" titleColor="text-white">
             <SidebarLink to="/hospital/dashboard" icon={<LayoutDashboard size={20} />} label="Dashboard" />
             <SidebarLink to="/hospital/patients" icon={<Users size={20} />} label="Patient Management" />
-            <SidebarLink to="/hospital/appointments" icon={<Calendar size={20} />} label="Appointment" />
+            <SidebarLink to="/hospital/appointment" icon={<Calendar size={20} />} label="Appointment" />
             <SidebarLink to="/hospital/doctors" icon={<UserCog size={20} />} label="Doctor Management" />
             <SidebarLink to="/hospital/laboratory" icon={<Microscope size={20} />} label="Laboratory" />
             <SidebarLink to="/hospital/emergency" icon={<AlertCircle size={20} />} label="Emergency" />
