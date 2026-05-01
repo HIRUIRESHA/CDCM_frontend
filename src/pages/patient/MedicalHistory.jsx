@@ -34,7 +34,7 @@ const Row = ({ label, value }) => (
     <td className="w-52 px-4 py-3 text-sm text-gray-500 bg-gray-50 border-r border-[#1a2a6b] align-top whitespace-nowrap font-medium">
       {label}
     </td>
-    <td className="px-4 py-3 text-sm text-gray-800 bg-white align-top break-words">
+    <td className="px-4 py-3 text-sm text-gray-800 bg-white align-top wrap-break-word">
       {value || "—"}
     </td>
   </tr>
