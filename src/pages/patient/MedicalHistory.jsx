@@ -2,6 +2,92 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
 
+const CalendarIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <rect x="1.5" y="3" width="13" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.4" fill="none" />
+    <line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    <line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    <line x1="1.5" y1="7" x2="14.5" y2="7" stroke="currentColor" strokeWidth="1.4" />
+  </svg>
+);
+
+const ChevronIcon = ({ open }) => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 16 16"
+    fill="none"
+    className={`transition-transform duration-300 ease-in-out ${open ? "rotate-180" : "rotate-0"}`}
+  >
+    <path
+      d="M4 6l4 4 4-4"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const Row = ({ label, value }) => (
+  <tr className="border-b border-[#1a2a6b] last:border-b-0">
+    <td className="w-52 px-4 py-3 text-sm text-gray-500 bg-gray-50 border-r border-[#1a2a6b] align-top whitespace-nowrap font-medium">
+      {label}
+    </td>
+    <td className="px-4 py-3 text-sm text-gray-800 bg-white align-top wrap-break-word">
+      {value || "—"}
+    </td>
+  </tr>
+);
+
+const RecordCard = ({ record }) => {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <div className="w-full border-2 border-[#1a2a6b] rounded-sm overflow-hidden">
+      {/* Collapsible Header */}
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        className={`w-full flex items-center gap-3 px-4 py-3 bg-gray-100 hover:bg-gray-200 transition-colors duration-150 text-left ${
+          open ? "border-b-2 border-[#1a2a6b]" : ""
+        }`}
+      >
+        <span className="text-gray-500">
+          <CalendarIcon />
+        </span>
+        <span className="flex-1 text-sm font-bold text-gray-800 tracking-wide uppercase">
+          Date: {record.dateOfVisit}
+        </span>
+        <span className="text-gray-500">
+          <ChevronIcon open={open} />
+        </span>
+      </button>
+
+      {/* Collapsible Table Body */}
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          open ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <table className="w-full border-collapse table-fixed">
+          <tbody>
+            <Row label="Condition / Diagnosis" value={record.conditions} />
+            <Row label="Doctor Name"           value={record.doctorName} />
+            <Row label="Hospital / Clinic"     value={record.hospitalName} />
+            <Row label="Date of Visit"         value={record.dateOfVisit} />
+            <Row label="Treatment / Procedure" value={record.treatment} />
+            <Row label="Prescribed Medication" value={record.medications} />
+            <Row label="Allergies"             value={record.allergies} />
+            <Row label="Follow-up Required"    value={record.followUp} />
+            <Row label="Required Lab Tests"    value={record.requiredLabTests} />
+            <Row label="Notes"                 value={record.notes} />
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 const MedicalHistory = () => {
   const { user } = useAuth();
   const [history, setHistory] = useState([]);
@@ -11,8 +97,9 @@ const MedicalHistory = () => {
     const fetchHistory = async () => {
       try {
         setLoading(true);
-        // Ensure you are using the correct port (8082) and the correct endpoint
-        const res = await axios.get(`http://localhost:8082/api/medical-records/patient/${user.id}`);
+        const res = await axios.get(
+          `http://localhost:8082/api/medical-records/patient/${user.id}`
+        );
         setHistory(res.data);
       } catch (err) {
         console.error("Error loading history:", err);
@@ -25,127 +112,41 @@ const MedicalHistory = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-        <span className="ml-3 text-gray-600 font-medium">Loading Medical Records...</span>
+      <div className="flex justify-center items-center min-h-screen bg-white">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#1a2a6b]"></div>
+        <span className="ml-3 text-gray-500 text-sm font-medium">
+          Loading Medical Records...
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-10 bg-gray-50 min-h-screen">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between mb-10">
-          <h1 className="text-3xl font-black text-gray-800 tracking-tight">Clinical History</h1>
-          <span className="bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-sm font-bold">
-            {history.length} Visits Found
+    <div className="w-full min-h-screen bg-white p-6 md:p-10">
+      {/* Page Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Medical History</h1>
+        {history.length > 0 && (
+          <span className="text-xs font-semibold text-[#1a2a6b] bg-blue-50 border border-[#1a2a6b] px-3 py-1 rounded-full">
+            {history.length} {history.length === 1 ? "Visit" : "Visits"} Found
           </span>
-        </div>
-
-        {history.length === 0 ? (
-          <div className="bg-white p-12 rounded-3xl shadow-sm text-center border-2 border-dashed border-gray-200">
-            <p className="text-gray-400 text-lg">No medical history records available yet.</p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {history.map((record) => (
-              <div 
-                key={record.id} 
-                className="bg-white rounded-3xl shadow-lg hover:shadow-xl transition-shadow border-l-[12px] border-blue-600 overflow-hidden"
-              >
-                {/* Header: Date and Doctor Information */}
-                <div className="bg-gray-50 px-8 py-5 border-b flex flex-wrap justify-between items-center gap-4">
-                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date of Visit</p>
-                    <p className="text-xl font-bold text-gray-800">{record.dateOfVisit}</p>
-                  </div>
-                  <div className="md:text-right">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Medical Officer</p>
-                    <p className="font-bold text-blue-700 text-lg">{record.doctorName}</p>
-                    <p className="text-xs text-gray-500 font-medium">{record.hospitalName}</p>
-                  </div>
-                </div>
-
-                {/* Main Content Grid */}
-                <div className="p-8">
-                  <div className="grid md:grid-cols-2 gap-8">
-                    
-                    {/* Diagnosis & Conditions */}
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-black text-blue-800 uppercase flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                        Conditions / Diagnosis
-                      </h4>
-                      <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100">
-                        <p className="text-gray-700 leading-relaxed font-semibold italic">
-                          {record.conditions || "No diagnosis provided."}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Treatment & Procedure */}
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-black text-green-800 uppercase flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-600"></span>
-                        Treatment / Procedure
-                      </h4>
-                      <div className="bg-green-50/50 p-5 rounded-2xl border border-green-100">
-                        <p className="text-gray-700 leading-relaxed">
-                          {record.treatment || "No treatment details recorded."}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Medications */}
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-black text-purple-800 uppercase flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-purple-600"></span>
-                        Prescribed Medications
-                      </h4>
-                      <div className="bg-purple-50/50 p-5 rounded-2xl border border-purple-100">
-                        <p className="text-gray-700 leading-relaxed">
-                          {record.medications || "None prescribed."}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Lab Tests & Allergies */}
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-xs font-black text-red-700 uppercase mb-2">⚠️ Allergies Identified</h4>
-                        <p className="text-sm font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg border border-red-100">
-                          {record.allergies || "None reported"}
-                        </p>
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-orange-700 uppercase mb-2">🧪 Required Lab Tests</h4>
-                        <p className="text-sm text-gray-700 bg-orange-50 px-3 py-2 rounded-lg border border-orange-100">
-                          {record.requiredLabTests || "No tests required"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Footer Info: Follow up and Notes */}
-                  <div className="mt-8 pt-6 border-t border-gray-100 flex flex-wrap justify-between items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-gray-400 uppercase">Follow-up:</span>
-                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${record.followUp === "No" ? 'bg-gray-100 text-gray-500' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {record.followUp}
-                      </span>
-                    </div>
-                    {record.notes && (
-                      <div className="w-full bg-gray-50 p-4 rounded-xl italic text-sm text-gray-500">
-                        <span className="font-bold not-italic">Notes: </span> {record.notes}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
         )}
       </div>
+
+      {/* Records */}
+      {history.length === 0 ? (
+        <div className="w-full border-2 border-dashed border-gray-300 rounded-sm p-12 text-center">
+          <p className="text-gray-400 text-sm">
+            No medical history records available yet.
+          </p>
+        </div>
+      ) : (
+        <div className="w-full space-y-4">
+          {history.map((record) => (
+            <RecordCard key={record.id} record={record} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

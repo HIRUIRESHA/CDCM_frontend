@@ -26,60 +26,66 @@ function FindDoctor() {
   const [selectedNumber, setSelectedNumber] = useState(null);
 
   const [notification, setNotification] = useState(null);
+  
 
   const [isPaymentStep, setIsPaymentStep] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [docRes, specRes, hospRes] = await Promise.all([
-          fetch("http://localhost:8082/api/hospital/doctors/assigned-all"),
-          fetch("http://localhost:8082/api/hospital/doctors/specializations"),
-          fetch("http://localhost:8082/api/hospital/doctors/all-hospitals"),
-        ]);
+  const fetchData = async () => {
+    try {
+      const [docRes, specRes, hospRes] = await Promise.all([
+        fetch("http://localhost:8082/api/hospital/doctors/assigned-all"),
+        fetch("http://localhost:8082/api/hospital/doctors/specializations"),
+        fetch("http://localhost:8082/api/hospital/doctors/all-hospitals"),
+      ]);
 
-        const docs = await docRes.json();
-        const specs = await specRes.json();
-        const hosps = await hospRes.json();
+      const docs = await docRes.json();
+      const specs = await specRes.json();
+      const hosps = await hospRes.json();
 
-        const doctorsList = Array.isArray(docs) ? docs : [];
-        setDoctors(doctorsList);
-        setSpecializations(Array.isArray(specs) ? specs : []);
-        setHospitals(Array.isArray(hosps) ? hosps : []);
+      const doctorsList = Array.isArray(docs) ? docs : [];
+      setDoctors(doctorsList);
+      setSpecializations(Array.isArray(specs) ? specs : []);
+      setHospitals(Array.isArray(hosps) ? hosps : []);
 
-        const schedulesMap = {};
-        if (doctorsList.length > 0) {
-          await Promise.all(
-            doctorsList.map(async (doc) => {
-              try {
-                const schedRes = await fetch(
-                  `http://localhost:8082/api/schedules/doctor/${doc.id}`
+      // Get current date in YYYY-MM-DD format for comparison
+      const today = new Date().toISOString().split('T')[0];
+
+      const schedulesMap = {};
+      if (doctorsList.length > 0) {
+        await Promise.all(
+          doctorsList.map(async (doc) => {
+            try {
+              const schedRes = await fetch(
+                `http://localhost:8082/api/schedules/doctor/${doc.id}`
+              );
+              if (schedRes.ok) {
+                const schedData = await schedRes.json();
+                
+                // Filter: Status must be ACCEPTED AND date must be today or in the future
+                schedulesMap[doc.id] = schedData.filter(
+                  (s) => s.status === "ACCEPTED" && s.date >= today
                 );
-                if (schedRes.ok) {
-                  const schedData = await schedRes.json();
-                  schedulesMap[doc.id] = schedData.filter(
-                    (s) => s.status === "ACCEPTED"
-                  );
-                } else {
-                  schedulesMap[doc.id] = [];
-                }
-              } catch (err) {
+              } else {
                 schedulesMap[doc.id] = [];
               }
-            })
-          );
-        }
-        setSchedules(schedulesMap);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-      } finally {
-        setLoading(false);
+            } catch (err) {
+              schedulesMap[doc.id] = [];
+            }
+          })
+        );
       }
-    };
+      setSchedules(schedulesMap);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
-  }, []);
+  fetchData();
+}, []);
 
   const filteredDoctors = doctors.filter((doc) => {
     const fullName =
@@ -175,6 +181,7 @@ function FindDoctor() {
           amount: hashData.amount, 
           currency: hashData.currency,
           hash: hashData.hash, 
+          custom_1: user.id || user._id,
           first_name: user.firstName,
           last_name: user.lastName,
           email: user.email || "patient@example.com",
