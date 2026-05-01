@@ -58,6 +58,7 @@ import AddHospital from './pages/admin/AddHospital';
 import ManageHospitals from './pages/admin/ManageHospitals';
 import ManageDoctors from './pages/admin/ManageDoctors';
 import ManagePatients from './pages/admin/ManagePatients';
+import Dashboard from './pages/admin/Dashboard';
 
 
 // Placeholder for missing pages
@@ -142,7 +143,7 @@ function App() {
 
             {/* ADMIN */}
             <Route path="admin">
-              <Route path="dashboard" element={<Placeholder title="Admin Dashboard" />} />
+              <Route path="dashboard" element={<Dashboard />} />
               <Route path="add-hospital" element={<AddHospital />} />
               <Route path="manage-hospitals" element={<ManageHospitals />} />
               <Route path="manage-doctors" element={<ManageDoctors />} />

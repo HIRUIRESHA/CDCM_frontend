@@ -115,6 +115,24 @@ const hospitalId = localStorage.getItem("hospitalId");
     loadLabTests();
   };
 
+  const handleClear = () => {
+  setForm({
+    patientId: "",
+    patientName: "",
+    email: "",
+    contactNumber: "",
+    testType: "",
+    price: "",
+    testDate: "",
+    requestedDate: ""
+  });
+
+  setPatientSearch("");
+  setCategorySearch("");
+  setShowPatientList(false);
+  setShowCategoryList(false);
+};
+
   const handleStatusChange = async (id, newStatus) => {
     try {
       setLabTests(prev =>
@@ -152,6 +170,7 @@ const hospitalId = localStorage.getItem("hospitalId");
     const matchesSearch =
       (p?.firstName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
       (p?.lastName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (p?.nicOrPassport?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
       (t?.testType?.toLowerCase() || "").includes(searchTerm.toLowerCase());
 
     const matchesStatus =
@@ -167,11 +186,15 @@ const hospitalId = localStorage.getItem("hospitalId");
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <button
-            onClick={() => navigate("/hospital/laboratory")}
-            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-600 font-semibold"
-          >
-            ← 
-          </button>
+  type="button"
+  onClick={() => {
+    console.log("clicked");
+    navigate("/hospital/laboratory");
+  }}
+  className="relative z-50 flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-600 font-semibold"
+>
+  ←
+</button>
           <div className="text-center">
             <h2 className="text-xl font-bold">Laboratory Management</h2>
             <p className="text-xs text-slate-500">Register and monitor lab tests</p>
@@ -206,13 +229,27 @@ const hospitalId = localStorage.getItem("hospitalId");
                   />
                   {showPatientList && (
                     <div className="absolute top-full left-0 w-full bg-white border border-slate-200 rounded-xl mt-1 shadow-2xl z-50 max-h-48 overflow-y-auto">
-                      {patients.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(patientSearch.toLowerCase())).map(p => (
+                      {patients.filter(p =>
+                        `${p.firstName} ${p.lastName}`.toLowerCase().includes(patientSearch.toLowerCase()) ||
+                        (p?.nicOrPassport || "").toLowerCase().includes(patientSearch.toLowerCase()) ||
+                        (p?.email || "").toLowerCase().includes(patientSearch.toLowerCase())
+                      ).map(p => (
                         <div 
                           key={p.id} 
                           onClick={() => selectPatient(p)}
                           className="p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0 text-sm"
                         >
-                          <div className="font-bold">{p.firstName} {p.lastName}</div>
+                          <div className="font-bold">
+                            {p.firstName} {p.lastName}
+                          </div>
+
+                          <div className="text-[10px] text-slate-400">
+                            NIC: {p.nicOrPassport}
+                          </div>
+
+                          <div className="text-[10px] text-slate-400">
+                            {p.email}
+                          </div>
                           <div className="text-[10px] text-slate-400">ID: P-{p.id}</div>
                         </div>
                       ))}
@@ -273,8 +310,22 @@ const hospitalId = localStorage.getItem("hospitalId");
                     <input type="date" name="requestedDate" value={form.requestedDate} onChange={handleChange} className="w-full p-2 border border-slate-200 rounded-xl outline-none text-sm" />
                   </div>
                 </div>
-                <button onClick={handleSubmit} className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-white transition-all shadow-lg active:scale-95"> Add Test Record </button>
-              </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleSubmit} 
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-white transition-all shadow-lg active:scale-95"
+                    >
+                      Add Test Record
+                    </button>
+
+                    <button 
+                      onClick={handleClear} 
+                      className="w-full py-3 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-slate-700 transition-all shadow-sm active:scale-95"
+                    >
+                      Clear
+                    </button>
+                  </div>             
+                   </div>
             </div>
           </div>
         </div>
