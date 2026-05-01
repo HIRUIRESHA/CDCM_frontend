@@ -19,6 +19,8 @@ const PatientManagement = () => {
   const [showLabModal, setShowLabModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [labTests, setLabTests] = useState([]);
+const [labLoading, setLabLoading] = useState(false);
 
   const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('userRole');
@@ -65,13 +67,39 @@ const hospitalName = hospitalData?.name || 'Hospital';
     setShowAppointmentModal(true);
   };
 
+  const fetchLabTests = async (patientId) => {
+  try {
+    setLabLoading(true);
+
+    const res = await fetch(
+      `http://localhost:8082/api/lab/patient/${patientId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const data = await res.json();
+    console.log("Lab tests:", data);
+
+    setLabTests(data);
+
+  } catch (err) {
+    console.error("Lab fetch error:", err);
+  } finally {
+    setLabLoading(false);
+  }
+};
+
   // Show laboratory history modal (to be implemented later)
   const handleViewLaboratory = (patient) => {
-    setSelectedPatient(patient);
-    setShowLabModal(true);
-    // TODO: Navigate to laboratory page or open modal
-    // navigate(`/patient/${patient.id}/laboratory`, { state: { patient } });
-  };
+  setSelectedPatient(patient);
+  setShowLabModal(true);
+  fetchLabTests(patient.id); // 🔥 IMPORTANT
+};
+
+  
 
   // Filter patients
   useEffect(() => {
@@ -372,39 +400,158 @@ const hospitalName = hospitalData?.name || 'Hospital';
         </div>
       )}
 
-      {/* Laboratory Modal (Placeholder) */}
-      {showLabModal && selectedPatient && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Laboratory History</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  {selectedPatient.patientName} | {selectedPatient.contactNumber}
+      {/* LABORATORY MODAL */}
+{showLabModal && selectedPatient && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    
+    <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+
+      {/* HEADER */}
+      <div className="p-6 border-b flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Laboratory History</h2>
+          <p className="text-sm text-gray-500">
+            {selectedPatient.patientName} | {selectedPatient.contactNumber}
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowLabModal(false)}
+          className="text-gray-400 hover:text-red-500 text-xl"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* CONTENT (SCROLLABLE) */}
+      <div className="p-6 overflow-y-auto flex-1">
+
+        {labLoading ? (
+          <p className="text-center text-gray-500">Loading...</p>
+
+        ) : labTests.length === 0 ? (
+          <p className="text-center text-gray-500">No lab tests found</p>
+
+        ) : (
+          <>
+            {/* SUMMARY CARDS */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+
+              <div className="bg-gray-100 p-4 rounded-lg text-center shadow">
+                <p className="text-sm text-gray-500">Total Tests</p>
+                <p className="text-xl font-bold">{labTests.length}</p>
+              </div>
+
+              <div className="bg-green-100 p-4 rounded-lg text-center shadow">
+                <p className="text-sm text-gray-500">Completed</p>
+                <p className="text-xl font-bold text-green-700">
+                  {labTests.filter(t => t.status === "Completed").length}
                 </p>
               </div>
-              <button 
-                onClick={() => setShowLabModal(false)} 
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={24} />
-              </button>
+
+              <div className="bg-yellow-100 p-4 rounded-lg text-center shadow">
+                <p className="text-sm text-gray-500">Pending</p>
+                <p className="text-xl font-bold text-yellow-700">
+                  {labTests.filter(t => t.status !== "Completed").length}
+                </p>
+              </div>
+
+              <div className="bg-purple-100 p-4 rounded-lg text-center shadow">
+                <p className="text-sm text-gray-500">Reports</p>
+                <p className="text-xl font-bold text-purple-700">
+                  {labTests.filter(t => t.reportStatus === "Uploaded").length}
+                </p>
+              </div>
+
             </div>
-            <div className="p-6 text-center text-gray-500">
-              <FlaskConical size={48} className="mx-auto mb-4 text-gray-400" />
-              <p>Laboratory history will be available soon.</p>
+
+            {/* TABLE */}
+            <div className="overflow-x-auto border rounded-lg">
+              <table className="w-full text-sm">
+
+                <thead className="bg-blue-500 text-white sticky top-0">
+                  <tr>
+                    <th className="p-3">Test ID</th>
+                    <th className="p-3">Test Details</th>
+                    <th className="p-3">Requested Date</th>
+                    <th className="p-3">Completed Date</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3">Payment</th>
+                    <th className="p-3">Report</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {labTests.map((test, index) => (
+                    <tr key={test.id} className="border-t text-center">
+
+                      <td className="p-3">A-{index + 1000}</td>
+
+                      <td className="p-3">{test.testType}</td>
+
+                      <td className="p-3">{test.requestedDate || "-"}</td>
+
+                      <td className="p-3">
+                        {test.status === "Completed" ? test.testDate : "-"}
+                      </td>
+
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-white text-xs ${
+                          test.status === "Completed"
+                            ? "bg-green-500"
+                            : "bg-red-500"
+                        }`}>
+                          {test.status}
+                        </span>
+                      </td>
+
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-white text-xs ${
+                          test.paid ? "bg-green-500" : "bg-gray-500"
+                        }`}>
+                          {test.paid ? "Paid" : "Unpaid"}
+                        </span>
+                      </td>
+
+                      <td className="p-3">
+                      {test.reportUrl ? (
+                        <a
+                          href={test.reportUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                        >
+                          View
+                        </a>
+                      ) : (
+                        <span className="text-gray-400 text-xs">Not Available</span>
+                      )}
+                     </td>
+
+                    </tr>
+                  ))}
+                </tbody>
+
+              </table>
             </div>
-            <div className="p-6 border-t border-gray-200 flex justify-end">
-              <button
-                onClick={() => setShowLabModal(false)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+
+      </div>
+
+      {/* FOOTER */}
+      <div className="p-4 border-t flex justify-end">
+        <button
+          onClick={() => setShowLabModal(false)}
+          className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200"
+        >
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
     </div>
   );
 };
