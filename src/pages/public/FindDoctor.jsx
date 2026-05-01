@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import defaultDocImg from "../../assets/doc1.png";
+import axios from "axios";
 
 function FindDoctor() {
   const [search, setSearch] = useState("");
@@ -113,8 +114,6 @@ function FindDoctor() {
       const takenNumbers = data.map((appt) => appt.appointmentNumber);
       setBookedNumbers(takenNumbers);
 
-      // --- NEW LOGIC: Auto-select next number ---
-      // We look for the first number (1-30) not in the taken list
       let nextAvailable = null;
       for (let i = 1; i <= 30; i++) {
         const formatted = `APT-${String(i).padStart(3, "0")}`;
@@ -124,7 +123,7 @@ function FindDoctor() {
         }
       }
       setSelectedNumber(nextAvailable);
-      // ------------------------------------------
+      
     }
   } catch (error) {
     console.error("Error fetching booked slots:", error);
@@ -133,8 +132,11 @@ function FindDoctor() {
 
   const confirmBooking = async () => {
     if (!selectedNumber) return;
+    
     try {
       const token = localStorage.getItem("token");
+      
+      // 1. Create Appointment Record
       const response = await fetch("http://localhost:8082/api/appointments/book", {
         method: "POST",
         headers: {
@@ -154,18 +156,65 @@ function FindDoctor() {
 
       if (response.ok) {
         const appointmentData = await response.json();
-        setIsModalOpen(false);
-        setNotification({
-          type: "success",
-          title: "Booking Confirmed!",
-          message: "Your appointment has been successfully scheduled.",
-          apptNumber: appointmentData.appointmentNumber,
-        });
+        const orderId = appointmentData.id;
+        const amount = appointmentData.amount || 1000.00;
+
+        // Fetch Secure Hash from Backend
+        const hashRes = await axios.get(`http://localhost:8082/api/payments/generate-hash/${orderId}/${amount}`);
+        const hashData = hashRes.data;
+
+        // Prepare PayHere Payment Object
+        const payment = {
+          sandbox: true, 
+          merchant_id: hashData.merchantId, 
+          return_url: "http://localhost:5173/payment-success",
+          cancel_url: "http://localhost:5173/payment-failed",
+          notify_url: "http://localhost:8082/api/payments/notify", 
+          order_id: orderId, 
+          items: `Booking with Dr. ${bookingDoc.firstName}`,
+          amount: hashData.amount, 
+          currency: hashData.currency,
+          hash: hashData.hash, 
+          first_name: user.firstName,
+          last_name: user.lastName,
+          email: user.email || "patient@example.com",
+          phone: user.phone || "0771234567",
+          address: "Galle Road",
+          city: "Colombo",
+          country: "Sri Lanka",
+        };
+
+        // Define Callbacks
+        window.payhere.onCompleted = function onCompleted(orderId) {
+          setIsModalOpen(false);
+          setNotification({
+            type: "success",
+            title: "Payment Successful!",
+            message: "Your appointment has been confirmed and paid.",
+            apptNumber: appointmentData.appointmentNumber,
+          });
+        };
+
+        window.payhere.onDismissed = function onDismissed() {
+          setNotification({
+            type: "error",
+            title: "Payment Dismissed",
+            message: "You closed the payment window. Appointment is not confirmed.",
+          });
+        };
+
+        window.payhere.onError = function onError(error) {
+          console.error("Payment Error:", error);
+        };
+
+        // Start Payment
+        window.payhere.startPayment(payment);
+
       } else {
         setNotification({
           type: "error",
           title: "Booking Failed",
-          message: "Failed to book appointment. Someone may have just taken this number!",
+          message: "Could not initiate booking. Please try again.",
         });
       }
     } catch (error) {
@@ -173,7 +222,7 @@ function FindDoctor() {
       setNotification({
         type: "error",
         title: "Error",
-        message: "An error occurred while booking. Please try again.",
+        message: "An error occurred during payment initiation.",
       });
     }
   };

@@ -22,7 +22,8 @@ const PatientManagement = () => {
 
   const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('userRole');
-  const hospitalId = localStorage.getItem('hospitalId');
+  const hospitalData = JSON.parse(localStorage.getItem('hospital'));
+const hospitalId = hospitalData?.id;
   const hospitalName = localStorage.getItem('hospitalName') || 'Hospital';
 
   // Fetch patients with appointments for this hospital
