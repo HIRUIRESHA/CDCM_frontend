@@ -208,14 +208,11 @@ const hospitalId = localStorage.getItem("hospitalId");
 
       <div className="max-w-7xl mx-auto px-6 mt-8 flex flex-col gap-8">
         
-        {/* ── Add New Test Request ── */}
 <div className="w-full">
   <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
 
-    {/* Decorative top bar */}
     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 via-indigo-500 to-violet-500" />
 
-    {/* Header */}
     <div className="px-8 pt-8 pb-6 border-b border-slate-100 flex items-center gap-4">
       <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200">
         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
@@ -388,7 +385,6 @@ const hospitalId = localStorage.getItem("hospitalId");
             </div>
           </div>
 
-          {/* Actions — Clear BEFORE Add */}
           <div className="flex gap-2 pt-1">
             <button
               onClick={handleClear}
