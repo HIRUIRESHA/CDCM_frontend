@@ -109,7 +109,7 @@ const handleSubmit = async (e) => {
         <div className="space-y-1">
           <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest">Treatment / Procedure</label>
           <textarea 
-            className="w-full p-4 border-2 border-gray-100 rounded-2xl focus:border-blue-500 outline-none" 
+            className="w-full p-4 border-2 border-gray-150 rounded-2xl focus:border-blue-500 outline-none" 
             placeholder="Procedures performed..."
             rows="4" 
             onChange={(e) => setFormData({...formData, treatment: e.target.value})} 

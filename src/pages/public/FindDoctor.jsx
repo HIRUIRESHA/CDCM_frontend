@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext"; 
-import defaultDocImg from "../../assets/doc1.png"; 
+import { useAuth } from "../../context/AuthContext";
+import defaultDocImg from "../../assets/doc1.png";
+import axios from "axios";
 
 function FindDoctor() {
   const [search, setSearch] = useState("");
@@ -10,12 +11,12 @@ function FindDoctor() {
 
   const [selectedSpec, setSelectedSpec] = useState("");
   const [selectedHosp, setSelectedHosp] = useState("");
-  const [selectedDate, setSelectedDate] = useState(""); 
-  
+  const [selectedDate, setSelectedDate] = useState("");
+
   const [doctors, setDoctors] = useState([]);
   const [specializations, setSpecializations] = useState([]);
   const [hospitals, setHospitals] = useState([]);
-  const [schedules, setSchedules] = useState({}); 
+  const [schedules, setSchedules] = useState({});
   const [loading, setLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,8 +25,10 @@ function FindDoctor() {
   const [bookedNumbers, setBookedNumbers] = useState([]);
   const [selectedNumber, setSelectedNumber] = useState(null);
 
-  // ✅ New State for Custom Notifications instead of alerts
   const [notification, setNotification] = useState(null);
+
+  const [isPaymentStep, setIsPaymentStep] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,7 +36,7 @@ function FindDoctor() {
         const [docRes, specRes, hospRes] = await Promise.all([
           fetch("http://localhost:8082/api/hospital/doctors/assigned-all"),
           fetch("http://localhost:8082/api/hospital/doctors/specializations"),
-          fetch("http://localhost:8082/api/hospital/doctors/all-hospitals")
+          fetch("http://localhost:8082/api/hospital/doctors/all-hospitals"),
         ]);
 
         const docs = await docRes.json();
@@ -50,10 +53,14 @@ function FindDoctor() {
           await Promise.all(
             doctorsList.map(async (doc) => {
               try {
-                const schedRes = await fetch(`http://localhost:8082/api/schedules/doctor/${doc.id}`);
+                const schedRes = await fetch(
+                  `http://localhost:8082/api/schedules/doctor/${doc.id}`
+                );
                 if (schedRes.ok) {
                   const schedData = await schedRes.json();
-                  schedulesMap[doc.id] = schedData.filter((s) => s.status === "ACCEPTED");
+                  schedulesMap[doc.id] = schedData.filter(
+                    (s) => s.status === "ACCEPTED"
+                  );
                 } else {
                   schedulesMap[doc.id] = [];
                 }
@@ -64,7 +71,6 @@ function FindDoctor() {
           );
         }
         setSchedules(schedulesMap);
-
       } catch (err) {
         console.error("Error fetching data:", err);
       } finally {
@@ -76,49 +82,66 @@ function FindDoctor() {
   }, []);
 
   const filteredDoctors = doctors.filter((doc) => {
-    const fullName = `${doc.title || ""} ${doc.firstName || ""} ${doc.lastName || ""}`.toLowerCase();
+    const fullName =
+      `${doc.title || ""} ${doc.firstName || ""} ${doc.lastName || ""}`.toLowerCase();
     const matchesName = fullName.includes(search.toLowerCase());
     const matchesSpec = selectedSpec === "" || doc.specialization === selectedSpec;
-    const matchesHosp = selectedHosp === "" || (doc.hospitals && doc.hospitals.includes(selectedHosp));
-    const matchesDate = selectedDate === "" || 
-      (schedules[doc.id] && schedules[doc.id].some((s) => s.date === selectedDate));
-
+    const matchesHosp =
+      selectedHosp === "" ||
+      (doc.hospitals && doc.hospitals.includes(selectedHosp));
+    const matchesDate =
+      selectedDate === "" ||
+      (schedules[doc.id] &&
+        schedules[doc.id].some((s) => s.date === selectedDate));
     return matchesName && matchesSpec && matchesHosp && matchesDate;
   });
 
   const openBookingModal = async (doctor, schedule) => {
-    if (!user || user.role !== 'PATIENT') {
-      navigate('/login', { state: { from: '/find-doctor' } });
-      return;
-    }
+  if (!user || user.role !== "PATIENT") {
+    navigate("/login", { state: { from: "/find-doctor" } });
+    return;
+  }
+  setBookingDoc(doctor);
+  setBookingSchedule(schedule);
+  setIsModalOpen(true);
 
-    setBookingDoc(doctor);
-    setBookingSchedule(schedule);
-    setSelectedNumber(null);
-    setIsModalOpen(true);
+  try {
+    const response = await fetch(
+      `http://localhost:8082/api/appointments/schedule/${schedule.id}`
+    );
+    if (response.ok) {
+      const data = await response.json();
+      const takenNumbers = data.map((appt) => appt.appointmentNumber);
+      setBookedNumbers(takenNumbers);
 
-    try {
-      const response = await fetch(`http://localhost:8082/api/appointments/schedule/${schedule.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        const takenNumbers = data.map(appt => appt.appointmentNumber);
-        setBookedNumbers(takenNumbers);
+      let nextAvailable = null;
+      for (let i = 1; i <= 30; i++) {
+        const formatted = `APT-${String(i).padStart(3, "0")}`;
+        if (!takenNumbers.includes(formatted)) {
+          nextAvailable = i.toString(); // Store as string to match your state
+          break;
+        }
       }
-    } catch (error) {
-      console.error("Error fetching booked slots:", error);
+      setSelectedNumber(nextAvailable);
+      
     }
-  };
+  } catch (error) {
+    console.error("Error fetching booked slots:", error);
+  }
+};
 
   const confirmBooking = async () => {
     if (!selectedNumber) return;
-
+    
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
+      
+      // 1. Create Appointment Record
       const response = await fetch("http://localhost:8082/api/appointments/book", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` 
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           patientId: user.id,
@@ -127,329 +150,441 @@ function FindDoctor() {
           scheduleId: bookingSchedule.id,
           date: bookingSchedule.date,
           time: `${bookingSchedule.startTime} - ${bookingSchedule.endTime}`,
-          appointmentNumber: selectedNumber 
-        })
+          appointmentNumber: selectedNumber,
+        }),
       });
 
       if (response.ok) {
         const appointmentData = await response.json();
-        setIsModalOpen(false); // Close the number selector modal
-        // ✅ Show Custom Success Modal instead of alert
-        setNotification({
-          type: 'success',
-          title: 'Booking Successful!',
-          message: 'Your appointment has been confirmed.',
-          apptNumber: appointmentData.appointmentNumber
-        });
+        const orderId = appointmentData.id;
+        const amount = appointmentData.amount || 1000.00;
+
+        // Fetch Secure Hash from Backend
+        const hashRes = await axios.get(`http://localhost:8082/api/payments/generate-hash/${orderId}/${amount}`);
+        const hashData = hashRes.data;
+
+        // Prepare PayHere Payment Object
+        const payment = {
+          sandbox: true, 
+          merchant_id: hashData.merchantId, 
+          return_url: "http://localhost:5173/payment-success",
+          cancel_url: "http://localhost:5173/payment-failed",
+          notify_url: "http://localhost:8082/api/payments/notify", 
+          order_id: orderId, 
+          items: `Booking with Dr. ${bookingDoc.firstName}`,
+          amount: hashData.amount, 
+          currency: hashData.currency,
+          hash: hashData.hash, 
+          first_name: user.firstName,
+          last_name: user.lastName,
+          email: user.email || "patient@example.com",
+          phone: user.phone || "0771234567",
+          address: "Galle Road",
+          city: "Colombo",
+          country: "Sri Lanka",
+        };
+
+        // Define Callbacks
+        window.payhere.onCompleted = function onCompleted(orderId) {
+          setIsModalOpen(false);
+          setNotification({
+            type: "success",
+            title: "Payment Successful!",
+            message: "Your appointment has been confirmed and paid.",
+            apptNumber: appointmentData.appointmentNumber,
+          });
+        };
+
+        window.payhere.onDismissed = function onDismissed() {
+          setNotification({
+            type: "error",
+            title: "Payment Dismissed",
+            message: "You closed the payment window. Appointment is not confirmed.",
+          });
+        };
+
+        window.payhere.onError = function onError(error) {
+          console.error("Payment Error:", error);
+        };
+
+        // Start Payment
+        window.payhere.startPayment(payment);
+
       } else {
-        // ✅ Show Custom Error Modal
         setNotification({
-          type: 'error',
-          title: 'Booking Failed',
-          message: 'Failed to book appointment. Someone may have just taken this number!'
+          type: "error",
+          title: "Booking Failed",
+          message: "Could not initiate booking. Please try again.",
         });
       }
     } catch (error) {
       console.error("Booking error:", error);
       setNotification({
-        type: 'error',
-        title: 'Error',
-        message: 'An error occurred while booking. Please try again.'
+        type: "error",
+        title: "Error",
+        message: "An error occurred during payment initiation.",
       });
     }
   };
 
-  // ✅ Function to handle closing the custom notification modal
   const handleCloseNotification = () => {
-    const wasSuccess = notification?.type === 'success';
+    const wasSuccess = notification?.type === "success";
     setNotification(null);
     if (wasSuccess) {
-      navigate('/patient/appointments'); // Redirect only after they click "Done" on a success
+      navigate("/patient/appointments");
     }
   };
 
   return (
-     <div className="min-h-screen bg-gray-100 relative">
-      
-      {/* ===================== CUSTOM NOTIFICATION MODAL ===================== */}
+    <div className="min-h-screen bg-blue-50">
+
+      {/* ===================== NOTIFICATION MODAL ===================== */}
       {notification && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-60 p-4 backdrop-blur-sm transition-opacity">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm text-center transform scale-100 transition-transform">
-            
-            {notification.type === 'success' ? (
+        <div className="fixed inset-0 bg-blue-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-10 w-full max-w-sm text-center">
+            {notification.type === "success" ? (
               <>
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner">
-                  <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-blue-100">
+                  <svg className="w-9 h-9 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-extrabold text-gray-900 mb-2">{notification.title}</h3>
-                <p className="text-gray-500 mb-6 font-medium">{notification.message}</p>
-                
-                <div className="bg-blue-50 rounded-xl p-4 mb-8 border border-blue-100">
-                  <p className="text-xs text-blue-600 uppercase tracking-widest font-bold mb-1">Queue Number</p>
-                  <p className="text-3xl font-black text-blue-700">{notification.apptNumber}</p>
+                <h3 className="text-2xl font-bold text-blue-950 mb-2">{notification.title}</h3>
+                <p className="text-slate-500 text-sm mb-6 leading-relaxed">{notification.message}</p>
+                <div className="bg-blue-950 rounded-2xl p-5 mb-7">
+                  <p className="text-xs font-bold uppercase tracking-widest text-blue-300 mb-1">Queue Number</p>
+                  <p className="text-4xl font-black text-white">{notification.apptNumber}</p>
                 </div>
-
                 <button
                   onClick={handleCloseNotification}
-                  className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold text-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                  className="w-full bg-blue-700 hover:bg-blue-600 text-white py-3.5 rounded-xl font-bold text-base transition-colors shadow-lg"
                 >
                   Done
                 </button>
               </>
             ) : (
               <>
-                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner">
-                  <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path>
+                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-red-100">
+                  <svg className="w-9 h-9 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-extrabold text-gray-900 mb-2">{notification.title}</h3>
-                <p className="text-gray-500 mb-8 font-medium">{notification.message}</p>
-                
+                <h3 className="text-2xl font-bold text-blue-950 mb-2">{notification.title}</h3>
+                <p className="text-slate-500 text-sm mb-8 leading-relaxed">{notification.message}</p>
                 <button
                   onClick={handleCloseNotification}
-                  className="w-full bg-gray-100 text-gray-800 py-3.5 rounded-xl font-bold text-lg hover:bg-gray-200 transition"
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 rounded-xl font-bold text-base transition-colors"
                 >
                   Close
                 </button>
               </>
             )}
-            
           </div>
         </div>
       )}
-      {/* ==================================================================== */}
 
       {/* ===================== BOOKING QUEUE MODAL ===================== */}
       {isModalOpen && bookingDoc && bookingSchedule && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            
-            <div className="flex justify-between items-start mb-6">
+        <div className="fixed inset-0 bg-blue-950/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-xl max-h-[90vh] overflow-y-auto">
+
+            {/* Modal Header */}
+            <div className="flex justify-between items-start mb-7">
               <div>
-                <h3 className="text-2xl font-extrabold text-gray-800">Select Queue Number</h3>
-                <p className="text-gray-500 text-sm mt-1">
-                  Dr. {bookingDoc.firstName} {bookingDoc.lastName} • <span className="font-semibold text-indigo-600">{bookingSchedule.date}</span> at {bookingSchedule.startTime}
+                <h3 className="text-2xl font-bold text-blue-950 mb-1">Select Queue Number</h3>
+                <p className="text-slate-500 text-sm">
+                  Dr. {bookingDoc.firstName} {bookingDoc.lastName}
+                  <span className="mx-2 text-slate-300">·</span>
+                  <span className="text-blue-700 font-semibold">{bookingSchedule.date}</span>
+                  <span className="mx-2 text-slate-300">·</span>
+                  {bookingSchedule.startTime}
                 </p>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-red-500 font-bold text-xl">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-400 flex items-center justify-center font-bold transition-colors flex-shrink-0 ml-4"
+              >
                 ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-3 mb-8">
-              {[...Array(30)].map((_, index) => {
-                const num = index + 1;
-                const formattedNum = `APT-${String(num).padStart(3, '0')}`;
-                const isBooked = bookedNumbers.includes(formattedNum);
-                const isSelected = selectedNumber === num.toString();
+            {/* Queue Grid */}
+            {/* Automatically Assigned Number Display */}
+<div className="bg-blue-50 border-2 border-dashed border-blue-200 rounded-3xl p-8 mb-7 text-center">
+  <p className="text-sm font-bold uppercase tracking-widest text-blue-400 mb-2">
+    Your Appointment Number
+  </p>
+  {selectedNumber ? (
+    <div className="flex flex-col items-center">
+      <span className="text-6xl font-black text-blue-950 mb-2">
+        {selectedNumber}
+      </span>
+      <span className="text-xs text-blue-600 bg-blue-100 px-3 py-1 rounded-full font-bold">
+        APT-{String(selectedNumber).padStart(3, "0")}
+      </span>
+    </div>
+  ) : (
+    <p className="text-red-500 font-bold">No slots available for this session.</p>
+  )}
+</div>
 
-                return (
-                  <button
-                    key={num}
-                    disabled={isBooked}
-                    onClick={() => setSelectedNumber(num.toString())}
-                    className={`py-3 rounded-lg font-bold text-lg transition-all transform ${
-                      isBooked 
-                        ? 'bg-red-50 text-red-300 cursor-not-allowed border border-red-100 line-through' 
-                        : isSelected 
-                        ? 'bg-blue-600 text-white shadow-lg scale-110 border-blue-600' 
-                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100 hover:-translate-y-1 hover:shadow-md border border-blue-200'
-                    }`}
-                  >
-                    {num}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-col sm:flex-row justify-between items-center border-t border-gray-100 pt-6 gap-4">
-              <div className="flex gap-4 text-xs font-medium text-gray-500">
-                <span className="flex items-center gap-1.5"><div className="w-3 h-3 bg-blue-50 border border-blue-200 rounded-full"></div> Available</span>
-                <span className="flex items-center gap-1.5"><div className="w-3 h-3 bg-red-50 border border-red-100 rounded-full"></div> Taken</span>
-                <span className="flex items-center gap-1.5"><div className="w-3 h-3 bg-blue-600 rounded-full shadow"></div> Selected</span>
+            {/* Legend + Actions */}
+            <div className="flex flex-col sm:flex-row justify-between items-center border-t border-slate-100 pt-5 gap-4">
+              <div className="flex gap-5 text-xs text-slate-500 font-medium">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-blue-50 border-2 border-blue-200 inline-block"></span>Available
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-red-100 border-2 border-red-200 inline-block"></span>Taken
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-blue-700 inline-block"></span>Selected
+                </span>
               </div>
-              
               <div className="flex gap-3 w-full sm:w-auto">
-                <button 
-                  onClick={() => setIsModalOpen(false)} 
-                  className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-medium w-full sm:w-auto transition"
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 sm:flex-none px-5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-semibold text-sm transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
-                  onClick={confirmBooking} 
-                  disabled={!selectedNumber}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 w-full sm:w-auto transition shadow-md"
-                >
-                  {selectedNumber ? `Confirm #${selectedNumber}` : 'Select a Number'}
-                </button>
+                <button
+  onClick={confirmBooking}
+  disabled={!selectedNumber}
+  className="flex-1 sm:flex-none px-10 py-3 bg-blue-700 hover:bg-blue-600 text-white rounded-xl font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg"
+>
+  {selectedNumber ? "Confirm Appointment" : "Fully Booked"}
+</button>
               </div>
             </div>
 
           </div>
         </div>
       )}
-      {/* ======================================================== */}
 
+      {/* ===================== HERO / SEARCH SECTION ===================== */}
+      <div className="bg-blue-950 relative overflow-hidden">
+        {/* Decorative glows */}
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-blue-700/25 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-0 w-80 h-80 bg-blue-900/40 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 left-1/2 w-72 h-72 bg-blue-800/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 bg-gray-400 text-white">
-        <div className="flex items-center justify-center p-10">
-          <h1 className="text-3xl md:text-4xl font-bold leading-snug">
-            Smart <br /> channeling for <br /> a healthier <br /> tomorrow.
-          </h1>
-        </div>
+        <div className="relative z-10 max-w-6xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
 
-        <div className="p-10 bg-gray-500">
-          <h2 className="text-2xl font-bold mb-4">Find Your Doctor</h2>
+          {/* Hero Copy */}
+          <div>
+            <span className="inline-flex items-center gap-2 bg-blue-800/50 border border-blue-600/40 text-blue-300 text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full mb-7">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span>
+              Smart Channeling System
+            </span>
+            <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-5">
+              Find the right<br />
+              <span className="text-blue-400 italic">doctor for you</span>,<br />
+              instantly.
+            </h1>
+            <p className="text-blue-200/70 text-base leading-relaxed max-w-sm font-light">
+              Browse verified specialists, check real-time availability, and book your appointment in seconds — no phone calls needed.
+            </p>
+          </div>
 
-          <input
-            id="doctor-name-search"
-            name="doctorSearch"
-            type="text"
-            placeholder="Search doctor name"
-            className="w-full mb-3 p-2 rounded text-black"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          {/* Search Panel */}
+          <div className="bg-white rounded-2xl p-8 shadow-2xl shadow-blue-950/50">
+            <h2 className="text-xl font-bold text-blue-950 mb-1">Find Your Doctor</h2>
+            <p className="text-slate-400 text-sm mb-6">Filter by name, specialty, hospital, or date</p>
 
-          <select 
-            id="spec-select" 
-            name="specialization" 
-            className="w-full mb-3 p-2 rounded text-black"
-            value={selectedSpec}
-            onChange={(e) => setSelectedSpec(e.target.value)}
-          >
-            <option value="">All Specializations</option>
-            {specializations.map((spec, index) => (
-              <option key={index} value={spec}>{spec}</option>
-            ))}
-          </select>
-          
-          <select 
-            id="hosp-select" 
-            name="hospital" 
-            className="w-full mb-3 p-2 rounded text-black"
-            value={selectedHosp}
-            onChange={(e) => setSelectedHosp(e.target.value)}
-          >
-            <option value="">All Hospitals</option>
-            {hospitals.map((hosp) => (
-              <option key={hosp.id} value={hosp.id}>{hosp.name}</option>
-            ))}
-          </select>
+            <div className="relative mb-4">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
+              <input
+                id="doctor-name-search"
+                name="doctorSearch"
+                type="text"
+                placeholder="Search by doctor name…"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-blue-950 text-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
 
-          <input
-            id="appointment-date-picker"
-            name="appointmentDate"
-            type="date"
-            className="w-full mb-4 p-2 rounded text-black"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
+            <div className="relative mb-4">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🩺</span>
+              <select
+                id="spec-select"
+                name="specialization"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-blue-950 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all appearance-none"
+                value={selectedSpec}
+                onChange={(e) => setSelectedSpec(e.target.value)}
+              >
+                <option value="">All Specializations</option>
+                {specializations.map((spec, index) => (
+                  <option key={index} value={spec}>{spec}</option>
+                ))}
+              </select>
+            </div>
 
-          <button className="w-full bg-blue-300 text-black py-2 rounded hover:bg-blue-200">
-            🔍 Search
-          </button>
+            <div className="relative mb-4">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🏥</span>
+              <select
+                id="hosp-select"
+                name="hospital"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-blue-950 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all appearance-none"
+                value={selectedHosp}
+                onChange={(e) => setSelectedHosp(e.target.value)}
+              >
+                <option value="">All Hospitals</option>
+                {hospitals.map((hosp) => (
+                  <option key={hosp.id} value={hosp.id}>{hosp.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative mb-6">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">📅</span>
+              <input
+                id="appointment-date-picker"
+                name="appointmentDate"
+                type="date"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-blue-950 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+
+            <button className="w-full bg-blue-700 hover:bg-blue-600 text-white py-3 rounded-xl font-bold text-sm transition-colors shadow-lg tracking-wide">
+              Search Doctors
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="p-10">
-        <h2 className="text-xl font-bold mb-1">Available Doctors</h2>
-        
+      {/* ===================== RESULTS SECTION ===================== */}
+      <div className="max-w-6xl mx-auto px-6 py-12">
+
+        {/* Section Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <h2 className="text-2xl font-bold text-blue-950">Available Doctors</h2>
+          {!loading && (
+            <span className="bg-blue-700 text-white text-xs font-bold px-3 py-1 rounded-full">
+              {filteredDoctors.length} found
+            </span>
+          )}
+        </div>
+
+        {/* Loading */}
         {loading ? (
-          <p className="text-sm">Loading doctors...</p>
+          <div className="flex flex-col items-center py-24">
+            <div className="w-10 h-10 border-4 border-blue-100 border-t-blue-700 rounded-full animate-spin mb-4"></div>
+            <p className="text-blue-400 text-sm">Loading doctors…</p>
+          </div>
+
+        ) : filteredDoctors.length === 0 ? (
+          <div className="text-center py-24">
+            <div className="text-5xl mb-4">🔍</div>
+            <p className="text-slate-400 text-base">No doctors match your current filters.</p>
+          </div>
+
         ) : (
-          <>
-            <p className="text-sm mb-4">
-              Found {filteredDoctors.length} doctors matching your criteria
-            </p>
-
-            <div className="space-y-6">
-              {filteredDoctors.length > 0 ? (
-                filteredDoctors.map((doc) => (
-                  <div key={doc.id} className="bg-indigo-200 p-4 rounded-lg shadow-md">
-                    <div className="flex items-start gap-4">
-                      <img 
-                        src={doc.profileImage || defaultDocImg} 
-                        alt="Doctor" 
-                        className="w-20 h-20 bg-gray-300 rounded object-cover"
-                      />
-
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg">
-                          {doc.title} {doc.firstName} {doc.lastName}
-                        </h3>
-                        <p className="text-sm mb-1">{doc.specialization}</p>
-
-                        <div className="text-sm mb-2">
-                          {doc.hospitals && doc.hospitals.length > 0 ? (
-                            <div className="flex flex-wrap gap-1">
-                              {doc.hospitals.map((hospitalId) => {
-                                const hospitalObj = hospitals.find((h) => h.id === hospitalId);
-                                return (
-                                  <span key={hospitalId} className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
-                                    {hospitalObj ? hospitalObj.name : "Unknown Hospital"}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <p className="text-gray-500 italic">Independent</p>
-                          )}
-                        </div>
-
-                        <div className="mb-4">
-                          <p className="text-sm font-semibold mb-1">Available Times:</p>
-                          {schedules[doc.id] && schedules[doc.id].length > 0 ? (
-                            <div className="flex flex-col gap-2">
-                              {schedules[doc.id].map((schedule) => (
-                                <div key={schedule.id} className="flex items-center justify-between bg-white px-3 py-2 rounded shadow-sm border border-indigo-100 w-full max-w-md">
-                                  <div className="text-xs">
-                                    <span className="font-medium">{schedule.date}</span>
-                                    <span className="mx-1">|</span>
-                                    <span>{schedule.startTime} - {schedule.endTime}</span>
-                                    <span className="mx-1">•</span>
-                                    <span className="text-indigo-600 font-medium">
-                                      {schedule.hospitalName || "Hospital"}
-                                    </span>
-                                  </div>
-                                  <button 
-                                    onClick={() => openBookingModal(doc, schedule)}
-                                    className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition shadow-sm"
-                                  >
-                                    Book Now
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-gray-600">No available schedules at the moment.</p>
-                          )}
-                        </div>
-
-                        <button 
-                          onClick={() => navigate(`/doctor/account/${doc.id}`)}
-                          className="text-sm bg-green-200 px-3 py-1 rounded hover:bg-green-300"
-                        >
-                          View Profile
-                        </button>
-                      </div>
-
-                      <div className="text-right">
-                        <p className="text-sm font-medium">Contact</p>
-                        <p className="text-xs text-gray-700">{doc.phone}</p>
-                      </div>
+          /* ── 2-per-row grid ── */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredDoctors.map((doc) => (
+              <div
+                key={doc.id}
+                className="bg-white rounded-2xl border border-blue-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-200 flex flex-col overflow-hidden"
+              >
+                {/* ── Card Header ── */}
+                <div className="bg-blue-950 px-5 py-4 relative overflow-hidden">
+                  <div
+                    className="absolute inset-0 opacity-30"
+                    style={{ backgroundImage: "radial-gradient(circle at 85% 30%, #3b82f6 0%, transparent 55%)" }}
+                  />
+                  <div className="relative flex items-center gap-4">
+                    <img
+                      src={doc.profileImage || defaultDocImg}
+                      alt="Doctor"
+                      className="w-16 h-16 rounded-xl object-cover border-2 border-blue-400/40 flex-shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <h3 className="text-base font-bold text-white leading-tight truncate">
+                        {doc.title} {doc.firstName} {doc.lastName}
+                      </h3>
+                      <p className="text-blue-300 text-xs font-semibold mt-0.5">{doc.specialization}</p>
+                      {doc.phone && (
+                        <p className="text-blue-400/80 text-xs mt-1">{doc.phone}</p>
+                      )}
                     </div>
                   </div>
-                ))
-              ) : (
-                <p className="text-gray-500">No doctors match your current filters.</p>
-              )}
-            </div>
-          </>
+                </div>
+
+                {/* ── Card Body ── */}
+                <div className="px-5 pt-4 pb-5 flex flex-col flex-1">
+
+                  {/* Hospital Tags */}
+                  {doc.hospitals && doc.hospitals.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {doc.hospitals.map((hospitalId) => {
+                        const hospitalObj = hospitals.find((h) => h.id === hospitalId);
+                        return (
+                          <span
+                            key={hospitalId}
+                            className="bg-blue-50 text-blue-700 border border-blue-100 text-xs font-semibold px-2.5 py-1 rounded-full"
+                          >
+                            🏥 {hospitalObj ? hospitalObj.name : "Unknown Hospital"}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-slate-400 text-xs italic mb-4">Independent Practice</p>
+                  )}
+
+                  {/* Schedule Slots Label */}
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
+                    Available Slots
+                  </p>
+
+                  {/* Schedule Rows */}
+                  <div className="flex-1 space-y-2 mb-4">
+                    {schedules[doc.id] && schedules[doc.id].length > 0 ? (
+                      schedules[doc.id].map((schedule) => (
+                        <div
+                          key={schedule.id}
+                          className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 hover:border-blue-300 hover:bg-blue-100/60 transition-colors"
+                        >
+                          <div className="flex flex-col gap-0.5 min-w-0 mr-2">
+                            <span className="text-xs font-bold text-blue-950">{schedule.date}</span>
+                            <span className="text-xs text-slate-500">{schedule.startTime} – {schedule.endTime}</span>
+                            <span className="text-xs text-blue-600 font-semibold">{schedule.hospitalName || "Hospital"}</span>
+                          </div>
+                          <button
+                            onClick={() => openBookingModal(doc, schedule)}
+                            className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex-shrink-0 shadow-sm whitespace-nowrap"
+                          >
+                            Book Now
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-400 italic py-2">No available schedules at the moment.</p>
+                    )}
+                  </div>
+
+                  {/* View Profile Button */}
+                  <div className="pt-3 border-t border-slate-100">
+                    <button
+                      onClick={() => navigate(`/doctor/account/${doc.id}`)}
+                      className="w-full inline-flex items-center justify-center gap-2 border border-blue-200 hover:border-blue-500 hover:bg-blue-50 text-blue-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      View Full Profile
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
