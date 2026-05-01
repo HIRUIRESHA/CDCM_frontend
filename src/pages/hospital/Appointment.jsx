@@ -32,7 +32,6 @@ const AppointmentManagement = () => {
       .catch((err) => { console.error(err); setLoading(false); });
   }, [user]);
 
-  // ── Date helpers ─────────────────────────────────────────────────
   const now = new Date();
   const todayISO   = now.toISOString().split("T")[0];                                                            // "2026-05-01"
   const todayLocal = `${String(now.getDate()).padStart(2,"0")}/${String(now.getMonth()+1).padStart(2,"0")}/${now.getFullYear()}`; // "01/05/2026"
@@ -40,13 +39,13 @@ const AppointmentManagement = () => {
 
   const isToday = (date) => date === todayISO || date === todayLocal;
 
-  // ── Doctor name resolver ─────────────────────────────────────────
+  //  Doctor name resolver 
   const getDoctorName = (doctorId) => {
     const doc = doctors.find((d) => d.id === doctorId);
     return doc ? `${doc.title || ""} ${doc.firstName || ""} ${doc.lastName || ""}`.trim() : "—";
   };
 
-  // ── Filters ──────────────────────────────────────────────────────
+  // Filters 
   const applySearch = (list) =>
     list.filter((a) => {
       const term = search.toLowerCase();
@@ -75,7 +74,7 @@ const AppointmentManagement = () => {
       .sort((a, b) => b.date?.localeCompare(a.date))
   ));
 
-  // ── Stats ─────────────────────────────────────────────────────────
+  // Stats
   const stats = [
     { label: "Today's Appointments",  value: appointments.filter((a) => isToday(a.date)).length },
     { label: "Cancellation Requests", value: appointments.filter((a) => a.status === "CANCELLATION_REQUESTED").length },
@@ -83,7 +82,7 @@ const AppointmentManagement = () => {
     { label: "Total Appointments",     value: appointments.length },
   ];
 
-  // ── Styles ────────────────────────────────────────────────────────
+  // Styles 
   const statusStyle = (s) => ({
     CONFIRMED:              { color: "#15803d", background: "#dcfce7" },
     CANCELLED:              { color: "#b91c1c", background: "#fee2e2" },
@@ -107,7 +106,7 @@ const AppointmentManagement = () => {
     actionBtn: (bg) => ({ background: bg, color: "white", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", display: "block", width: "100%", marginBottom: 3 }),
   };
 
-  // ── Table renderer ────────────────────────────────────────────────
+  // Table renderer 
   const renderTable = (list, showDate = false) => (
     <div style={{ background: "white", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 8px rgba(0,0,0,0.07)" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
@@ -205,6 +204,38 @@ const AppointmentManagement = () => {
     </div>
   );
 
+  const handleAutoAssign = async () => {
+  try {
+    const res = await fetch(
+      `http://localhost:8082/api/appointments/auto-assign/${user.id}?date=${todayISO}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error("Failed to auto assign numbers");
+    }
+
+    const updated = await res.json();
+
+    setAppointments((prev) =>
+      prev.map((appt) => {
+        const found = updated.find((u) => u.id === appt.id);
+        return found ? found : appt;
+      })
+    );
+
+    alert("Appointment numbers assigned successfully");
+  } catch (err) {
+    console.error(err);
+    alert("Auto assign failed");
+  }
+};
+
   return (
     <div style={S.page}>
       <div style={S.wrap}>
@@ -262,8 +293,13 @@ const AppointmentManagement = () => {
               </div>
               <div style={{ display: "flex", gap: 10, marginLeft: 12 }}>
                 <button style={{ background: "#22c55e", color: "white", border: "none", padding: "9px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Process Refund</button>
-                <button style={{ background: "#1b3a6b", color: "white", border: "none", padding: "9px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Auto Assign No.</button>
-              </div>
+              <button
+                onClick={handleAutoAssign}
+                style={{ background: "#1b3a6b", color: "white", border: "none", padding: "9px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+              >
+                Auto Assign No.
+              </button>   
+           </div>
             </div>
             {renderTable(todayList, false)}
           </>
