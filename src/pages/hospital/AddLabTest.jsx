@@ -10,7 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 export default function AddLabTest({ onBack }) {
-  const hospitalId = localStorage.getItem("hospitalId");
+const hospitalId = localStorage.getItem("hospitalId");
   const navigate = useNavigate();
 
   const [patients, setPatients] = useState([]);
@@ -115,6 +115,24 @@ export default function AddLabTest({ onBack }) {
     loadLabTests();
   };
 
+  const handleClear = () => {
+  setForm({
+    patientId: "",
+    patientName: "",
+    email: "",
+    contactNumber: "",
+    testType: "",
+    price: "",
+    testDate: "",
+    requestedDate: ""
+  });
+
+  setPatientSearch("");
+  setCategorySearch("");
+  setShowPatientList(false);
+  setShowCategoryList(false);
+};
+
   const handleStatusChange = async (id, newStatus) => {
     try {
       setLabTests(prev =>
@@ -152,6 +170,7 @@ export default function AddLabTest({ onBack }) {
     const matchesSearch =
       (p?.firstName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
       (p?.lastName?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (p?.nicOrPassport?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
       (t?.testType?.toLowerCase() || "").includes(searchTerm.toLowerCase());
 
     const matchesStatus =
@@ -167,11 +186,15 @@ export default function AddLabTest({ onBack }) {
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <button
-            onClick={() => navigate("/hospital/laboratory")}
-            className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-600 font-semibold"
-          >
-            ← 
-          </button>
+  type="button"
+  onClick={() => {
+    console.log("clicked");
+    navigate("/hospital/laboratory");
+  }}
+  className="relative z-50 flex items-center gap-2 px-4 py-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-600 font-semibold"
+>
+  ←
+</button>
           <div className="text-center">
             <h2 className="text-xl font-bold">Laboratory Management</h2>
             <p className="text-xs text-slate-500">Register and monitor lab tests</p>
@@ -185,100 +208,203 @@ export default function AddLabTest({ onBack }) {
 
       <div className="max-w-7xl mx-auto px-6 mt-8 flex flex-col gap-8">
         
-        <div className="w-full">
-          <div className="bg-white p-8 rounded-3xl shadow-xl">
-            <h3 className="text-xl font-bold mb-6 text-slate-800 border-l-4 border-blue-600 pl-4">Add New Test Request</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              
-              {/* Patient Searchable Selection */}
-              <div className="space-y-4 relative">
-                <div className="relative">
-                  <input 
-                    type="text"
-                    placeholder="Search Patient Name..."
-                    value={patientSearch}
-                    onChange={(e) => {
-                      setPatientSearch(e.target.value);
-                      setShowPatientList(true);
-                    }}
-                    onFocus={() => setShowPatientList(true)}
-                    className="w-full p-3 border border-slate-200 rounded-xl outline-none bg-white font-medium"
-                  />
-                  {showPatientList && (
-                    <div className="absolute top-full left-0 w-full bg-white border border-slate-200 rounded-xl mt-1 shadow-2xl z-50 max-h-48 overflow-y-auto">
-                      {patients.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(patientSearch.toLowerCase())).map(p => (
-                        <div 
-                          key={p.id} 
-                          onClick={() => selectPatient(p)}
-                          className="p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0 text-sm"
-                        >
-                          <div className="font-bold">{p.firstName} {p.lastName}</div>
-                          <div className="text-[10px] text-slate-400">ID: P-{p.id}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <input value={form.patientName} placeholder="Patient Name" readOnly className="w-full p-3 border border-slate-100 rounded-xl bg-slate-50 text-slate-500 outline-none" />
-              </div>
+<div className="w-full">
+  <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
 
-              <div className="space-y-4">
-                <input value={form.email} placeholder="Email Address" readOnly className="w-full p-3 border border-slate-100 rounded-xl bg-slate-50 text-slate-500 outline-none" />
-                <input value={form.contactNumber} placeholder="Contact Number" readOnly className="w-full p-3 border border-slate-100 rounded-xl bg-slate-50 text-slate-500 outline-none" />
-              </div>
+    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-400 via-indigo-500 to-violet-500" />
 
-              {/* Category Searchable Selection */}
-              <div className="space-y-4 relative">
-                <div className="relative">
-                  <input 
-                    type="text"
-                    placeholder="Search Test Type..."
-                    value={categorySearch}
-                    onChange={(e) => {
-                      setCategorySearch(e.target.value);
-                      setShowCategoryList(true);
-                    }}
-                    onFocus={() => setShowCategoryList(true)}
-                    className="w-full p-3 border border-slate-200 rounded-xl outline-none bg-white font-medium"
-                  />
-                  {showCategoryList && (
-                    <div className="absolute top-full left-0 w-full bg-white border border-slate-200 rounded-xl mt-1 shadow-2xl z-50 max-h-48 overflow-y-auto">
-                      {categories.filter(c => c.testName.toLowerCase().includes(categorySearch.toLowerCase())).map(c => (
-                        <div 
-                          key={c.id} 
-                          onClick={() => selectCategory(c)}
-                          className="p-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0 text-sm"
-                        >
-                          <div className="font-bold">{c.testName}</div>
-                          <div className="text-[10px] text-blue-500">Rs {c.price}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3 top-3 text-slate-400 font-bold">Rs</span>
-                  <input value={form.price} placeholder="0.00" readOnly className="w-full p-3 pl-10 border border-slate-100 rounded-xl bg-blue-50/50 text-blue-700 font-bold outline-none" />
-                </div>
-              </div>
+    <div className="px-8 pt-8 pb-6 border-b border-slate-100 flex items-center gap-4">
+      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200">
+        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+      </div>
+      <div>
+        <h3 className="text-lg font-bold text-slate-800 tracking-tight">New Test Request</h3>
+        <p className="text-xs text-slate-400 font-medium">Fill in patient and test details below</p>
+      </div>
+    </div>
 
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400 ml-1">Test Date</label>
-                    <input type="date" name="testDate" value={form.testDate} onChange={handleChange} className="w-full p-2 border border-slate-200 rounded-xl outline-none text-sm" />
+    <div className="p-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        {/* ── Column 1: Patient Search ── */}
+        <div className="space-y-3">
+          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Patient</label>
+
+          <div className="relative">
+            <span className="absolute left-3 top-3.5 text-slate-300">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/><path strokeLinecap="round" d="m21 21-4.35-4.35"/>
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Search patient…"
+              value={patientSearch}
+              onChange={(e) => { setPatientSearch(e.target.value); setShowPatientList(true); }}
+              onFocus={() => setShowPatientList(true)}
+              className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
+            />
+            {showPatientList && (
+              <div className="absolute top-full left-0 w-full bg-white border border-slate-200 rounded-2xl mt-2 shadow-2xl shadow-slate-200/80 z-50 max-h-52 overflow-y-auto">
+                {patients.filter(p =>
+                  `${p.firstName} ${p.lastName}`.toLowerCase().includes(patientSearch.toLowerCase()) ||
+                  (p?.nicOrPassport || "").toLowerCase().includes(patientSearch.toLowerCase()) ||
+                  (p?.email || "").toLowerCase().includes(patientSearch.toLowerCase())
+                ).map(p => (
+                  <div
+                    key={p.id}
+                    onClick={() => selectPatient(p)}
+                    className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0 transition-colors"
+                  >
+                    <div className="font-bold text-slate-700 text-sm">{p.firstName} {p.lastName}</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">NIC: {p.nicOrPassport} · {p.email}</div>
+                    <div className="text-[10px] text-blue-400 font-bold">ID: P-{p.id}</div>
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-400 ml-1">Req. Date</label>
-                    <input type="date" name="requestedDate" value={form.requestedDate} onChange={handleChange} className="w-full p-2 border border-slate-200 rounded-xl outline-none text-sm" />
-                  </div>
-                </div>
-                <button onClick={handleSubmit} className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-white transition-all shadow-lg active:scale-95"> Add Test Record </button>
+                ))}
               </div>
-            </div>
+            )}
+          </div>
+
+          <div className="relative">
+            <span className="absolute left-3 top-3.5">
+              <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM12 14a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z"/>
+              </svg>
+            </span>
+            <input
+              value={form.patientName}
+              placeholder="Patient name"
+              readOnly
+              className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-sm text-slate-500 outline-none cursor-default select-none"
+            />
           </div>
         </div>
 
+        {/* ── Column 2: Contact Info ── */}
+        <div className="space-y-3">
+          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Contact</label>
+
+          <div className="relative">
+            <span className="absolute left-3 top-3.5">
+              <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+            </span>
+            <input
+              value={form.email}
+              placeholder="Email address"
+              readOnly
+              className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-sm text-slate-500 outline-none cursor-default"
+            />
+          </div>
+
+          <div className="relative">
+            <span className="absolute left-3 top-3.5">
+              <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+              </svg>
+            </span>
+            <input
+              value={form.contactNumber}
+              placeholder="Contact number"
+              readOnly
+              className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-sm text-slate-500 outline-none cursor-default"
+            />
+          </div>
+        </div>
+
+        {/* ── Column 3: Test Type + Price ── */}
+        <div className="space-y-3">
+          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Test Details</label>
+
+          <div className="relative">
+            <span className="absolute left-3 top-3.5">
+              <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Search test type…"
+              value={categorySearch}
+              onChange={(e) => { setCategorySearch(e.target.value); setShowCategoryList(true); }}
+              onFocus={() => setShowCategoryList(true)}
+              className="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
+            />
+            {showCategoryList && (
+              <div className="absolute top-full left-0 w-full bg-white border border-slate-200 rounded-2xl mt-2 shadow-2xl shadow-slate-200/80 z-50 max-h-52 overflow-y-auto">
+                {categories.filter(c => c.testName.toLowerCase().includes(categorySearch.toLowerCase())).map(c => (
+                  <div
+                    key={c.id}
+                    onClick={() => selectCategory(c)}
+                    className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0 transition-colors"
+                  >
+                    <div className="font-bold text-slate-700 text-sm">{c.testName}</div>
+                    <div className="text-[10px] text-blue-500 font-bold mt-0.5">Rs {c.price}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Price display */}
+          <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl">
+            <span className="text-xs font-black text-blue-400 uppercase tracking-widest">Rs</span>
+            <span className="text-lg font-black text-blue-700 tracking-tight">
+              {form.price || <span className="text-slate-300 font-medium text-sm">0.00</span>}
+            </span>
+          </div>
+        </div>
+
+        {/* ── Column 4: Dates + Actions ── */}
+        <div className="space-y-3">
+          <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">Schedule</label>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[9px] font-bold uppercase text-slate-400 mb-1 ml-0.5 tracking-widest">Test Date</label>
+              <input
+                type="date"
+                name="testDate"
+                value={form.testDate}
+                onChange={handleChange}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-[9px] font-bold uppercase text-slate-400 mb-1 ml-0.5 tracking-widest">Req. Date</label>
+              <input
+                type="date"
+                name="requestedDate"
+                value={form.requestedDate}
+                onChange={handleChange}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={handleClear}
+              className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-xl text-sm font-bold text-slate-500 transition-all border border-slate-200"
+            >
+              ✕ Clear
+            </button>
+            <button
+              onClick={handleSubmit}
+              className="flex-[2] py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-200"
+            >
+              + Add Test
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
 
         <div className="w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
           <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center bg-slate-50/50 gap-4">

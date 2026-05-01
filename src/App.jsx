@@ -27,7 +27,7 @@ import Reports from './pages/patient/Reports';
 import Settings from './pages/patient/Settings';
 import ForgotPassword from "./pages/public/ForgotPassword";
 import ResetPassword from "./pages/public/ResetPassword";
-
+import VideoBooking from "./pages/patient/VideoBooking";
 
 
 import HospitalDashboard from './pages/hospital/HospitalDashboard';
@@ -43,6 +43,7 @@ import Schedule from './pages/hospital/Schedule';
 import AddSchedule from './pages/hospital/AddSchedule';
 import UploadReport from './pages/hospital/UploadReport';
 import AddLabTest from './pages/hospital/AddLabTest';
+import AddVideoConsultingSchedule from './pages/hospital/AddVideoConsultingSchedule';
 
 import DoctorManagement from './pages/hospital/DoctorManagement';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -58,6 +59,7 @@ import AddHospital from './pages/admin/AddHospital';
 import ManageHospitals from './pages/admin/ManageHospitals';
 import ManageDoctors from './pages/admin/ManageDoctors';
 import ManagePatients from './pages/admin/ManagePatients';
+import Dashboard from './pages/admin/Dashboard';
 
 
 // Placeholder for missing pages
@@ -105,7 +107,7 @@ function App() {
              <Route path="notifications" element={<Notification />} />  
              <Route path="reports" element={<Reports />} />
              <Route path="settings" element={<Settings />} />
-            
+             <Route path="video-book/:id" element={<VideoBooking />} />
            </Route>
 
 
@@ -123,9 +125,10 @@ function App() {
               <Route path="notifications" element={<Notifications />} />
               <Route path="patients" element={<PatientManagement />} />
               <Route path="schedule" element={<Schedule />} />
-            <Route path="schedule/add" element={<AddSchedule />} />
-            <Route path="addLabTest" element={<AddLabTest />} />
-            <Route path="upload-report/:id" element={<UploadReport />} />
+              <Route path="schedule/add" element={<AddSchedule />} />
+              <Route path="schedule/video/add" element={<AddVideoConsultingSchedule />} />
+              <Route path="addLabTest" element={<AddLabTest />} />
+              <Route path="upload-report/:id" element={<UploadReport />} />
             </Route>
 
            <Route path="doctor">
@@ -142,7 +145,7 @@ function App() {
 
             {/* ADMIN */}
             <Route path="admin">
-              <Route path="dashboard" element={<Placeholder title="Admin Dashboard" />} />
+              <Route path="dashboard" element={<Dashboard />} />
               <Route path="add-hospital" element={<AddHospital />} />
               <Route path="manage-hospitals" element={<ManageHospitals />} />
               <Route path="manage-doctors" element={<ManageDoctors />} />

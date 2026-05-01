@@ -10,7 +10,7 @@ export default function Notification() {
 
   // Fetch notifications whenever the logged-in user changes
   useEffect(() => {
-    if (!user?.id) {
+   if (!user?.id) {
       console.error("No logged-in user found!");
       setLoading(false);
       return;
@@ -19,7 +19,7 @@ export default function Notification() {
     const loadNotifications = async () => {
       try {
         setLoading(true);
-        const res = await getNotifications(user.id); // fetch by AuthContext ID
+         const res = await getNotifications(user.id); // fetch by AuthContext ID
         setNotifications(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Failed to load notifications:", err);

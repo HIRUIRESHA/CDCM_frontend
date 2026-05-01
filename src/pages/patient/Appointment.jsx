@@ -128,6 +128,89 @@ function PatientAppointments() {
           <span>+</span> Book Appointment
         </Link>
       </div>
+      
+      {appointments.length === 0 ? (
+        <div className="bg-white p-10 rounded-xl shadow-sm text-center border border-gray-200">
+          <p className="text-gray-500 text-lg mb-4">You don't have any booked appointments yet.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {appointments.map((appt) => (
+            <div key={appt.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+              
+              <div className="bg-blue-600 px-5 py-3 text-white flex justify-between items-center">
+                <span className="font-bold tracking-wider text-lg">{appt.appointmentNumber}</span>
+                <span className="px-3 py-1 bg-blue-500 text-xs rounded-full font-semibold uppercase tracking-wide">
+                  {appt.status}
+                </span>
+              </div>
+              
+              <div className="p-5 space-y-5">
+                <div className="flex items-start gap-4">
+                  <div className="bg-blue-100 p-2.5 rounded-lg text-blue-600 text-xl">📅</div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Date & Time</p>
+                    <p className="font-bold text-gray-800">{appt.date}</p>
+                    <p className="text-sm text-gray-600">{appt.time}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="bg-green-100 p-2.5 rounded-lg text-green-600 text-xl">👨‍⚕️</div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Doctor</p>
+                    <p className="font-bold text-gray-800">{getDoctorName(appt.doctorId)}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="bg-red-100 p-2.5 rounded-lg text-red-600 text-xl">🏥</div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Hospital</p>
+                    <p className="font-bold text-gray-800">{getHospitalName(appt.hospitalId)}</p>
+                  </div>
+                </div>
+              </div>
+              {/* ✅ ACTION SECTION */}
+<div className="px-5 pb-5 space-y-2">
+
+  {/* Consultation Type */}
+  <p className="text-sm text-gray-500">
+    Type: {appt.consultationType || "PHYSICAL"}
+  </p>
+
+  {/* ✅ Video Consultation Button (not for cancelled) */}
+  <Link
+  to={`/patient/video-book/${appt.id}?doctorId=${appt.doctorId}`}
+  className="block text-center w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition"
+>
+  Video Consultation
+</Link>
+
+  {/* ⚠️ Message if not completed */}
+  {appt.consultationType === "PHYSICAL" &&
+   appt.status !== "COMPLETED" && (
+    <p className="text-xs text-red-500">
+      Complete physical appointment first to request video consultation
+    </p>
+  )}
+
+  {/* ✅ Join Video Call */}
+  {appt.consultationType === "VIDEO" &&
+   appt.status === "CONFIRMED" && (
+    <Link
+      to={`/video-call/${appt.id}`}
+      className="block text-center w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+    >
+      Join Video Call
+    </Link>
+  )}
+
+</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* --- UPCOMING SECTION --- */}
       <section className="mb-12">
