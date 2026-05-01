@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth } from '../../context/AuthContext'; // ✅ Added AuthContext
+import { useAuth } from '../../context/AuthContext'; 
 import { useNavigate } from "react-router-dom";
 
 function HeartIcon({ filled }) {
@@ -58,7 +58,7 @@ function DoctorCard({ doctor, onToggleLike }) {
 }
 
 export default function MyDoctors() {
-  const { user } = useAuth(); // ✅ Get the logged-in user
+  const { user } = useAuth(); // Get the logged-in user
   const navigate = useNavigate();
   const [doctorList, setDoctorList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,16 +66,16 @@ export default function MyDoctors() {
 
   useEffect(() => {
     const fetchBookedDoctors = async () => {
-      if (!user || !user.id) return; // ✅ Wait for user to load
+      if (!user || !user.id) return; // Wait for user to load
 
       try {
         const token = localStorage.getItem('token');
         const authHeaders = {
-          "Authorization": `Bearer ${token}`, // ✅ Added security token
+          "Authorization": `Bearer ${token}`, 
           "Content-Type": "application/json"
         };
 
-        // ✅ 1. Fetch appointments and doctors simultaneously (just like PatientAppointments.jsx)
+        // Fetch appointments and doctors simultaneously (just like PatientAppointments.jsx)
         const [apptRes, docsRes] = await Promise.all([
           fetch(`http://localhost:8082/api/appointments/patient/${user.id}`, { headers: authHeaders }),
           fetch("http://localhost:8082/api/hospital/doctors/assigned-all")
@@ -96,17 +96,17 @@ export default function MyDoctors() {
           return;
         }
 
-        // 3. Find the matching doctors from the allDoctors list
+        // Find the matching doctors from the allDoctors list
         const bookedDoctorsData = allDoctors.filter(doc => uniqueDoctorIds.includes(doc.id));
 
-        // ✅ 4. Format the data to match DoctorCard (handling firstName/lastName properly)
+        // Format the data to match DoctorCard (handling firstName/lastName properly)
         const formattedDoctors = bookedDoctorsData.map(doc => ({
           id: doc.id,
           name: `${doc.title || ''} ${doc.firstName || ''} ${doc.lastName || ''}`.trim() || "Unknown Doctor",
           specialty: doc.specialization || "General Medicine", 
           experience: doc.experience || "Experience unlisted",
-          rating: 90, // Fallback if not in DB
-          patients: 120, // Fallback if not in DB
+          rating: 90, 
+          patients: 120, 
           nextAvailable: "Check availability", 
           liked: false,
           image: doc.profileImage || "https://randomuser.me/api/portraits/med/men/1.jpg"
@@ -122,7 +122,7 @@ export default function MyDoctors() {
     };
 
     fetchBookedDoctors();
-  }, [user]); // ✅ Re-run if user context changes
+  }, [user]); //Re-run if user context changes
 
   const toggleLike = (id) => {
     setDoctorList((prev) =>
@@ -142,7 +142,7 @@ export default function MyDoctors() {
       )}
 
       {!isLoading && !error && doctorList.length > 0 && (
-        <div className="grid grid-cols-2 gap-5 max-w-2xl">
+        <div className="grid grid-cols-3 gap-5 max-w-5.5xl">
           {doctorList.map((doctor) => (
             <DoctorCard key={doctor.id} doctor={doctor} onToggleLike={toggleLike} />
           ))}
@@ -151,7 +151,6 @@ export default function MyDoctors() {
 
       <div className="flex justify-end max-w-2xl mt-12">
         <button 
-          // 👇 Add this onClick 👇
           onClick={() => navigate('/patient/add-feedback')}
           className="bg-blue-200 hover:bg-blue-300 text-blue-900 font-extrabold px-8 py-3 rounded-full text-sm transition-colors cursor-pointer"
         >

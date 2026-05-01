@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Link } from 'react-router-dom'; // ✅ Import Link for smooth navigation
+import { Link } from 'react-router-dom';
 
 function PatientAppointments() {
   const { user } = useAuth();
@@ -31,8 +31,6 @@ function PatientAppointments() {
         if (apptRes.ok) {
           const apptData = await apptRes.json();
           setAppointments(apptData);
-        } else {
-          console.error("Failed to fetch appointments. Status:", apptRes.status);
         }
 
         if (docsRes.ok) {
@@ -54,6 +52,17 @@ function PatientAppointments() {
     fetchAppointmentsData();
   }, [user]);
 
+  // --- LOGIC TO CATEGORIZE APPOINTMENTS ---
+  const today = new Date().toISOString().split('T')[0];
+
+  const upcomingAppointments = appointments
+    .filter(appt => appt.date >= today)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const previousAppointments = appointments
+    .filter(appt => appt.date < today)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
   const getDoctorName = (doctorId) => {
     const doc = doctors.find(d => d.id === doctorId);
     return doc ? `${doc.title || ''} ${doc.firstName || ''} ${doc.lastName || ''}`.trim() : "Unknown Doctor";
@@ -63,6 +72,42 @@ function PatientAppointments() {
     const hosp = hospitals.find(h => h.id === hospitalId);
     return hosp ? hosp.name : "Unknown Hospital";
   };
+
+  // Reusable component for the Appointment Card to keep code clean
+  const AppointmentCard = ({ appt }) => (
+    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+      <div className={`${appt.date < today ? 'bg-gray-500' : 'bg-blue-600'} px-5 py-3 text-white flex justify-between items-center`}>
+        <span className="font-bold tracking-wider text-lg">{appt.appointmentNumber}</span>
+        <span className="px-3 py-1 bg-white/20 text-xs rounded-full font-semibold uppercase tracking-wide">
+          {appt.status}
+        </span>
+      </div>
+      <div className="p-5 space-y-5">
+        <div className="flex items-start gap-4">
+          <div className="bg-blue-100 p-2.5 rounded-lg text-blue-600 text-xl">📅</div>
+          <div>
+            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Date & Time</p>
+            <p className="font-bold text-gray-800">{appt.date}</p>
+            <p className="text-sm text-gray-600">{appt.time}</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-4">
+          <div className="bg-green-100 p-2.5 rounded-lg text-green-600 text-xl">👨‍⚕️</div>
+          <div>
+            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Doctor</p>
+            <p className="font-bold text-gray-800">{getDoctorName(appt.doctorId)}</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-4">
+          <div className="bg-red-100 p-2.5 rounded-lg text-red-600 text-xl">🏥</div>
+          <div>
+            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Hospital</p>
+            <p className="font-bold text-gray-800">{getHospitalName(appt.hospitalId)}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -74,9 +119,7 @@ function PatientAppointments() {
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
-      
-      {/* ✅ Updated Header Section with the new button */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 gap-4">
         <h1 className="text-3xl font-bold text-gray-800">My Appointments</h1>
         <Link 
           to="/find-doctor" 
@@ -85,53 +128,40 @@ function PatientAppointments() {
           <span>+</span> Book Appointment
         </Link>
       </div>
-      
-      {appointments.length === 0 ? (
-        <div className="bg-white p-10 rounded-xl shadow-sm text-center border border-gray-200">
-          <p className="text-gray-500 text-lg mb-4">You don't have any booked appointments yet.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {appointments.map((appt) => (
-            <div key={appt.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow duration-300">
-              
-              <div className="bg-blue-600 px-5 py-3 text-white flex justify-between items-center">
-                <span className="font-bold tracking-wider text-lg">{appt.appointmentNumber}</span>
-                <span className="px-3 py-1 bg-blue-500 text-xs rounded-full font-semibold uppercase tracking-wide">
-                  {appt.status}
-                </span>
-              </div>
-              
-              <div className="p-5 space-y-5">
-                <div className="flex items-start gap-4">
-                  <div className="bg-blue-100 p-2.5 rounded-lg text-blue-600 text-xl">📅</div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Date & Time</p>
-                    <p className="font-bold text-gray-800">{appt.date}</p>
-                    <p className="text-sm text-gray-600">{appt.time}</p>
-                  </div>
-                </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="bg-green-100 p-2.5 rounded-lg text-green-600 text-xl">👨‍⚕️</div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Doctor</p>
-                    <p className="font-bold text-gray-800">{getDoctorName(appt.doctorId)}</p>
-                  </div>
-                </div>
+      {/* --- UPCOMING SECTION --- */}
+      <section className="mb-12">
+        <h2 className="text-xl font-bold text-blue-900 mb-6 flex items-center gap-2">
+          <span className="w-2 h-8 bg-blue-600 rounded-full"></span>
+          Upcoming Appointments
+        </h2>
+        {upcomingAppointments.length === 0 ? (
+          <div className="bg-white p-6 rounded-xl border border-dashed border-gray-300 text-center">
+            <p className="text-gray-400">No upcoming appointments scheduled.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {upcomingAppointments.map(appt => <AppointmentCard key={appt.id} appt={appt} />)}
+          </div>
+        )}
+      </section>
 
-                <div className="flex items-start gap-4">
-                  <div className="bg-red-100 p-2.5 rounded-lg text-red-600 text-xl">🏥</div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Hospital</p>
-                    <p className="font-bold text-gray-800">{getHospitalName(appt.hospitalId)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* --- PREVIOUS SECTION --- */}
+      <section>
+        <h2 className="text-xl font-bold text-gray-700 mb-6 flex items-center gap-2">
+          <span className="w-2 h-8 bg-gray-400 rounded-full"></span>
+          Previous Appointments
+        </h2>
+        {previousAppointments.length === 0 ? (
+          <div className="bg-white p-6 rounded-xl border border-dashed border-gray-300 text-center">
+            <p className="text-gray-400">No previous appointment history found.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {previousAppointments.map(appt => <AppointmentCard key={appt.id} appt={appt} />)}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

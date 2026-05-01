@@ -96,7 +96,7 @@ const hospitalName = hospitalData?.name || 'Hospital';
   const handleViewLaboratory = (patient) => {
   setSelectedPatient(patient);
   setShowLabModal(true);
-  fetchLabTests(patient.id); // 🔥 IMPORTANT
+  fetchLabTests(patient.id); // 
 };
 
   
