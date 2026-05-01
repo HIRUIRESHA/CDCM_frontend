@@ -128,6 +128,42 @@ function PatientAppointments() {
                   </div>
                 </div>
               </div>
+              {/* ✅ ACTION SECTION */}
+<div className="px-5 pb-5 space-y-2">
+
+  {/* Consultation Type */}
+  <p className="text-sm text-gray-500">
+    Type: {appt.consultationType || "PHYSICAL"}
+  </p>
+
+  {/* ✅ Video Consultation Button (not for cancelled) */}
+  <Link
+  to={`/patient/video-book/${appt.id}?doctorId=${appt.doctorId}`}
+  className="block text-center w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition"
+>
+  Video Consultation
+</Link>
+
+  {/* ⚠️ Message if not completed */}
+  {appt.consultationType === "PHYSICAL" &&
+   appt.status !== "COMPLETED" && (
+    <p className="text-xs text-red-500">
+      Complete physical appointment first to request video consultation
+    </p>
+  )}
+
+  {/* ✅ Join Video Call */}
+  {appt.consultationType === "VIDEO" &&
+   appt.status === "CONFIRMED" && (
+    <Link
+      to={`/video-call/${appt.id}`}
+      className="block text-center w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+    >
+      Join Video Call
+    </Link>
+  )}
+
+</div>
             </div>
           ))}
         </div>
