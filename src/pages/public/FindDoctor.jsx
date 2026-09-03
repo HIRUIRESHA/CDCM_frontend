@@ -218,14 +218,32 @@ function FindDoctor() {
         window.payhere.startPayment(payment);
 
       } else {
+        let errorMessage = "Could not initiate booking. Please try again.";
+        try {
+          const text = await response.text();
+          try {
+            const data = JSON.parse(text);
+            if (data && data.message) {
+              errorMessage = data.message;
+            } else if (typeof data === "string") {
+              errorMessage = data;
+            }
+          } catch {
+            if (text) errorMessage = text;
+          }
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        setIsModalOpen(false);
         setNotification({
           type: "error",
           title: "Booking Failed",
-          message: "Could not initiate booking. Please try again.",
+          message: errorMessage,
         });
       }
     } catch (error) {
       console.error("Booking error:", error);
+      setIsModalOpen(false);
       setNotification({
         type: "error",
         title: "Error",
