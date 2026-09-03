@@ -44,6 +44,13 @@ import AddSchedule from './pages/hospital/AddSchedule';
 import UploadReport from './pages/hospital/UploadReport';
 import AddLabTest from './pages/hospital/AddLabTest';
 import AddVideoConsultingSchedule from './pages/hospital/AddVideoConsultingSchedule';
+import HospitalVerifyEmail from "./pages/hospital/HospitalVerifyEmail";
+
+import HospitalChangePassword from "./pages/hospital/HospitalChangePassword";
+
+import HospitalProfile from "./pages/hospital/HospitalProfile";
+
+import HospitalProtectedRoute from "./pages/hospital/HospitalProtectedRoute";
 
 import DoctorManagement from './pages/hospital/DoctorManagement';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -54,6 +61,7 @@ import DoctorMessagesPage from './pages/doctor/Messages';
 import DoctorNotificationsPage from './pages/doctor/Notifications';
 import DoctorVideoConferencePage from './pages/doctor/VideoConference';
 import UpdateMedicalHistory from "./pages/doctor/UpdateMedicalHistory";
+
 
 import AddHospital from './pages/admin/AddHospital';
 import ManageHospitals from './pages/admin/ManageHospitals';
@@ -111,10 +119,33 @@ function App() {
              <Route path="video-book/:id" element={<VideoBooking />} />
            </Route>
 
+           <Route
+            path="/hospital/verify-email"
+            element={<HospitalVerifyEmail />}
+          />
+
+          <Route
+            path="/hospital/change-password"
+            element={
+              <HospitalChangePassword />
+            }
+          />
+
 
             {/* HOSPITAL */}
+            <Route
+              element={
+                <HospitalProtectedRoute />
+              }
+            >
             <Route path="hospital">
               <Route path="dashboard" element={<HospitalDashboard />} />
+              <Route
+                  path="profile"
+                  element={
+                    <HospitalProfile />
+                  }
+                />
               <Route path="doctors" element={<DoctorManagement />} />
               <Route path="assigned-doctors" element={<AssignedDoctors />} />
               <Route path="assign-doctor" element={<AssignDoctor />} />
@@ -130,7 +161,10 @@ function App() {
               <Route path="schedule/video/add" element={<AddVideoConsultingSchedule />} />
               <Route path="addLabTest" element={<AddLabTest />} />
               <Route path="upload-report/:id" element={<UploadReport />} />
+              
             </Route>
+            </Route>
+
 
            <Route path="doctor">
              <Route path="dashboard" element={<DoctorDashboard />} />
