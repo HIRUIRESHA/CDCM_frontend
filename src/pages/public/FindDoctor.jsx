@@ -63,10 +63,12 @@ function FindDoctor() {
               if (schedRes.ok) {
                 const schedData = await schedRes.json();
                 
-                // Filter: Status must be ACCEPTED AND date must be today or in the future
-                schedulesMap[doc.id] = schedData.filter(
-                  (s) => s.status === "ACCEPTED" && s.date >= today
-                );
+               schedulesMap[doc.id] = schedData.filter(
+  (s) =>
+    s.status === "ACCEPTED" &&
+    s.date >= today &&
+    s.type === "PHYSICAL"
+);
               } else {
                 schedulesMap[doc.id] = [];
               }
