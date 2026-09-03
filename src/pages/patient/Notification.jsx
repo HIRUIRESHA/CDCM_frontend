@@ -58,7 +58,8 @@ export default function Notification() {
               n.read ? "bg-gray-100 border-gray-200" : "bg-blue-50 border-blue-200"
             }`}
           >
-            <p className="font-medium">{n.message}</p>
+            {n.title && <p className="font-bold text-blue-950 text-sm mb-1">{n.title}</p>}
+            <p className="font-medium text-slate-700">{n.message}</p>
             <p className="text-xs text-gray-400 mb-2">
               {new Date(n.createdAt).toLocaleString()}
             </p>

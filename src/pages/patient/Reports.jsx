@@ -69,10 +69,18 @@ const Reports = () => {
       // 3. PayHere callbacks
       window.payhere.onCompleted = async function () {
     try {
-      // 👉 THIS IS THE MISSING PART (update backend)
-      await axios.post(
-        `http://localhost:8082/api/lab/pay/${test.id}`
-      );
+      
+      const token = localStorage.getItem("token");
+
+await axios.post(
+  `http://localhost:8082/api/lab/pay/${test.id}`,
+  {},
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+);
 
       // refresh UI after updating DB
       await fetchTests();
