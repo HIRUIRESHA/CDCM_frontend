@@ -1,13 +1,24 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+
+import {
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  Eye,
+  EyeOff,
+  Lock,
+} from "lucide-react";
 
 const HospitalChangePassword = () => {
   const navigate = useNavigate();
 
-  const token = localStorage.getItem("token");
+  const token =
+    localStorage.getItem("token");
 
   const hospital = JSON.parse(
-    localStorage.getItem("hospital") || "null"
+    localStorage.getItem("hospital") ||
+      "null"
   );
 
   const [form, setForm] = useState({
@@ -15,13 +26,27 @@ const HospitalChangePassword = () => {
     confirmPassword: "",
   });
 
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [
+    showNewPassword,
+    setShowNewPassword,
+  ] = useState(false);
+
+  const [
+    showConfirmPassword,
+    setShowConfirmPassword,
+  ] = useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
 
   const handleChange = (event) => {
     setForm({
       ...form,
-      [event.target.name]: event.target.value,
+      [event.target.name]:
+        event.target.value,
     });
 
     setError("");
@@ -38,16 +63,23 @@ const HospitalChangePassword = () => {
     }
 
     if (!hospital.verified) {
-      navigate("/hospital/verify-email", {
-        replace: true,
-      });
+      navigate(
+        "/hospital/verify-email",
+        {
+          replace: true,
+        }
+      );
       return;
     }
 
     const passwordPattern =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
 
-    if (!passwordPattern.test(form.newPassword)) {
+    if (
+      !passwordPattern.test(
+        form.newPassword
+      )
+    ) {
       setError(
         "Password needs at least 8 characters, uppercase, lowercase, number and special character."
       );
@@ -55,9 +87,12 @@ const HospitalChangePassword = () => {
     }
 
     if (
-      form.newPassword !== form.confirmPassword
+      form.newPassword !==
+      form.confirmPassword
     ) {
-      setError("Passwords do not match.");
+      setError(
+        "Passwords do not match."
+      );
       return;
     }
 
@@ -69,12 +104,18 @@ const HospitalChangePassword = () => {
         "http://localhost:8082/api/hospitals/first-login-password",
         {
           method: "PUT",
+
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
           },
+
           body: JSON.stringify({
-            newPassword: form.newPassword,
+            newPassword:
+              form.newPassword,
           }),
         }
       );
@@ -85,7 +126,8 @@ const HospitalChangePassword = () => {
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Password change failed"
+          data.message ||
+            "Password change failed"
         );
       }
 
@@ -96,11 +138,14 @@ const HospitalChangePassword = () => {
 
       localStorage.setItem(
         "hospital",
-        JSON.stringify(updatedHospital)
+        JSON.stringify(
+          updatedHospital
+        )
       );
 
       const storedUser = JSON.parse(
-        localStorage.getItem("user") || "null"
+        localStorage.getItem("user") ||
+          "null"
       );
 
       if (storedUser) {
@@ -113,11 +158,17 @@ const HospitalChangePassword = () => {
         );
       }
 
-      navigate("/hospital/dashboard", {
-        replace: true,
-      });
+      navigate(
+        "/hospital/dashboard",
+        {
+          replace: true,
+        }
+      );
     } catch (error) {
-      setError(error.message);
+      setError(
+        error.message ||
+          "Password change failed"
+      );
     } finally {
       setLoading(false);
     }
@@ -131,38 +182,115 @@ const HospitalChangePassword = () => {
         </h1>
 
         <p className="text-slate-500 text-center mt-3 mb-7">
-          You must replace the temporary password
-          before accessing the hospital dashboard.
+          You must replace the
+          temporary password before
+          accessing the hospital
+          dashboard.
         </p>
 
         <form onSubmit={handleSubmit}>
+          {/* New password */}
           <label className="block text-sm font-semibold text-slate-700 mb-2">
             New password
           </label>
 
-          <input
-            type="password"
-            name="newPassword"
-            value={form.newPassword}
-            onChange={handleChange}
-            className="w-full border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="relative">
+            <Lock
+              size={18}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
 
+            <input
+              type={
+                showNewPassword
+                  ? "text"
+                  : "password"
+              }
+              name="newPassword"
+              value={form.newPassword}
+              onChange={handleChange}
+              autoComplete="new-password"
+              required
+              className="w-full border border-slate-300 rounded-xl py-3 pl-10 pr-11 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowNewPassword(
+                  (current) =>
+                    !current
+                )
+              }
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+              aria-label={
+                showNewPassword
+                  ? "Hide new password"
+                  : "Show new password"
+              }
+            >
+              {showNewPassword ? (
+                <EyeOff size={19} />
+              ) : (
+                <Eye size={19} />
+              )}
+            </button>
+          </div>
+
+          {/* Confirm password */}
           <label className="block text-sm font-semibold text-slate-700 mt-5 mb-2">
             Confirm password
           </label>
 
-          <input
-            type="password"
-            name="confirmPassword"
-            value={form.confirmPassword}
-            onChange={handleChange}
-            className="w-full border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <div className="relative">
+            <Lock
+              size={18}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+
+            <input
+              type={
+                showConfirmPassword
+                  ? "text"
+                  : "password"
+              }
+              name="confirmPassword"
+              value={
+                form.confirmPassword
+              }
+              onChange={handleChange}
+              autoComplete="new-password"
+              required
+              className="w-full border border-slate-300 rounded-xl py-3 pl-10 pr-11 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowConfirmPassword(
+                  (current) =>
+                    !current
+                )
+              }
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+              aria-label={
+                showConfirmPassword
+                  ? "Hide confirmed password"
+                  : "Show confirmed password"
+              }
+            >
+              {showConfirmPassword ? (
+                <EyeOff size={19} />
+              ) : (
+                <Eye size={19} />
+              )}
+            </button>
+          </div>
 
           <p className="text-xs text-slate-500 mt-3">
-            Use at least 8 characters with uppercase,
-            lowercase, number and special character.
+            Use at least 8 characters
+            with uppercase, lowercase,
+            number and special character.
           </p>
 
           {error && (
