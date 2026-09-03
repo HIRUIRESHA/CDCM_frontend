@@ -194,26 +194,66 @@ function FindDoctor() {
         };
 
         // Define Callbacks
-        window.payhere.onCompleted = function onCompleted(orderId) {
-          setIsModalOpen(false);
-          setNotification({
-            type: "success",
-            title: "Payment Successful!",
-            message: "Your appointment has been confirmed and paid.",
-            apptNumber: appointmentData.appointmentNumber,
-          });
+        window.payhere.onCompleted = async function onCompleted(orderId) {
+          try {
+            // Confirm payment with backend
+            const confirmRes = await axios.post(
+              `http://localhost:8082/api/payments/payment-success/${orderId}`,
+              {
+                payhereId: orderId,
+                amount: amount,
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (confirmRes.data && confirmRes.data.success !== false) {
+              setIsModalOpen(false);
+              setNotification({
+                type: "success",
+                title: "Payment Successful!",
+                message: "Your appointment has been confirmed and paid.",
+                apptNumber: appointmentData.appointmentNumber,
+              });
+            } else {
+              setIsModalOpen(false);
+              setNotification({
+                type: "error",
+                title: "Payment Confirmation Issue",
+                message: "Payment was processed, but server confirmation reported an issue. Please check your Payment History.",
+              });
+            }
+          } catch (err) {
+            console.error("Backend payment confirmation error:", err);
+            setIsModalOpen(false);
+            setNotification({
+              type: "error",
+              title: "Payment Confirmation Issue",
+              message: "Payment succeeded with PayHere, but failed to record in the system. Please check your Payment History.",
+            });
+          }
         };
 
         window.payhere.onDismissed = function onDismissed() {
+          setIsModalOpen(false);
           setNotification({
             type: "error",
-            title: "Payment Dismissed",
-            message: "You closed the payment window. Appointment is not confirmed.",
+            title: "Payment Incomplete",
+            message: "You closed the payment window. Your appointment remains pending until payment is completed.",
           });
         };
 
         window.payhere.onError = function onError(error) {
           console.error("Payment Error:", error);
+          setIsModalOpen(false);
+          setNotification({
+            type: "error",
+            title: "Payment Failed",
+            message: "An error occurred during payment processing. Appointment is not confirmed.",
+          });
         };
 
         // Start Payment
@@ -355,6 +395,17 @@ function FindDoctor() {
   )}
 </div>
 
+            {/* Payment Fee Summary */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 flex justify-between items-center text-sm">
+              <div>
+                <span className="font-semibold text-slate-700">Doctor Channeling Fee</span>
+                <p className="text-xs text-slate-500">Payable via PayHere Secure Gateway</p>
+              </div>
+              <div className="text-right">
+                <span className="text-lg font-black text-blue-950">LKR 1,000.00</span>
+              </div>
+            </div>
+
             {/* Legend + Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-center border-t border-slate-100 pt-5 gap-4">
               <div className="flex gap-5 text-xs text-slate-500 font-medium">
@@ -376,12 +427,12 @@ function FindDoctor() {
                   Cancel
                 </button>
                 <button
-  onClick={confirmBooking}
-  disabled={!selectedNumber}
-  className="flex-1 sm:flex-none px-10 py-3 bg-blue-700 hover:bg-blue-600 text-white rounded-xl font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg"
->
-  {selectedNumber ? "Confirm Appointment" : "Fully Booked"}
-</button>
+                  onClick={confirmBooking}
+                  disabled={!selectedNumber}
+                  className="flex-1 sm:flex-none px-8 py-3 bg-blue-700 hover:bg-blue-600 text-white rounded-xl font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg"
+                >
+                  {selectedNumber ? "Proceed to Payment (LKR 1,000.00)" : "Fully Booked"}
+                </button>
               </div>
             </div>
 
