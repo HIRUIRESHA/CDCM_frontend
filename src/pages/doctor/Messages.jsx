@@ -1,3 +1,4 @@
+// Messages.jsx (Doctor) — same logic, restyled shell
 import React, { useEffect, useState } from "react";
 
 import {
@@ -78,6 +79,8 @@ const Messages = () => {
                     user.id
                 );
 
+            console.log("RAW CONVERSATION DATA:", data); 
+
             setConversations(data);
 
         } catch (error) {
@@ -98,8 +101,10 @@ const Messages = () => {
     if (!user) {
 
         return (
-            <div className="p-6">
-                Please login to view messages.
+            <div className="flex h-[calc(100vh-80px)] items-center justify-center bg-[#FAFAF8] px-6">
+                <p className="text-[15px] text-[#5B5F66]">
+                    Please login to view messages.
+                </p>
             </div>
         );
     }
@@ -107,13 +112,13 @@ const Messages = () => {
 
     return (
 
-        <div className="h-[calc(100vh-80px)] bg-gray-50 p-4 md:p-6">
+        <div className="h-[calc(100vh-80px)] bg-[#FAFAF8] p-4 md:p-6">
 
-            <div className="h-full bg-white rounded-2xl shadow-sm overflow-hidden flex">
+            <div className="h-full bg-white rounded-xl border border-[#E7E5E0] overflow-hidden flex">
 
                 {loading ? (
 
-                    <div className="flex-1 flex items-center justify-center text-gray-500">
+                    <div className="flex-1 flex items-center justify-center text-[#8A8D93] text-[14px]">
                         Loading conversations...
                     </div>
 
