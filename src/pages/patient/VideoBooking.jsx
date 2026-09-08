@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 
@@ -13,6 +13,33 @@ export default function VideoConference() {
   const [bookedSchedules, setBookedSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [bookingId, setBookingId] = useState(null);
+
+  // =====================================================
+  // TOAST NOTIFICATION (replaces browser alert())
+  // =====================================================
+
+  const [toast, setToast] = useState(null); // { message, type }
+  const toastTimerRef = useRef(null);
+
+  const showToast = (message, type = "info") => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+
+    setToast({ message, type });
+
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+    }, 3500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
 
   // =====================================================
   // LOAD VIDEO SCHEDULES
@@ -57,7 +84,7 @@ export default function VideoConference() {
         error.response?.data || error.message
       );
 
-      alert("Failed to load video consultation schedules.");
+      showToast("Failed to load video consultation schedules.", "error");
     } finally {
       setLoading(false);
     }
@@ -140,7 +167,7 @@ export default function VideoConference() {
         }
       );
 
-      alert("Schedule accepted successfully.");
+      showToast("Schedule accepted successfully.", "success");
 
       await loadSchedules();
     } catch (error) {
@@ -149,9 +176,10 @@ export default function VideoConference() {
         error.response?.data || error.message
       );
 
-      alert(
+      showToast(
         error.response?.data?.message ||
-          "Failed to accept schedule."
+          "Failed to accept schedule.",
+        "error"
       );
     }
   };
@@ -174,7 +202,7 @@ export default function VideoConference() {
         }
       );
 
-      alert("Schedule rejected.");
+      showToast("Schedule rejected.", "info");
 
       await loadSchedules();
     } catch (error) {
@@ -183,9 +211,10 @@ export default function VideoConference() {
         error.response?.data || error.message
       );
 
-      alert(
+      showToast(
         error.response?.data?.message ||
-          "Failed to reject schedule."
+          "Failed to reject schedule.",
+        "error"
       );
     }
   };
@@ -200,30 +229,30 @@ export default function VideoConference() {
       const token = localStorage.getItem("token");
 
       if (!user?.id) {
-        alert("Please login first.");
+        showToast("Please login first.", "error");
         return;
       }
 
       if (!token) {
-        alert("Authentication token is missing. Please login again.");
+        showToast("Authentication token is missing. Please login again.", "error");
         return;
       }
 
       if (!doctorId) {
-        alert("Doctor ID is missing.");
+        showToast("Doctor ID is missing.", "error");
         return;
       }
 
       const scheduleId = schedule?.id || schedule?._id;
 
       if (!scheduleId) {
-        alert("Invalid schedule ID.");
+        showToast("Invalid schedule ID.", "error");
         return;
       }
 
       // Prevent multiple clicks
       if (bookingId) {
-        alert("Please wait. Your booking is being processed.");
+        showToast("Please wait. Your booking is being processed.", "info");
         return;
       }
 
@@ -231,14 +260,15 @@ export default function VideoConference() {
 
       // Check current frontend state
       if (bookedSchedules.includes(scheduleIdString)) {
-        alert("You have already booked this schedule.");
+        showToast("You have already booked this schedule.", "info");
         return;
       }
 
       // Check PayHere
       if (!window.payhere) {
-        alert(
-          "PayHere is not loaded. Please refresh the page and try again."
+        showToast(
+          "PayHere is not loaded. Please refresh the page and try again.",
+          "error"
         );
         return;
       }
@@ -367,8 +397,9 @@ export default function VideoConference() {
             }
           );
 
-          alert(
-            "Payment successful! Your video consultation has been booked."
+          showToast(
+            "Payment successful! Your video consultation has been booked.",
+            "success"
           );
 
           // Update UI
@@ -391,8 +422,9 @@ export default function VideoConference() {
             error.response?.data || error.message
           );
 
-          alert(
-            "Payment was completed, but appointment status could not be updated. Please contact the administrator."
+          showToast(
+            "Payment was completed, but appointment status could not be updated. Please contact the administrator.",
+            "error"
           );
         } finally {
           setBookingId(null);
@@ -425,7 +457,7 @@ export default function VideoConference() {
 
         setBookingId(null);
 
-        alert("Payment cancelled.");
+        showToast("Payment cancelled.", "info");
       };
 
       // =================================================
@@ -455,8 +487,9 @@ export default function VideoConference() {
 
         setBookingId(null);
 
-        alert(
-          "Payment failed. Please try again."
+        showToast(
+          "Payment failed. Please try again.",
+          "error"
         );
       };
 
@@ -474,16 +507,18 @@ export default function VideoConference() {
       setBookingId(null);
 
       if (error.response?.status === 403) {
-        alert(
-          "Access denied (403). Please login again or check your account permissions."
+        showToast(
+          "Access denied (403). Please login again or check your account permissions.",
+          "error"
         );
         return;
       }
 
-      alert(
+      showToast(
         error.response?.data?.message ||
           error.message ||
-          "Booking failed. Please try again."
+          "Booking failed. Please try again.",
+        "error"
       );
     }
   };
@@ -494,6 +529,54 @@ export default function VideoConference() {
 
   return (
     <div className="min-h-screen bg-[#f0f2f8] p-10">
+
+      {/* TOAST NOTIFICATION */}
+      {toast && (
+        <div
+          className="fixed top-6 right-6 z-50 flex items-center gap-3 min-w-[280px] max-w-sm px-4 py-3 rounded-xl shadow-lg border animate-[fadeIn_0.2s_ease-out]"
+          style={{
+            backgroundColor:
+              toast.type === "success"
+                ? "#ecfdf5"
+                : toast.type === "error"
+                ? "#fef2f2"
+                : "#eff6ff",
+            borderColor:
+              toast.type === "success"
+                ? "#a7f3d0"
+                : toast.type === "error"
+                ? "#fecaca"
+                : "#bfdbfe",
+            color:
+              toast.type === "success"
+                ? "#065f46"
+                : toast.type === "error"
+                ? "#991b1b"
+                : "#1e40af",
+          }}
+        >
+          <span className="text-lg leading-none">
+            {toast.type === "success"
+              ? "✓"
+              : toast.type === "error"
+              ? "✕"
+              : "ℹ"}
+          </span>
+
+          <p className="text-sm font-medium flex-1">
+            {toast.message}
+          </p>
+
+          <button
+            onClick={() => setToast(null)}
+            className="text-current opacity-60 hover:opacity-100 text-sm"
+            aria-label="Dismiss notification"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto">
 
         <h1 className="text-3xl font-bold mb-2">
