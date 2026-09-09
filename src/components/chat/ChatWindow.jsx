@@ -18,7 +18,9 @@ import {
 
 const ChatWindow = ({
     conversation,
-    currentUser
+    conversations = [],
+    currentUser,
+    onConversationMessage
 }) => {
 
     const [messages, setMessages] = useState([]);
@@ -28,13 +30,43 @@ const ChatWindow = ({
     const [sending, setSending] = useState(false);
     const [connected, setConnected] = useState(false);
 
-    const messagesEndRef = useRef(null);
-    const subscriptionRef = useRef(null);
+
+    
+    // REFS
+    
+
+    const messagesEndRef =
+        useRef(null);
+
+    // Store all active subscriptions
+    const subscriptionsRef =
+        useRef([]);
+
+    // Currently opened conversation
+    const activeConversationRef =
+        useRef(null);
+
+    // Keep latest callback without forcing subscriptions
+    // to be recreated every render
+    const onConversationMessageRef =
+        useRef(onConversationMessage);
 
 
-    // =====================================================
+    
+    // UPDATE CALLBACK REF
+    
+
+    useEffect(() => {
+
+        onConversationMessageRef.current =
+            onConversationMessage;
+
+    }, [onConversationMessage]);
+
+
+    
     // CONNECT WEBSOCKET
-    // =====================================================
+    
 
     useEffect(() => {
 
@@ -42,48 +74,139 @@ const ChatWindow = ({
             return;
         }
 
-        console.log("Connecting to WebSocket...");
+        let mounted = true;
+
+
+        console.log(
+            "======================================"
+        );
+
+        console.log(
+            "Connecting to WebSocket..."
+        );
+
+        console.log(
+            "Current user:",
+            currentUser.id
+        );
+
+        console.log(
+            "======================================"
+        );
+
 
         connectWebSocket(
+
             () => {
-                console.log("WebSocket connected");
+
+                if (!mounted) {
+                    return;
+                }
+
+                console.log(
+                    "======================================"
+                );
+
+                console.log(
+                    "WEBSOCKET CONNECTED"
+                );
+
+                console.log(
+                    "======================================"
+                );
 
                 setConnected(true);
+
             },
+
             (error) => {
+
+                if (!mounted) {
+                    return;
+                }
+
                 console.error(
                     "WebSocket connection error:",
                     error
                 );
 
                 setConnected(false);
+
             }
+
         );
+
 
         return () => {
 
+            mounted = false;
+
             console.log(
-                "Disconnecting WebSocket..."
+                "Cleaning up WebSocket..."
             );
 
-            if (subscriptionRef.current) {
-
-                subscriptionRef.current.unsubscribe();
-
-                subscriptionRef.current = null;
-            }
-
-            disconnectWebSocket();
 
             setConnected(false);
+
+
+            
+            // Remove all subscriptions
+            
+
+            subscriptionsRef.current.forEach(
+                (subscription) => {
+
+                    try {
+
+                        subscription.unsubscribe();
+
+                    } catch (error) {
+
+                        console.error(
+                            "Failed to unsubscribe:",
+                            error
+                        );
+
+                    }
+
+                }
+            );
+
+
+            subscriptionsRef.current = [];
+
+
+            activeConversationRef.current =
+                null;
+
+
+            
+            // Disconnect WebSocket
+            
+            disconnectWebSocket();
+
         };
 
     }, [currentUser?.id]);
 
 
-    // =====================================================
+    
+    // UPDATE ACTIVE CONVERSATION REF
+    
+
+    useEffect(() => {
+
+        activeConversationRef.current =
+            conversation?.id
+                ? String(conversation.id)
+                : null;
+
+    }, [conversation?.id]);
+
+
+    
     // LOAD EXISTING MESSAGES
-    // =====================================================
+    
 
     useEffect(() => {
 
@@ -92,156 +215,589 @@ const ChatWindow = ({
             setMessages([]);
 
             return;
+
         }
 
+
+        const conversationId =
+            String(conversation.id);
+
+
+        console.log(
+            "======================================"
+        );
+
+        console.log(
+            "Opening conversation:",
+            conversationId
+        );
+
+        console.log(
+            "======================================"
+        );
+
+
+        activeConversationRef.current =
+            conversationId;
+
+
+        let cancelled = false;
+
+
+        const loadMessages = async () => {
+
+            try {
+
+                setLoading(true);
+
+
+                console.log(
+                    "Loading messages for conversation:",
+                    conversationId
+                );
+
+
+                const data =
+                    await getMessages(
+                        conversationId
+                    );
+
+
+                if (cancelled) {
+                    return;
+                }
+
+
+                const databaseMessages =
+                    Array.isArray(data)
+                        ? data
+                        : [];
+
+
+                console.log(
+                    "Existing messages:",
+                    databaseMessages
+                );
+
+
+                setMessages(
+                    (currentMessages) => {
+
+                        const mergedMessages = [
+                            ...databaseMessages
+                        ];
+
+
+                        currentMessages.forEach(
+                            (currentMessage) => {
+
+                                if (!currentMessage) {
+                                    return;
+                                }
+
+
+                                // Only keep messages belonging
+                                // to the currently opened chat
+                                if (
+                                    currentMessage.conversationId &&
+                                    String(
+                                        currentMessage.conversationId
+                                    ) !== conversationId
+                                ) {
+
+                                    return;
+
+                                }
+
+
+                                const alreadyExists =
+                                    mergedMessages.some(
+                                        (databaseMessage) => {
+
+                                            if (
+                                                databaseMessage?.id &&
+                                                currentMessage?.id
+                                            ) {
+
+                                                return (
+                                                    String(
+                                                        databaseMessage.id
+                                                    ) ===
+                                                    String(
+                                                        currentMessage.id
+                                                    )
+                                                );
+
+                                            }
+
+                                            return false;
+
+                                        }
+                                    );
+
+
+                                if (!alreadyExists) {
+
+                                    mergedMessages.push(
+                                        currentMessage
+                                    );
+
+                                }
+
+                            }
+                        );
+
+
+                        // Sort oldest -> newest
+                        mergedMessages.sort(
+                            (a, b) => {
+
+                                const timeA =
+                                    a?.sentAt
+                                        ? new Date(
+                                              a.sentAt
+                                          ).getTime()
+                                        : 0;
+
+
+                                const timeB =
+                                    b?.sentAt
+                                        ? new Date(
+                                              b.sentAt
+                                          ).getTime()
+                                        : 0;
+
+
+                                return (
+                                    timeA -
+                                    timeB
+                                );
+
+                            }
+                        );
+
+
+                        return mergedMessages;
+
+                    }
+                );
+
+            } catch (error) {
+
+                if (!cancelled) {
+
+                    console.error(
+                        "Failed to load messages:",
+                        error
+                    );
+
+                }
+
+            } finally {
+
+                if (!cancelled) {
+
+                    setLoading(false);
+
+                }
+
+            }
+
+        };
+
+
         loadMessages();
+
+
+        return () => {
+
+            cancelled = true;
+
+        };
 
     }, [conversation?.id]);
 
 
-    const loadMessages = async () => {
+    
+    // CONVERSATION IDS
+    //
+    // IMPORTANT:
+    // Only the IDs are used as dependency.
+    //
+    // When lastMessage changes, subscriptions will NOT
+    // be destroyed and recreated.
+    
 
-        if (!conversation?.id) {
-            return;
-        }
-
-        try {
-
-            setLoading(true);
-
-            const data =
-                await getMessages(
-                    conversation.id
-                );
-
-            setMessages(
-                Array.isArray(data)
-                    ? data
-                    : []
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Failed to load messages:",
-                error
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
-    };
+    const conversationIdsKey =
+        conversations
+            .map(
+                (item) =>
+                    item?.id
+                        ? String(item.id)
+                        : null
+            )
+            .filter(Boolean)
+            .join("|");
 
 
-    // =====================================================
-    // SUBSCRIBE TO CONVERSATION
-    // =====================================================
+    
+    // SUBSCRIBE TO ALL CONVERSATIONS
+    
 
     useEffect(() => {
 
         if (
-            !conversation?.id ||
-            !connected
+            !connected ||
+            !conversationIdsKey
         ) {
+
             return;
+
         }
 
+
         console.log(
-            "Subscribing to conversation:",
-            conversation.id
+            "======================================"
+        );
+
+        console.log(
+            "SUBSCRIBING TO ALL CONVERSATIONS"
+        );
+
+        console.log(
+            "Conversation IDs:",
+            conversationIdsKey
+        );
+
+        console.log(
+            "======================================"
         );
 
 
-        // Remove previous subscription
-        if (subscriptionRef.current) {
+        
+        // Remove old subscriptions
+       
 
-            subscriptionRef.current.unsubscribe();
+        subscriptionsRef.current.forEach(
+            (subscription) => {
 
-            subscriptionRef.current = null;
-        }
+                try {
 
+                    subscription.unsubscribe();
 
-        // Create new subscription
-        const subscription =
-            subscribeToConversation(
-                conversation.id,
-                (newMessage) => {
+                } catch (error) {
 
-                    console.log(
-                        "New WebSocket message:",
-                        newMessage
+                    console.error(
+                        "Failed to remove subscription:",
+                        error
                     );
 
+                }
 
-                    setMessages((previous) => {
+            }
+        );
 
-                        // Prevent duplicate messages
-                        const alreadyExists =
-                            previous.some(
-                                (message) =>
-                                    message.id ===
-                                    newMessage.id
+
+        subscriptionsRef.current = [];
+
+
+        
+        // Subscribe to every conversation
+        
+
+        const conversationIdList =
+            conversationIdsKey
+                .split("|")
+                .filter(Boolean);
+
+
+        conversationIdList.forEach(
+            (conversationId) => {
+
+                console.log(
+                    "Creating subscription for:",
+                    conversationId
+                );
+
+
+                const subscription =
+                    subscribeToConversation(
+
+                        conversationId,
+
+                        (newMessage) => {
+
+                            console.log(
+                                "======================================"
+                            );
+
+                            console.log(
+                                "REALTIME MESSAGE RECEIVED"
+                            );
+
+                            console.log(
+                                "Conversation:",
+                                conversationId
+                            );
+
+                            console.log(
+                                "Message:",
+                                newMessage
+                            );
+
+                            console.log(
+                                "======================================"
                             );
 
 
-                        if (alreadyExists) {
+                            
+                            // Ignore malformed messages
+                            
 
-                            return previous;
+                            if (
+                                !newMessage?.conversationId
+                            ) {
+
+                                return;
+
+                            }
+
+
+                            const messageConversationId =
+                                String(
+                                    newMessage.conversationId
+                                );
+
+
+                            
+                            // Safety check
+                            
+
+                            if (
+                                messageConversationId !==
+                                conversationId
+                            ) {
+
+                                console.warn(
+                                    "Conversation ID mismatch:",
+                                    {
+                                        subscriptionConversationId:
+                                            conversationId,
+                                        messageConversationId
+                                    }
+                                );
+
+                                return;
+
+                            }
+
+
+                            
+
+                            if (
+                                onConversationMessageRef.current
+                            ) {
+
+                                onConversationMessageRef.current(
+                                    newMessage
+                                );
+
+                            }
+
+
+                            
+                            // If this is NOT the currently opened chat,
+                            // don't add it to ChatWindow messages.
+                            
+
+                            if (
+                                activeConversationRef.current !==
+                                messageConversationId
+                            ) {
+
+                                console.log(
+                                    "Message belongs to another conversation."
+                                );
+
+                                console.log(
+                                    "Updating conversation list only."
+                                );
+
+                                return;
+
+                            }
+
+
+                            
+                            // Add realtime message to current chat
+                            
+
+                            setMessages(
+                                (previousMessages) => {
+
+                                    const alreadyExists =
+                                        previousMessages.some(
+                                            (message) => {
+
+                                                if (
+                                                    message?.id &&
+                                                    newMessage?.id
+                                                ) {
+
+                                                    return (
+                                                        String(
+                                                            message.id
+                                                        ) ===
+                                                        String(
+                                                            newMessage.id
+                                                        )
+                                                    );
+
+                                                }
+
+                                                return false;
+
+                                            }
+                                        );
+
+
+                                    if (
+                                        alreadyExists
+                                    ) {
+
+                                        console.log(
+                                            "Duplicate realtime message ignored:",
+                                            newMessage?.id
+                                        );
+
+                                        return previousMessages;
+
+                                    }
+
+
+                                    const updatedMessages = [
+                                        ...previousMessages,
+                                        newMessage
+                                    ];
+
+
+                                    updatedMessages.sort(
+                                        (a, b) => {
+
+                                            const timeA =
+                                                a?.sentAt
+                                                    ? new Date(
+                                                          a.sentAt
+                                                      ).getTime()
+                                                    : 0;
+
+
+                                            const timeB =
+                                                b?.sentAt
+                                                    ? new Date(
+                                                          b.sentAt
+                                                      ).getTime()
+                                                    : 0;
+
+
+                                            return (
+                                                timeA -
+                                                timeB
+                                            );
+
+                                        }
+                                    );
+
+
+                                    return updatedMessages;
+
+                                }
+                            );
 
                         }
 
+                    );
 
-                        return [
-                            ...previous,
-                            newMessage
-                        ];
 
-                    });
+                if (subscription) {
+
+                    subscriptionsRef.current.push(
+                        subscription
+                    );
+
+                    console.log(
+                        "Subscription created:",
+                        conversationId
+                    );
+
+                }
+
+            }
+        );
+
+
+        // -----------------------------------------------------
+        // Cleanup
+        // -----------------------------------------------------
+
+        return () => {
+
+            console.log(
+                "Cleaning up conversation subscriptions..."
+            );
+
+
+            subscriptionsRef.current.forEach(
+                (subscription) => {
+
+                    try {
+
+                        subscription.unsubscribe();
+
+                    } catch (error) {
+
+                        console.error(
+                            "Failed to unsubscribe:",
+                            error
+                        );
+
+                    }
 
                 }
             );
 
 
-        subscriptionRef.current =
-            subscription || null;
-
-
-        // Cleanup when conversation changes
-        return () => {
-
-            if (subscriptionRef.current) {
-
-                subscriptionRef.current.unsubscribe();
-
-                subscriptionRef.current = null;
-            }
+            subscriptionsRef.current = [];
 
         };
 
     }, [
-        conversation?.id,
-        connected
+        connected,
+        conversationIdsKey
     ]);
 
 
-    // =====================================================
+    
     // AUTO SCROLL
-    // =====================================================
+    
 
     useEffect(() => {
 
-        messagesEndRef.current?.scrollIntoView({
+        if (!messagesEndRef.current) {
+            return;
+        }
+
+
+        messagesEndRef.current.scrollIntoView({
             behavior: "smooth"
         });
 
     }, [messages]);
 
 
-    // =====================================================
+    
     // SEND MESSAGE
-    // =====================================================
+    
 
     const handleSend = () => {
 
@@ -252,14 +808,15 @@ const ChatWindow = ({
         if (
             !messageText ||
             sending ||
-            !conversation ||
-            !currentUser
+            !conversation?.id ||
+            !currentUser?.id
         ) {
+
             return;
+
         }
 
 
-        // Check WebSocket connection
         if (!connected) {
 
             console.error(
@@ -267,7 +824,53 @@ const ChatWindow = ({
             );
 
             return;
+
         }
+
+
+        const conversationId =
+            String(
+                conversation.id
+            );
+
+
+        const senderId =
+            String(
+                currentUser.id
+            );
+
+
+        console.log(
+            "======================================"
+        );
+
+        console.log(
+            "SENDING MESSAGE"
+        );
+
+        console.log(
+            "Conversation:",
+            conversationId
+        );
+
+        console.log(
+            "Sender:",
+            senderId
+        );
+
+        console.log(
+            "Role:",
+            currentUser.role
+        );
+
+        console.log(
+            "Content:",
+            messageText
+        );
+
+        console.log(
+            "======================================"
+        );
 
 
         setSending(true);
@@ -277,16 +880,24 @@ const ChatWindow = ({
 
             const success =
                 sendWebSocketMessage(
-                    conversation.id,
-                    currentUser.id,
+
+                    conversationId,
+
+                    senderId,
+
                     currentUser.role,
+
                     messageText
+
                 );
 
 
             if (success) {
 
-                // Clear input
+                console.log(
+                    "Message sent successfully through WebSocket."
+                );
+
                 setText("");
 
             } else {
@@ -300,7 +911,7 @@ const ChatWindow = ({
         } catch (error) {
 
             console.error(
-                "Failed to send message:",
+                "Failed to send WebSocket message:",
                 error
             );
 
@@ -309,14 +920,17 @@ const ChatWindow = ({
             setSending(false);
 
         }
+
     };
 
 
-    // =====================================================
+    
     // ENTER KEY
-    // =====================================================
+    
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (
+        event
+    ) => {
 
         if (
             event.key === "Enter" &&
@@ -332,9 +946,9 @@ const ChatWindow = ({
     };
 
 
-    // =====================================================
+    
     // EMPTY STATE
-    // =====================================================
+    
 
     if (!conversation) {
 
@@ -361,22 +975,25 @@ const ChatWindow = ({
             </div>
 
         );
+
     }
 
 
-    // =====================================================
+    
     // CONVERSATION NAME
-    // =====================================================
+    
 
     const conversationName =
         currentUser?.role === "DOCTOR"
-            ? conversation.patientName || "Patient"
-            : conversation.doctorName || "Doctor";
+            ? conversation.patientName ||
+              "Patient"
+            : conversation.doctorName ||
+              "Doctor";
 
 
-    // =====================================================
+    
     // APPOINTMENT NUMBER
-    // =====================================================
+    
 
     const appointmentNumber =
         conversation.appointmentNumber ||
@@ -384,9 +1001,27 @@ const ChatWindow = ({
         "N/A";
 
 
-    // =====================================================
+    
+    // APPOINTMENT DATE
+    
+
+    const appointmentDate =
+        conversation.appointmentDate ||
+        "N/A";
+
+
+    
+    // HOSPITAL NAME
+    
+
+    const hospitalName =
+        conversation.hospitalName ||
+        "N/A";
+
+
+    
     // RENDER
-    // =====================================================
+    
 
     return (
 
@@ -403,9 +1038,9 @@ const ChatWindow = ({
 
                     <div className="flex items-center gap-3">
 
-                        {/* Avatar */}
+                        {/* Profile Circle */}
 
-                        <div className="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
+                        <div className="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold flex-shrink-0">
 
                             {conversationName
                                 .charAt(0)
@@ -414,7 +1049,7 @@ const ChatWindow = ({
                         </div>
 
 
-                        {/* User information */}
+                        {/* Conversation Information */}
 
                         <div>
 
@@ -432,12 +1067,30 @@ const ChatWindow = ({
 
                             </p>
 
+
+                            <p className="text-sm text-gray-400">
+
+                                Date:{" "}
+                                {appointmentDate}
+
+                            </p>
+
+
+                            <p className="text-sm text-gray-400">
+
+                                Hospital:{" "}
+                                {hospitalName}
+
+                            </p>
+
                         </div>
 
                     </div>
 
 
-                    {/* WebSocket status */}
+                    {/* ================================================= */}
+                    {/* WEBSOCKET STATUS */}
+                    {/* ================================================= */}
 
                     <div className="flex items-center gap-2 text-sm">
 
@@ -449,6 +1102,7 @@ const ChatWindow = ({
                             }`}
                         />
 
+
                         <span
                             className={
                                 connected
@@ -456,9 +1110,11 @@ const ChatWindow = ({
                                     : "text-red-500"
                             }
                         >
+
                             {connected
                                 ? "Online"
                                 : "Connecting..."}
+
                         </span>
 
                     </div>
@@ -502,77 +1158,80 @@ const ChatWindow = ({
 
                 ) : (
 
-                    messages.map((message) => {
+                    messages.map(
+                        (message, index) => {
 
-                        const isMine =
-                            message.senderId ===
-                            currentUser?.id;
+                            const isMine =
+                                String(
+                                    message?.senderId
+                                ) ===
+                                String(
+                                    currentUser?.id
+                                );
 
 
-                        return (
-
-                            <div
-                                key={message.id}
-                                className={`mb-4 flex ${
-                                    isMine
-                                        ? "justify-end"
-                                        : "justify-start"
-                                }`}
-                            >
+                            return (
 
                                 <div
-                                    className={`max-w-[75%] px-4 py-3 rounded-2xl ${
+                                    key={
+                                        message?.id ||
+                                        `${message?.sentAt}-${index}`
+                                    }
+                                    className={`mb-4 flex ${
                                         isMine
-                                            ? "bg-blue-600 text-white rounded-br-sm"
-                                            : "bg-white text-gray-800 rounded-bl-sm shadow-sm"
+                                            ? "justify-end"
+                                            : "justify-start"
                                     }`}
                                 >
 
-                                    {/* Message content */}
-
-                                    <p className="break-words whitespace-pre-wrap">
-
-                                        {message.content}
-
-                                    </p>
-
-
-                                    {/* Message time */}
-
-                                    <p
-                                        className={`text-xs mt-1 ${
+                                    <div
+                                        className={`max-w-[75%] px-4 py-3 rounded-2xl ${
                                             isMine
-                                                ? "text-blue-100"
-                                                : "text-gray-400"
+                                                ? "bg-blue-600 text-white rounded-br-sm"
+                                                : "bg-white text-gray-800 rounded-bl-sm shadow-sm"
                                         }`}
                                     >
 
-                                        {message.sentAt
-                                            ? new Date(
-                                                  message.sentAt
-                                              ).toLocaleTimeString(
-                                                  [],
-                                                  {
-                                                      hour: "2-digit",
-                                                      minute: "2-digit"
-                                                  }
-                                              )
-                                            : ""}
+                                        <p className="break-words whitespace-pre-wrap">
 
-                                    </p>
+                                            {message?.content}
+
+                                        </p>
+
+
+                                        <p
+                                            className={`text-xs mt-1 ${
+                                                isMine
+                                                    ? "text-blue-100"
+                                                    : "text-gray-400"
+                                            }`}
+                                        >
+
+                                            {message?.sentAt
+                                                ? new Date(
+                                                      message.sentAt
+                                                  ).toLocaleTimeString(
+                                                      [],
+                                                      {
+                                                          hour: "2-digit",
+                                                          minute: "2-digit"
+                                                      }
+                                                  )
+                                                : ""}
+
+                                        </p>
+
+                                    </div>
 
                                 </div>
 
-                            </div>
+                            );
 
-                        );
-
-                    })
+                        }
+                    )
 
                 )}
 
-
-                {/* Auto-scroll target */}
 
                 <div ref={messagesEndRef} />
 
@@ -580,15 +1239,12 @@ const ChatWindow = ({
 
 
             {/* ================================================= */}
-            {/* MESSAGE INPUT */}
+            {/* INPUT */}
             {/* ================================================= */}
 
             <div className="bg-white border-t p-4">
 
                 <div className="flex gap-3">
-
-
-                    {/* Input */}
 
                     <input
                         type="text"
@@ -598,7 +1254,9 @@ const ChatWindow = ({
                                 event.target.value
                             )
                         }
-                        onKeyDown={handleKeyDown}
+                        onKeyDown={
+                            handleKeyDown
+                        }
                         placeholder={
                             connected
                                 ? "Type a message..."
@@ -612,10 +1270,10 @@ const ChatWindow = ({
                     />
 
 
-                    {/* Send button */}
-
                     <button
-                        onClick={handleSend}
+                        onClick={
+                            handleSend
+                        }
                         disabled={
                             !text.trim() ||
                             sending ||
@@ -637,6 +1295,7 @@ const ChatWindow = ({
         </div>
 
     );
+
 };
 
 
