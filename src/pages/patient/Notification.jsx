@@ -10,18 +10,16 @@ export default function Notification() {
 
   // Fetch notifications whenever the logged-in user changes
   useEffect(() => {
-  const userId = user?.id || user?._id; 
-
-  if (!userId) {
-    console.error("No logged-in user found!");
-    setLoading(false);
-    return;
-  }
+   if (!user?.id) {
+      console.error("No logged-in user found!");
+      setLoading(false);
+      return;
+    }
 
     const loadNotifications = async () => {
       try {
         setLoading(true);
-         const res = await getNotifications(userId); // fetch by AuthContext ID
+         const res = await getNotifications(user.id); // fetch by AuthContext ID
         setNotifications(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Failed to load notifications:", err);
@@ -60,7 +58,8 @@ export default function Notification() {
               n.read ? "bg-gray-100 border-gray-200" : "bg-blue-50 border-blue-200"
             }`}
           >
-            <p className="font-medium">{n.message}</p>
+            {n.title && <p className="font-bold text-blue-950 text-sm mb-1">{n.title}</p>}
+            <p className="font-medium text-slate-700">{n.message}</p>
             <p className="text-xs text-gray-400 mb-2">
               {new Date(n.createdAt).toLocaleString()}
             </p>

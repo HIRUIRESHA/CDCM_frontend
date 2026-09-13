@@ -26,60 +26,68 @@ function FindDoctor() {
   const [selectedNumber, setSelectedNumber] = useState(null);
 
   const [notification, setNotification] = useState(null);
+  
 
   const [isPaymentStep, setIsPaymentStep] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [docRes, specRes, hospRes] = await Promise.all([
-          fetch("http://localhost:8082/api/hospital/doctors/assigned-all"),
-          fetch("http://localhost:8082/api/hospital/doctors/specializations"),
-          fetch("http://localhost:8082/api/hospital/doctors/all-hospitals"),
-        ]);
+  const fetchData = async () => {
+    try {
+      const [docRes, specRes, hospRes] = await Promise.all([
+        fetch("http://localhost:8082/api/hospital/doctors/assigned-all"),
+        fetch("http://localhost:8082/api/hospital/doctors/specializations"),
+        fetch("http://localhost:8082/api/hospital/doctors/all-hospitals"),
+      ]);
 
-        const docs = await docRes.json();
-        const specs = await specRes.json();
-        const hosps = await hospRes.json();
+      const docs = await docRes.json();
+      const specs = await specRes.json();
+      const hosps = await hospRes.json();
 
-        const doctorsList = Array.isArray(docs) ? docs : [];
-        setDoctors(doctorsList);
-        setSpecializations(Array.isArray(specs) ? specs : []);
-        setHospitals(Array.isArray(hosps) ? hosps : []);
+      const doctorsList = Array.isArray(docs) ? docs : [];
+      setDoctors(doctorsList);
+      setSpecializations(Array.isArray(specs) ? specs : []);
+      setHospitals(Array.isArray(hosps) ? hosps : []);
 
-        const schedulesMap = {};
-        if (doctorsList.length > 0) {
-          await Promise.all(
-            doctorsList.map(async (doc) => {
-              try {
-                const schedRes = await fetch(
-                  `http://localhost:8082/api/schedules/doctor/${doc.id}`
-                );
-                if (schedRes.ok) {
-                  const schedData = await schedRes.json();
-                  schedulesMap[doc.id] = schedData.filter(
-                    (s) => s.status === "ACCEPTED"
-                  );
-                } else {
-                  schedulesMap[doc.id] = [];
-                }
-              } catch (err) {
+      // Get current date in YYYY-MM-DD format for comparison
+      const today = new Date().toISOString().split('T')[0];
+
+      const schedulesMap = {};
+      if (doctorsList.length > 0) {
+        await Promise.all(
+          doctorsList.map(async (doc) => {
+            try {
+              const schedRes = await fetch(
+                `http://localhost:8082/api/schedules/doctor/${doc.id}`
+              );
+              if (schedRes.ok) {
+                const schedData = await schedRes.json();
+                
+               schedulesMap[doc.id] = schedData.filter(
+  (s) =>
+    s.status === "ACCEPTED" &&
+    s.date >= today &&
+    s.type === "PHYSICAL"
+);
+              } else {
                 schedulesMap[doc.id] = [];
               }
-            })
-          );
-        }
-        setSchedules(schedulesMap);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-      } finally {
-        setLoading(false);
+            } catch (err) {
+              schedulesMap[doc.id] = [];
+            }
+          })
+        );
       }
-    };
+      setSchedules(schedulesMap);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
-  }, []);
+  fetchData();
+}, []);
 
   const filteredDoctors = doctors.filter((doc) => {
     const fullName =
@@ -175,6 +183,7 @@ function FindDoctor() {
           amount: hashData.amount, 
           currency: hashData.currency,
           hash: hashData.hash, 
+          custom_1: user.id || user._id,
           first_name: user.firstName,
           last_name: user.lastName,
           email: user.email || "patient@example.com",
@@ -185,40 +194,98 @@ function FindDoctor() {
         };
 
         // Define Callbacks
-        window.payhere.onCompleted = function onCompleted(orderId) {
-          setIsModalOpen(false);
-          setNotification({
-            type: "success",
-            title: "Payment Successful!",
-            message: "Your appointment has been confirmed and paid.",
-            apptNumber: appointmentData.appointmentNumber,
-          });
+        window.payhere.onCompleted = async function onCompleted(orderId) {
+          try {
+            // Confirm payment with backend
+            const confirmRes = await axios.post(
+              `http://localhost:8082/api/payments/payment-success/${orderId}`,
+              {
+                payhereId: orderId,
+                amount: amount,
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (confirmRes.data && confirmRes.data.success !== false) {
+              setIsModalOpen(false);
+              setNotification({
+                type: "success",
+                title: "Payment Successful!",
+                message: "Your appointment has been confirmed and paid.",
+                apptNumber: appointmentData.appointmentNumber,
+              });
+            } else {
+              setIsModalOpen(false);
+              setNotification({
+                type: "error",
+                title: "Payment Confirmation Issue",
+                message: "Payment was processed, but server confirmation reported an issue. Please check your Payment History.",
+              });
+            }
+          } catch (err) {
+            console.error("Backend payment confirmation error:", err);
+            setIsModalOpen(false);
+            setNotification({
+              type: "error",
+              title: "Payment Confirmation Issue",
+              message: "Payment succeeded with PayHere, but failed to record in the system. Please check your Payment History.",
+            });
+          }
         };
 
         window.payhere.onDismissed = function onDismissed() {
+          setIsModalOpen(false);
           setNotification({
             type: "error",
-            title: "Payment Dismissed",
-            message: "You closed the payment window. Appointment is not confirmed.",
+            title: "Payment Incomplete",
+            message: "You closed the payment window. Your appointment remains pending until payment is completed.",
           });
         };
 
         window.payhere.onError = function onError(error) {
           console.error("Payment Error:", error);
+          setIsModalOpen(false);
+          setNotification({
+            type: "error",
+            title: "Payment Failed",
+            message: "An error occurred during payment processing. Appointment is not confirmed.",
+          });
         };
 
         // Start Payment
         window.payhere.startPayment(payment);
 
       } else {
+        let errorMessage = "Could not initiate booking. Please try again.";
+        try {
+          const text = await response.text();
+          try {
+            const data = JSON.parse(text);
+            if (data && data.message) {
+              errorMessage = data.message;
+            } else if (typeof data === "string") {
+              errorMessage = data;
+            }
+          } catch {
+            if (text) errorMessage = text;
+          }
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+        setIsModalOpen(false);
         setNotification({
           type: "error",
           title: "Booking Failed",
-          message: "Could not initiate booking. Please try again.",
+          message: errorMessage,
         });
       }
     } catch (error) {
       console.error("Booking error:", error);
+      setIsModalOpen(false);
       setNotification({
         type: "error",
         title: "Error",
@@ -328,6 +395,17 @@ function FindDoctor() {
   )}
 </div>
 
+            {/* Payment Fee Summary */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 flex justify-between items-center text-sm">
+              <div>
+                <span className="font-semibold text-slate-700">Doctor Channeling Fee</span>
+                <p className="text-xs text-slate-500">Payable via PayHere Secure Gateway</p>
+              </div>
+              <div className="text-right">
+                <span className="text-lg font-black text-blue-950">LKR 1,000.00</span>
+              </div>
+            </div>
+
             {/* Legend + Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-center border-t border-slate-100 pt-5 gap-4">
               <div className="flex gap-5 text-xs text-slate-500 font-medium">
@@ -349,12 +427,12 @@ function FindDoctor() {
                   Cancel
                 </button>
                 <button
-  onClick={confirmBooking}
-  disabled={!selectedNumber}
-  className="flex-1 sm:flex-none px-10 py-3 bg-blue-700 hover:bg-blue-600 text-white rounded-xl font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg"
->
-  {selectedNumber ? "Confirm Appointment" : "Fully Booked"}
-</button>
+                  onClick={confirmBooking}
+                  disabled={!selectedNumber}
+                  className="flex-1 sm:flex-none px-8 py-3 bg-blue-700 hover:bg-blue-600 text-white rounded-xl font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg"
+                >
+                  {selectedNumber ? "Proceed to Payment (LKR 1,000.00)" : "Fully Booked"}
+                </button>
               </div>
             </div>
 

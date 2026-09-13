@@ -1,266 +1,773 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+
+const API_URL = "http://localhost:8082/api";
 
 export default function VideoConference() {
-  const { id } = useParams();
   const [searchParams] = useSearchParams();
 
   const doctorId = searchParams.get("doctorId");
 
   const [schedules, setSchedules] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // ✅ track booked schedules
   const [bookedSchedules, setBookedSchedules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [bookingId, setBookingId] = useState(null);
 
-  // ================= LOAD SCHEDULES =================
+  // =====================================================
+  // TOAST NOTIFICATION (replaces browser alert())
+  // =====================================================
+
+  const [toast, setToast] = useState(null); // { message, type }
+  const toastTimerRef = useRef(null);
+
+  const showToast = (message, type = "info") => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+
+    setToast({ message, type });
+
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+    }, 3500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  // =====================================================
+  // LOAD VIDEO SCHEDULES
+  // =====================================================
+
   const loadSchedules = async () => {
     if (!doctorId) {
+      console.error("Doctor ID is missing");
       setLoading(false);
       return;
     }
 
     try {
-      const res = await axios.get(
-        `http://localhost:8082/api/schedules/doctor/${doctorId}`
+      setLoading(true);
+
+      const token = localStorage.getItem("token");
+
+      const response = await axios.get(
+        `${API_URL}/schedules/doctor/${doctorId}`,
+        {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : {},
+        }
       );
 
-      const filtered = res.data.filter(
-        (s) =>
-          s.type === "VIDEO" &&
-          (s.status === "ACCEPTED" ||
-            s.status === "CANCELLED" ||
-            s.status === "PENDING")
+      const data = Array.isArray(response.data)
+        ? response.data
+        : [];
+
+      const videoSchedules = data.filter(
+  (schedule) =>
+    schedule.type === "VIDEO" &&
+    schedule.status === "ACCEPTED"
+);
+      setSchedules(videoSchedules);
+    } catch (error) {
+      console.error(
+        "Load schedules error:",
+        error.response?.data || error.message
       );
 
-      setSchedules(filtered);
-    } catch (err) {
-      console.error("Load schedules error:", err);
+      showToast("Failed to load video consultation schedules.", "error");
     } finally {
       setLoading(false);
     }
   };
 
+  // =====================================================
+  // LOAD PATIENT'S EXISTING VIDEO BOOKINGS
+  // =====================================================
+
+  const loadBookedSchedules = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const token = localStorage.getItem("token");
+
+      if (!user?.id) {
+        return;
+      }
+
+      const response = await axios.get(
+        `${API_URL}/video-appointments/patient/${user.id}`,
+        {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : {},
+        }
+      );
+
+      const appointments = Array.isArray(response.data)
+        ? response.data
+        : [];
+
+      const scheduleIds = appointments
+        .filter(
+          (appointment) =>
+            appointment.consultationType === "VIDEO" &&
+            (appointment.status === "PAID" ||
+              appointment.status === "PENDING")
+        )
+        .map((appointment) => String(appointment.scheduleId));
+
+      setBookedSchedules(scheduleIds);
+    } catch (error) {
+      console.error(
+        "Load booked schedules error:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
+
   useEffect(() => {
-    loadSchedules();
+    if (doctorId) {
+      loadSchedules();
+      loadBookedSchedules();
+    } else {
+      setLoading(false);
+    }
   }, [doctorId]);
 
-  // ================= ACCEPT / REJECT =================
-  const acceptSchedule = async (sid) => {
-    await axios.put(`http://localhost:8082/api/schedules/accept/${sid}`);
-    loadSchedules();
+  // =====================================================
+  // ACCEPT SCHEDULE
+  // =====================================================
+
+  const acceptSchedule = async (scheduleId) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.put(
+        `${API_URL}/schedules/accept/${scheduleId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      showToast("Schedule accepted successfully.", "success");
+
+      await loadSchedules();
+    } catch (error) {
+      console.error(
+        "Accept schedule error:",
+        error.response?.data || error.message
+      );
+
+      showToast(
+        error.response?.data?.message ||
+          "Failed to accept schedule.",
+        "error"
+      );
+    }
   };
 
-  const rejectSchedule = async (sid) => {
-    await axios.put(`http://localhost:8082/api/schedules/reject/${sid}`);
-    loadSchedules();
+  // =====================================================
+  // REJECT SCHEDULE
+  // =====================================================
+
+  const rejectSchedule = async (scheduleId) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.put(
+        `${API_URL}/schedules/reject/${scheduleId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      showToast("Schedule rejected.", "info");
+
+      await loadSchedules();
+    } catch (error) {
+      console.error(
+        "Reject schedule error:",
+        error.response?.data || error.message
+      );
+
+      showToast(
+        error.response?.data?.message ||
+          "Failed to reject schedule.",
+        "error"
+      );
+    }
   };
 
-  // ================= BOOK + PAYMENT =================
+  // =====================================================
+  // BOOK VIDEO APPOINTMENT
+  // =====================================================
+
   const addAppointment = async (schedule) => {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       const token = localStorage.getItem("token");
 
+      if (!user?.id) {
+        showToast("Please login first.", "error");
+        return;
+      }
+
+      if (!token) {
+        showToast("Authentication token is missing. Please login again.", "error");
+        return;
+      }
+
+      if (!doctorId) {
+        showToast("Doctor ID is missing.", "error");
+        return;
+      }
+
       const scheduleId = schedule?.id || schedule?._id;
 
       if (!scheduleId) {
-        alert("Invalid schedule ID");
+        showToast("Invalid schedule ID.", "error");
         return;
       }
 
+      // Prevent multiple clicks
+      if (bookingId) {
+        showToast("Please wait. Your booking is being processed.", "info");
+        return;
+      }
+
+      const scheduleIdString = String(scheduleId);
+
+      // Check current frontend state
+      if (bookedSchedules.includes(scheduleIdString)) {
+        showToast("You have already booked this schedule.", "info");
+        return;
+      }
+
+      // Check PayHere
       if (!window.payhere) {
-        alert("PayHere not loaded");
+        showToast(
+          "PayHere is not loaded. Please refresh the page and try again.",
+          "error"
+        );
         return;
       }
 
-      // ✅ prevent duplicate booking
-      if (bookedSchedules.includes(scheduleId)) {
-        alert("Already booked!");
-        return;
-      }
+      setBookingId(scheduleIdString);
 
-      // ================= CREATE APPOINTMENT =================
-      const res = await axios.post(
-        "http://localhost:8082/api/video-appointments/book", // ✅ FIXED endpoint
+      // =================================================
+      // CREATE VIDEO APPOINTMENT
+      // =================================================
+
+      const appointmentResponse = await axios.post(
+        `${API_URL}/video-appointments/book`,
         {
-          patientId: user.id,
-          doctorId: doctorId,
-          scheduleId: scheduleId,
+          patientId: String(user.id),
+          doctorId: String(doctorId),
+          scheduleId: scheduleIdString,
           date: schedule.date,
           time: `${schedule.startTime} - ${schedule.endTime}`,
+
+          // IMPORTANT
+          consultationType: "VIDEO",
         },
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
       );
 
-      const appointment = res.data;
+      const appointment = appointmentResponse.data;
+
+      console.log("Created video appointment:", appointment);
 
       if (!appointment?.id) {
-        alert("Appointment creation failed");
-        return;
+        throw new Error(
+          "Appointment was not created correctly."
+        );
       }
 
-      const orderId = appointment.id;
-      const amount = appointment.amount || 1000;
+      const appointmentId = appointment.id;
 
-      // ================= GET HASH =================
-      const hashRes = await axios.get(
-        `http://localhost:8082/api/payments/generate-hash/${orderId}/${amount}`
+      // Fixed consultation price
+      const amount = Number(appointment.amount || 1000);
+
+      // =================================================
+      // GET PAYHERE HASH
+      // =================================================
+
+      const hashResponse = await axios.get(
+        `${API_URL}/payments/generate-hash/${appointmentId}/${amount}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
-      const hash = hashRes.data;
+      const paymentData = hashResponse.data;
 
-      // ================= PAYHERE CONFIG =================
+      console.log("Payment data:", paymentData);
+
+      if (!paymentData?.hash) {
+        throw new Error("Unable to generate PayHere hash.");
+      }
+
+      // =================================================
+      // PAYHERE PAYMENT OBJECT
+      // =================================================
+
       const payment = {
         sandbox: true,
-        merchant_id: hash.merchantId,
+
+        merchant_id: paymentData.merchantId,
+
         return_url: "http://localhost:5173/payment-success",
+
         cancel_url: "http://localhost:5173/payment-failed",
-        notify_url: "http://localhost:8082/api/payments/notify",
 
-        order_id: orderId,
+        notify_url:
+          "http://localhost:8082/api/payments/notify",
+
+        order_id: String(appointmentId),
+
         items: "Video Consultation",
-        amount: hash.amount,
-        currency: hash.currency,
-        hash: hash.hash,
 
-        first_name: user.firstName,
-        last_name: user.lastName,
+        amount: Number(paymentData.amount).toFixed(2),
+
+        currency: paymentData.currency || "LKR",
+
+        hash: paymentData.hash,
+
+        first_name: user.firstName || "Patient",
+
+        last_name: user.lastName || "",
+
         email: user.email,
+
         phone: user.phone || "0000000000",
+
         address: "Sri Lanka",
+
         city: "Colombo",
+
         country: "Sri Lanka",
       };
 
-      // ================= CALLBACKS =================
-      window.payhere.onCompleted = async function () {
-        alert("Payment Successful!");
+      // =================================================
+      // PAYMENT COMPLETED
+      // =================================================
 
-        // ✅ mark as booked in UI
-        setBookedSchedules((prev) => [...prev, scheduleId]);
-
-        // ✅ update backend status
-        await axios.post(
-          `http://localhost:8082/api/video-appointments/payment-success/${orderId}`
+      window.payhere.onCompleted = async function (orderId) {
+        console.log(
+          "PayHere payment completed:",
+          orderId
         );
 
-        loadSchedules();
+        try {
+          await axios.post(
+            `${API_URL}/video-appointments/payment-success/${appointmentId}`,
+            {},
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          showToast(
+            "Payment successful! Your video consultation has been booked.",
+            "success"
+          );
+
+          // Update UI
+          setBookedSchedules((previous) => {
+            if (previous.includes(scheduleIdString)) {
+              return previous;
+            }
+
+            return [
+              ...previous,
+              scheduleIdString,
+            ];
+          });
+
+          await loadSchedules();
+          await loadBookedSchedules();
+        } catch (error) {
+          console.error(
+            "Payment success update error:",
+            error.response?.data || error.message
+          );
+
+          showToast(
+            "Payment was completed, but appointment status could not be updated. Please contact the administrator.",
+            "error"
+          );
+        } finally {
+          setBookingId(null);
+        }
       };
 
-      window.payhere.onDismissed = function () {
-        alert("Payment Cancelled!");
+      // =================================================
+      // PAYMENT DISMISSED
+      // =================================================
+
+      window.payhere.onDismissed = async function () {
+        console.log("PayHere payment dismissed");
+
+        try {
+          await axios.post(
+            `${API_URL}/video-appointments/payment-failed/${appointmentId}`,
+            {},
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+        } catch (error) {
+          console.error(
+            "Failed to update cancelled payment:",
+            error.response?.data || error.message
+          );
+        }
+
+        setBookingId(null);
+
+        showToast("Payment cancelled.", "info");
       };
 
-      window.payhere.onError = function (err) {
-        console.error("Payment Error:", err);
+      // =================================================
+      // PAYMENT ERROR
+      // =================================================
+
+      window.payhere.onError = async function (error) {
+        console.error("PayHere error:", error);
+
+        try {
+          await axios.post(
+            `${API_URL}/video-appointments/payment-failed/${appointmentId}`,
+            {},
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+        } catch (backendError) {
+          console.error(
+            "Failed to update payment failure:",
+            backendError.response?.data ||
+              backendError.message
+          );
+        }
+
+        setBookingId(null);
+
+        showToast(
+          "Payment failed. Please try again.",
+          "error"
+        );
       };
 
-      // ================= START PAYMENT =================
+      // =================================================
+      // START PAYHERE
+      // =================================================
+
       window.payhere.startPayment(payment);
-
-    } catch (err) {
+    } catch (error) {
       console.error(
         "Booking error FULL:",
-        err.response?.data || err.message
+        error.response?.data || error.message
       );
-      alert("Booking failed - check backend logs");
+
+      setBookingId(null);
+
+      if (error.response?.status === 403) {
+        showToast(
+          "Access denied (403). Please login again or check your account permissions.",
+          "error"
+        );
+        return;
+      }
+
+      showToast(
+        error.response?.data?.message ||
+          error.message ||
+          "Booking failed. Please try again.",
+        "error"
+      );
     }
   };
 
-  // ================= UI =================
+  // =====================================================
+  // UI
+  // =====================================================
+
   return (
     <div className="min-h-screen bg-[#f0f2f8] p-10">
 
-      <h1 className="text-3xl font-bold mb-6">
-        Video Consultation
-      </h1>
+      {/* TOAST NOTIFICATION */}
+      {toast && (
+        <div
+          className="fixed top-6 right-6 z-50 flex items-center gap-3 min-w-[280px] max-w-sm px-4 py-3 rounded-xl shadow-lg border animate-[fadeIn_0.2s_ease-out]"
+          style={{
+            backgroundColor:
+              toast.type === "success"
+                ? "#ecfdf5"
+                : toast.type === "error"
+                ? "#fef2f2"
+                : "#eff6ff",
+            borderColor:
+              toast.type === "success"
+                ? "#a7f3d0"
+                : toast.type === "error"
+                ? "#fecaca"
+                : "#bfdbfe",
+            color:
+              toast.type === "success"
+                ? "#065f46"
+                : toast.type === "error"
+                ? "#991b1b"
+                : "#1e40af",
+          }}
+        >
+          <span className="text-lg leading-none">
+            {toast.type === "success"
+              ? "✓"
+              : toast.type === "error"
+              ? "✕"
+              : "ℹ"}
+          </span>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <table className="w-full bg-white rounded-xl shadow text-sm">
+          <p className="text-sm font-medium flex-1">
+            {toast.message}
+          </p>
 
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-3 text-left">Date</th>
-              <th className="p-3 text-left">Time</th>
-              <th className="p-3 text-left">Status</th>
-              <th className="p-3 text-left">Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {schedules.map((s) => {
-              const sid = s.id || s._id;
-
-              return (
-                <tr key={sid} className="border-b">
-
-                  <td className="p-3">{s.date}</td>
-
-                  <td className="p-3">
-                    {s.startTime} - {s.endTime}
-                  </td>
-
-                  <td className="p-3">{s.status}</td>
-
-                  <td className="p-3 flex gap-2">
-
-                    {/* PENDING */}
-                    {s.status === "PENDING" && (
-                      <>
-                        <button
-                          onClick={() => acceptSchedule(sid)}
-                          className="bg-green-500 text-white px-2 py-1 rounded"
-                        >
-                          Accept
-                        </button>
-
-                        <button
-                          onClick={() => rejectSchedule(sid)}
-                          className="bg-red-500 text-white px-2 py-1 rounded"
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
-
-                    {/* ACCEPTED */}
-                    {s.status === "ACCEPTED" && (
-                      bookedSchedules.includes(sid) ? (
-                        <span className="bg-green-200 text-green-700 px-3 py-1 rounded text-xs">
-                          Booked
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => addAppointment(s)}
-                          className="bg-blue-600 text-white px-3 py-1 rounded"
-                        >
-                          Book Appointment
-                        </button>
-                      )
-                    )}
-
-                    {/* CANCELLED */}
-                    {s.status === "CANCELLED" && (
-                      <span className="text-gray-400 text-xs">
-                        No actions
-                      </span>
-                    )}
-
-                  </td>
-
-                </tr>
-              );
-            })}
-          </tbody>
-
-        </table>
+          <button
+            onClick={() => setToast(null)}
+            className="text-current opacity-60 hover:opacity-100 text-sm"
+            aria-label="Dismiss notification"
+          >
+            ✕
+          </button>
+        </div>
       )}
+
+      <div className="max-w-6xl mx-auto">
+
+        <h1 className="text-3xl font-bold mb-2">
+          Video Consultation
+        </h1>
+
+        <p className="text-gray-600 mb-6">
+          Select an available video consultation schedule
+          and complete the payment.
+        </p>
+
+        {!doctorId && (
+          <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-6">
+            Doctor ID is missing from the URL.
+          </div>
+        )}
+
+        {loading ? (
+          <div className="bg-white rounded-xl shadow p-8 text-center">
+            <p className="text-gray-500">
+              Loading schedules...
+            </p>
+          </div>
+        ) : schedules.length === 0 ? (
+          <div className="bg-white rounded-xl shadow p-8 text-center">
+            <p className="text-gray-500">
+              No video consultation schedules available.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow overflow-hidden">
+
+            <table className="w-full text-sm">
+
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-4 text-left">
+                    Date
+                  </th>
+
+                  <th className="p-4 text-left">
+                    Time
+                  </th>
+
+                  <th className="p-4 text-left">
+                    Status
+                  </th>
+
+                  <th className="p-4 text-left">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {schedules.map((schedule) => {
+                  const scheduleId =
+                    schedule.id || schedule._id;
+
+                  const scheduleIdString =
+                    String(scheduleId);
+
+                  const isBooked =
+                    bookedSchedules.includes(
+                      scheduleIdString
+                    );
+
+                  const isProcessing =
+                    bookingId === scheduleIdString;
+
+                  return (
+                    <tr
+                      key={scheduleIdString}
+                      className="border-b hover:bg-gray-50"
+                    >
+
+                      {/* DATE */}
+                      <td className="p-4">
+                        {schedule.date}
+                      </td>
+
+                      {/* TIME */}
+                      <td className="p-4">
+                        {schedule.startTime}
+                        {" - "}
+                        {schedule.endTime}
+                      </td>
+
+                      {/* STATUS */}
+                      <td className="p-4">
+
+                        {schedule.status ===
+                          "ACCEPTED" && (
+                          <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">
+                            Accepted
+                          </span>
+                        )}
+
+                        {schedule.status ===
+                          "PENDING" && (
+                          <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs">
+                            Pending
+                          </span>
+                        )}
+
+                        {schedule.status ===
+                          "CANCELLED" && (
+                          <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs">
+                            Cancelled
+                          </span>
+                        )}
+
+                      </td>
+
+                      {/* ACTION */}
+                      <td className="p-4">
+
+                        {/* PENDING */}
+                        {schedule.status ===
+                          "PENDING" && (
+                          <div className="flex gap-2">
+
+                            <button
+                              onClick={() =>
+                                acceptSchedule(
+                                  scheduleId
+                                )
+                              }
+                              className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded"
+                            >
+                              Accept
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                rejectSchedule(
+                                  scheduleId
+                                )
+                              }
+                              className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded"
+                            >
+                              Reject
+                            </button>
+
+                          </div>
+                        )}
+
+                        {/* ACCEPTED */}
+                        {schedule.status ===
+                          "ACCEPTED" && (
+                          <>
+                            {isBooked ? (
+                              <span className="bg-green-100 text-green-700 px-3 py-2 rounded text-xs">
+                                Already Booked
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  addAppointment(
+                                    schedule
+                                  )
+                                }
+                                disabled={isProcessing}
+                                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded"
+                              >
+                                {isProcessing
+                                  ? "Processing..."
+                                  : "Book Appointment"}
+                              </button>
+                            )}
+                          </>
+                        )}
+
+                        {/* CANCELLED */}
+                        {schedule.status ===
+                          "CANCELLED" && (
+                          <span className="text-gray-400 text-xs">
+                            No actions available
+                          </span>
+                        )}
+
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
