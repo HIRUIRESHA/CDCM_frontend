@@ -1,5 +1,6 @@
 import React, { useState, useEffect} from "react";
 import { useAuth } from "../../context/AuthContext";
+import { showSuccess, showError, showConfirm } from "../../utils/alert";
 
 const AssignDoctor = () => {
 
@@ -50,9 +51,15 @@ const AssignDoctor = () => {
   };
 
   const assignDoctor = async (doctorId) => {
+  const confirmed = await showConfirm(
+    "Do you want to assign this doctor to your hospital?",
+    "Assign Doctor?",
+    "Yes, Assign"
+  );
+
+  if (!confirmed) return;
 
   try {
-
     const res = await fetch(
       `http://localhost:8082/api/hospital/doctors/${doctorId}/assign/${user.id}`,
       {
@@ -64,19 +71,27 @@ const AssignDoctor = () => {
     );
 
     if (!res.ok) {
-      alert("Assignment failed");
+      await showError(
+        "Failed to assign doctor."
+      );
       return;
     }
 
-    alert("Doctor assigned successfully");
+    setDoctors((prev) =>
+      prev.filter((doc) => doc.id !== doctorId)
+    );
 
-    // remove doctor from current list
-    setDoctors(prev => prev.filter(doc => doc.id !== doctorId));
+    await showSuccess(
+      "Doctor assigned successfully!"
+    );
 
   } catch (error) {
     console.error(error);
-  }
 
+    await showError(
+      "Failed to assign doctor. Please try again."
+    );
+  }
 };
 
   return (

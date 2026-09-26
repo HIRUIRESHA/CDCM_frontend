@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { showSuccess, showError,showConfirm } from "../../utils/alert";
+
 
 export default function SchedulePage() {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -43,14 +45,58 @@ export default function SchedulePage() {
   }, [doctorId]);
 
   const acceptSchedule = async (id) => {
-    await axios.put(`http://localhost:8082/api/schedules/accept/${id}`);
+  const confirmed = await showConfirm(
+    "Do you want to accept this schedule?",
+    "Accept Schedule?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await axios.put(
+      `http://localhost:8082/api/schedules/accept/${id}`
+    );
+
+    await showSuccess(
+      "Schedule accepted successfully!"
+    );
+
     loadSchedules();
-  };
+  } catch (err) {
+    console.error(err);
+
+    await showError(
+      "Failed to accept schedule."
+    );
+  }
+};
 
   const rejectSchedule = async (id) => {
-    await axios.put(`http://localhost:8082/api/schedules/reject/${id}`);
+  const confirmed = await showConfirm(
+    "Do you want to reject this schedule?",
+    "Reject Schedule?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await axios.put(
+      `http://localhost:8082/api/schedules/reject/${id}`
+    );
+
+    await showSuccess(
+      "Schedule rejected successfully!"
+    );
+
     loadSchedules();
-  };
+  } catch (err) {
+    console.error(err);
+
+    await showError(
+      "Failed to reject schedule."
+    );
+  }
+};
 
   const cancelSchedule = (id) => setCancelTargetId(id);
 
