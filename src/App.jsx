@@ -38,7 +38,7 @@ import Analytics from './pages/hospital/Analytics';
 import Emergency from './pages/hospital/Emergency';
 import Laboratory from './pages/hospital/Laboratory';
 import Notifications from './pages/hospital/Notifications';
-import PatientManagement from './pages/hospital/patientManagement';
+import PatientManagement from './pages/hospital/PatientManagement';
 import Schedule from './pages/hospital/Schedule';
 import AddSchedule from './pages/hospital/AddSchedule';
 import UploadReport from './pages/hospital/UploadReport';

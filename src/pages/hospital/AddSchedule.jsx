@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { showSuccess, showError, showConfirm } from "../../utils/alert";
+
 
 export default function AddSchedulePage() {
   const navigate = useNavigate();
@@ -56,35 +58,65 @@ export default function AddSchedulePage() {
 
   // ----------------- Submit form -----------------
   const handleSubmit = async () => {
-    if (!form.doctorId || !form.date || !form.startTime || !form.endTime) {
-      setError("Please fill all fields");
-      return;
-    }
+  if (!form.doctorId || !form.date || !form.startTime || !form.endTime) {
+    await showWarning(
+      "Please fill in all fields before creating the schedule."
+    );
+    return;
+  }
 
-    if (!hospitalId) {
-      setError("Hospital not found. Please log in again.");
-      return;
-    }
+  if (!hospitalId) {
+    await showError(
+      "Hospital not found. Please log in again."
+    );
+    return;
+  }
 
-    setSubmitting(true);
+  if (form.startTime >= form.endTime) {
+    await showWarning(
+      "End time must be later than start time."
+    );
+    return;
+  }
 
-    try {
-      await axios.post("http://localhost:8082/api/schedules", {
+  const confirmed = await showConfirm(
+    "Do you want to create and send this schedule to the selected doctor?",
+    "Create and Send Schedule?",
+    "Yes, Send"
+  );
+
+  if (!confirmed) return;
+
+  setSubmitting(true);
+
+  try {
+    await axios.post(
+      "http://localhost:8082/api/schedules",
+      {
         doctorId: form.doctorId,
-        hospitalId: hospitalId, // Automatically from logged-in hospital
+        hospitalId: hospitalId,
         date: form.date,
         startTime: form.startTime,
         endTime: form.endTime,
-      });
+      }
+    );
 
-      navigate("/hospital/schedule");
-    } catch (err) {
-      console.error(err);
-      setError("Failed to create schedule");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    await showSuccess(
+      "Schedule created and sent to the doctor successfully!"
+    );
+
+    navigate("/hospital/schedule");
+
+  } catch (err) {
+    console.error(err);
+
+    await showError(
+      "Failed to create and send the schedule. Please try again."
+    );
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   // ----------------- Selected doctor info (optional) -----------------
   const selectedDoctor = doctors.find((d) => d.id === form.doctorId);
@@ -163,7 +195,7 @@ export default function AddSchedulePage() {
           disabled={submitting}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
         >
-          {submitting ? "Creating..." : "Create Schedule"}
+          {submitting ? "Creating & Sending..." : "Create and Send Schedule"}
         </button>
       </div>
     </div>
