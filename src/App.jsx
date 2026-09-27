@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
@@ -76,7 +77,8 @@ const Placeholder = ({ title }) => <h1 className="text-2xl p-4">{title} Page</h1
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <NotificationProvider>
+        <BrowserRouter>
         <Routes>
 
           {/* GROUP 1: PUBLIC ROUTES */}
@@ -195,6 +197,7 @@ function App() {
 
         </Routes>
       </BrowserRouter>
+      </NotificationProvider>
     </AuthProvider>
   );
 }
