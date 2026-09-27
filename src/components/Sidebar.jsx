@@ -6,9 +6,10 @@ import {
 } from 'lucide-react';
 import { PlusCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 // Helper Component for Sidebar Links
-const SidebarLink = ({ to, icon, label }) => {
+const SidebarLink = ({ to, icon, label, badge }) => {
     const location = useLocation();
     const isActive = location.pathname.startsWith(to);
     return (
@@ -20,8 +21,18 @@ const SidebarLink = ({ to, icon, label }) => {
                     : 'text-white hover:bg-slate-50 hover:text-slate-900'
             }`}
         >
-            {icon}
-            <span>{label}</span>
+            <div className="relative flex items-center justify-center shrink-0">
+                {icon}
+                {badge > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-[#0a1647] animate-pulse" />
+                )}
+            </div>
+            <span className="flex-1">{label}</span>
+            {badge > 0 && (
+                <span className="ml-auto px-2 py-0.5 text-[10px] font-black bg-rose-500 text-white rounded-full shadow-sm shadow-rose-500/30">
+                    {badge > 99 ? '99+' : badge}
+                </span>
+            )}
         </Link>
     );
 };
@@ -87,6 +98,7 @@ const SidebarContainer = ({ children, title, titleColor = "text-white" }) => {
 
 // PATIENT SIDEBAR
 export const PatientSidebar = () => {
+    const { unreadCount } = useNotifications();
     return (
       <SidebarContainer title="HealthRoute" titleColor="text-white">
         <SidebarLink to="/patient/dashboard" icon={<LayoutDashboard size={20} />} label="Dashboard" />
@@ -95,7 +107,7 @@ export const PatientSidebar = () => {
         <SidebarLink to="/patient/my-doctors" icon={<UserCog size={20} />} label="My Doctors" />
         <SidebarLink to="/patient/reports" icon={<FileBarChart size={20} />} label="Reports" />
         <SidebarLink to="/patient/messages" icon={<MessageSquare size={20} />} label="Messages" />
-        <SidebarLink to="/patient/notifications" icon={<Bell size={20} />} label="Notification" />
+        <SidebarLink to="/patient/notifications" icon={<Bell size={20} />} label="Notification" badge={unreadCount} />
         <SidebarLink to="/patient/payment" icon={<CreditCard size={20} />} label="Payment" />
       </SidebarContainer>
     );
@@ -103,6 +115,7 @@ export const PatientSidebar = () => {
 
 // DOCTOR SIDEBAR
 export const DoctorSidebar = () => {
+    const { unreadCount } = useNotifications();
     return (
       <SidebarContainer title="HealthRoute" titleColor="text-white">
         <SidebarLink to="/doctor/dashboard" icon={<LayoutDashboard size={20} />} label="Dashboard" />
@@ -110,7 +123,7 @@ export const DoctorSidebar = () => {
         <SidebarLink to="/doctor/schedule" icon={<Calendar size={20} />} label="My Schedule" />
         <SidebarLink to="/doctor/mypatients" icon={<MessageCircle size={20} />} label="My Patients" />
         <SidebarLink to="/doctor/messages" icon={<MessageSquare size={20} />} label="Messages" />
-        <SidebarLink to="/doctor/notifications" icon={<Bell size={20} />} label="Notification" />
+        <SidebarLink to="/doctor/notifications" icon={<Bell size={20} />} label="Notification" badge={unreadCount} />
         <SidebarLink to="/doctor/video-conference" icon={<Video size={20} />} label="Video Conference" />
       </SidebarContainer>
     );
@@ -118,6 +131,7 @@ export const DoctorSidebar = () => {
 
 // HOSPITAL SIDEBAR
 export const HospitalSidebar = () => {
+    const { unreadCount } = useNotifications();
     return (
          <SidebarContainer title="HealthRoute" titleColor="text-white">
             <SidebarLink to="/hospital/dashboard" icon={<LayoutDashboard size={20} />} label="Dashboard" />
@@ -127,8 +141,8 @@ export const HospitalSidebar = () => {
             <SidebarLink to="/hospital/laboratory" icon={<Microscope size={20} />} label="Laboratory" />
             <SidebarLink to="/hospital/emergency" icon={<AlertCircle size={20} />} label="Emergency" />
             <SidebarLink to="/hospital/analytics" icon={<BarChart3 size={20} />} label="Analytics" />
-            <SidebarLink to="/hospital/notifications" icon={<Bell size={20} />} label="Notifications" />
-             <SidebarLink to="/hospital/schedule" icon={<Bell size={20} />} label="Schedule" />
+            <SidebarLink to="/hospital/notifications" icon={<Bell size={20} />} label="Notifications" badge={unreadCount} />
+            <SidebarLink to="/hospital/schedule" icon={<Calendar size={20} />} label="Schedule" />
         </SidebarContainer>
     );
 };
