@@ -79,10 +79,10 @@ const DoctorAccountPage = () => {
       try {
         setLoading(true);
         const [accountRes, profileRes, hospListRes, feedbackRes] = await Promise.all([
-          fetch(`http://localhost:8082/api/auth/doctors/${doctorId}/account`),
-          fetch(`http://localhost:8082/api/auth/doctors/${doctorId}`),
-          fetch(`http://localhost:8082/api/hospital/doctors/all-hospitals`),
-          fetch(`http://localhost:8082/api/feedback/doctor/${doctorId}`),
+          fetch(`http://localhost:8082/api/auth/doctors/${doctorId}/account`,{ headers }),
+          fetch(`http://localhost:8082/api/auth/doctors/${doctorId}`, { headers }),
+          fetch(`http://localhost:8082/api/hospital/doctors/all-hospitals`, { headers }),
+          fetch(`http://localhost:8082/api/feedback/doctor/${doctorId}`, { headers }),
         ]);
 
         if (!accountRes.ok || !profileRes.ok || !hospListRes.ok) throw new Error("Failed to fetch data");
