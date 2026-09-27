@@ -38,7 +38,7 @@ import Analytics from './pages/hospital/Analytics';
 import Emergency from './pages/hospital/Emergency';
 import Laboratory from './pages/hospital/Laboratory';
 import Notifications from './pages/hospital/Notifications';
-import PatientManagement from './pages/hospital/patientManagement';
+import PatientManagement from './pages/hospital/PatientManagement';
 import Schedule from './pages/hospital/Schedule';
 import AddSchedule from './pages/hospital/AddSchedule';
 import UploadReport from './pages/hospital/UploadReport';
@@ -107,6 +107,7 @@ function App() {
              <Route path="find-doctor" element={<Placeholder title="Find Doctor" />} />
              <Route path="appointments" element={<PatientAppointments />} />
              <Route path="records" element={<Placeholder title="Medical Records" />} />
+             <Route path="payment" element={<Payment />} />
              <Route path="payments" element={<Payment />} />
              <Route path="medical-history" element={<MedicalHistory />} />
              <Route path="messages" element={<Messages />} />

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { showSuccess, showError, showConfirm } from "../../utils/alert";
 
 const AssignedDoctors = () => {
 
@@ -23,9 +24,15 @@ const AssignedDoctors = () => {
   }, [user]);
 
   const removeDoctor = async (doctorId) => {
+  const confirmed = await showConfirm(
+    "Do you want to remove this doctor from your hospital?",
+    "Remove Doctor?",
+    "Yes, Remove"
+  );
+
+  if (!confirmed) return;
 
   try {
-
     const res = await fetch(
       `http://localhost:8082/api/hospital/doctors/${doctorId}/remove/${user.id}`,
       {
@@ -37,19 +44,25 @@ const AssignedDoctors = () => {
     );
 
     if (!res.ok) {
-      alert("Failed to remove doctor");
+      await showError("Failed to remove doctor.");
       return;
     }
 
-    alert("Doctor removed successfully");
+    setDoctors((prev) =>
+      prev.filter((doc) => doc.id !== doctorId)
+    );
 
-    // update UI
-    setDoctors(prev => prev.filter(doc => doc.id !== doctorId));
+    await showSuccess(
+      "Doctor removed successfully!"
+    );
 
   } catch (error) {
     console.error(error);
-  }
 
+    await showError(
+      "Failed to remove doctor. Please try again."
+    );
+  }
 };
 
   return (

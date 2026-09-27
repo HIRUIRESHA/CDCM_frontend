@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { showSuccess, showError, showConfirm } from "../../utils/alert";
 
 const DoctorManagement = () => {
   const navigate = useNavigate();
@@ -28,22 +29,47 @@ const DoctorManagement = () => {
       });
   }, [user]);
 
-  const removeDoctor = async (doctorId) => {
-    try {
-      const res = await fetch(
-        `http://localhost:8082/api/hospital/doctors/${doctorId}/remove/${user.id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!res.ok) { alert("Failed to remove doctor"); return; }
-      alert("Doctor removed successfully");
-      setDoctors((prev) => prev.filter((doc) => doc.id !== doctorId));
-    } catch (error) {
-      console.error(error);
+const removeDoctor = async (doctorId) => {
+  const confirmed = await showConfirm(
+    "Do you want to remove this doctor from the hospital?",
+    "Remove Doctor?",
+    "Yes, Remove"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(
+      `http://localhost:8082/api/hospital/doctors/${doctorId}/remove/${user.id}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!res.ok) {
+      await showError("Failed to remove doctor.");
+      return;
     }
-  };
+
+    setDoctors((prev) =>
+      prev.filter((doc) => doc.id !== doctorId)
+    );
+
+    await showSuccess(
+      "Doctor removed successfully!"
+    );
+
+  } catch (error) {
+    console.error(error);
+
+    await showError(
+      "Failed to remove doctor. Please try again."
+    );
+  }
+};
 
   const filtered = doctors.filter((d) => {
     const fullName = `${d.title} ${d.firstName} ${d.lastName}`.toLowerCase();
