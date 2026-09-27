@@ -148,6 +148,7 @@ function App() {
                 />
               <Route path="doctors" element={<DoctorManagement />} />
               <Route path="assigned-doctors" element={<AssignedDoctors />} />
+              <Route path="assigned-doctors/:id" element={<DoctorAccountPage />} />
               <Route path="assign-doctor" element={<AssignDoctor />} />
               <Route path="staff" element={<Placeholder title="Manage Staff" />} />
               <Route path="analytics" element={<Analytics />} />
