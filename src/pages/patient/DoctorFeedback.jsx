@@ -1,81 +1,84 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext"; // Adjust path if needed
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import defaultDocImg from "../../assets/doc1.png";
+import { ArrowLeft, Check, Heart, Stethoscope, MessageSquare } from "lucide-react";
 
-// --- UI Components for the Form ---
-
+// --- Rating Component for the Form ---
 function HeartRating({ rating, setRating }) {
   return (
-    <div className="flex gap-3 mt-2">
+    <div className="flex gap-2 sm:gap-3 mt-2">
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
           type="button"
           onClick={() => setRating(star)}
-          className={`w-12 h-12 flex items-center justify-center rounded-lg border-4 transition-colors ${
+          className={`w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl border-2 transition-all cursor-pointer ${
             rating >= star
-              ? "border-gray-400 bg-gray-100"
-              : "border-gray-300 bg-white hover:border-gray-400"
+              ? "border-rose-400 bg-rose-50 text-rose-500 scale-105 shadow-xs"
+              : "border-slate-200 bg-white text-slate-300 hover:border-slate-300 hover:text-slate-400"
           }`}
+          aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
         >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill={rating >= star ? "#9ca3af" : "none"} // gray-400
-            stroke="#9ca3af"
-            strokeWidth="2"
-          >
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-          </svg>
+          <Heart
+            className={`w-6 h-6 transition-transform ${
+              rating >= star ? "fill-rose-500 text-rose-500" : ""
+            }`}
+          />
         </button>
       ))}
     </div>
   );
 }
 
-function MiniDoctorCard({ doctor, isSelected, onClick }) {
+// Doctor Card in Feedback Section - Displays ONLY:
+// 1. Doctor Profile Image
+// 2. Doctor Name
+// 3. Doctor Specialization
+function FeedbackDoctorCard({ doctor, isSelected, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-xl p-4 cursor-pointer transition-all border-2 ${
+      className={`relative bg-white rounded-2xl p-5 cursor-pointer transition-all duration-200 border-2 flex flex-col items-center text-center ${
         isSelected
-          ? "border-blue-400 shadow-md ring-2 ring-blue-50"
-          : "border-gray-100 shadow-sm hover:border-gray-300"
+          ? "border-blue-600 shadow-md ring-2 ring-blue-100 bg-blue-50/20"
+          : "border-slate-200 shadow-xs hover:border-slate-300 hover:shadow-sm"
       }`}
     >
-      <div className="flex gap-3">
-        <img
-          src={doctor.image || "https://randomuser.me/api/portraits/women/44.jpg"}
-          alt={doctor.name}
-          className="w-14 h-14 rounded-lg object-cover shrink-0"
-        />
-        <div className="flex flex-col justify-center">
-          <p className="text-sm font-bold text-gray-900">{doctor.name}</p>
-          <p className="text-xs text-blue-500 font-medium">{doctor.specialty}</p>
-          <p className="text-xs text-gray-500">{doctor.experience}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="flex items-center gap-1 text-[10px] font-semibold text-gray-600">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
-              {doctor.rating}%
-            </span>
-            <span className="flex items-center gap-1 text-[10px] font-semibold text-gray-600">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
-              {doctor.patients} Patient Stories
-            </span>
-          </div>
+      {/* Selection indicator */}
+      {isSelected && (
+        <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xs">
+          <Check className="w-3.5 h-3.5 stroke-[3]" />
         </div>
+      )}
+
+      {/* 1. Doctor Profile Image */}
+      <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-100 border-2 border-blue-100 shadow-2xs mb-3 flex items-center justify-center shrink-0">
+        <img
+          src={doctor.image || defaultDocImg}
+          alt={doctor.name}
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = defaultDocImg;
+          }}
+          className="w-full h-full object-cover"
+        />
       </div>
-      <div className="mt-3">
-        <p className="text-[10px] text-blue-500 font-semibold">Next Available</p>
-        <p className="text-xs font-bold text-gray-800">{doctor.nextAvailable}</p>
-      </div>
+
+      {/* 2. Doctor Name */}
+      <h4 className="font-bold text-slate-900 text-sm md:text-base leading-tight truncate w-full">
+        {doctor.name}
+      </h4>
+
+      {/* 3. Doctor Specialization */}
+      <p className="text-xs font-semibold text-blue-600 truncate w-full mt-1">
+        {doctor.specialty}
+      </p>
     </div>
   );
 }
 
 // --- Main Page Component ---
-
 export default function DoctorFeedback() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -84,6 +87,7 @@ export default function DoctorFeedback() {
   const [selectedDoctorId, setSelectedDoctorId] = useState(null);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Data State
   const [doctorList, setDoctorList] = useState([]);
@@ -92,39 +96,65 @@ export default function DoctorFeedback() {
   // Fetch the patient's booked doctors on load
   useEffect(() => {
     const fetchBookedDoctors = async () => {
-      if (!user || !user.id) return;
+      if (!user || !user.id) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
         const token = localStorage.getItem("token");
         const authHeaders = {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         };
 
         const [apptRes, docsRes] = await Promise.all([
-          fetch(`http://localhost:8082/api/appointments/patient/${user.id}`, { headers: authHeaders }),
-          fetch("http://localhost:8082/api/hospital/doctors/assigned-all"),
+          fetch(`http://localhost:8082/api/appointments/patient/${user.id}`, {
+            headers: authHeaders
+          }),
+          fetch("http://localhost:8082/api/hospital/doctors/assigned-all")
         ]);
 
         if (apptRes.ok && docsRes.ok) {
           const appointments = await apptRes.json();
           const allDoctors = await docsRes.json();
 
-          const uniqueDoctorIds = [...new Set(appointments.map((appt) => appt.doctorId))];
-          const bookedDoctorsData = allDoctors.filter((doc) => uniqueDoctorIds.includes(doc.id));
+          const uniqueDoctorIds = [
+            ...new Set(
+              (Array.isArray(appointments) ? appointments : [])
+                .map((appt) => appt.doctorId)
+                .filter(Boolean)
+            )
+          ];
+          const bookedDoctorsData = (
+            Array.isArray(allDoctors) ? allDoctors : []
+          ).filter((doc) => uniqueDoctorIds.includes(doc.id));
 
-          const formattedDoctors = bookedDoctorsData.map((doc) => ({
-            id: doc.id,
-            name: `${doc.title || ""} ${doc.firstName || ""} ${doc.lastName || ""}`.trim() || "Unknown Doctor",
-            specialty: doc.specialization || "Specialist Medicine",
-            experience: doc.experience || "6 Years experience",
-            rating: 87,
-            patients: 69,
-            nextAvailable: "10:00 AM tomorrow",
-            image: doc.profileImage || "https://randomuser.me/api/portraits/women/44.jpg",
-          }));
+          // Extract ONLY genuine fields: Profile Image, Doctor Name, Specialization
+          const formattedDoctors = bookedDoctorsData.map((doc) => {
+            let docName = "Doctor";
+            if (doc.title || doc.firstName || doc.lastName) {
+              const fullName = [doc.title, doc.firstName, doc.lastName]
+                .filter(Boolean)
+                .join(" ")
+                .trim();
+              docName = fullName.startsWith("Dr") ? fullName : `Dr. ${fullName}`;
+            } else if (doc.name) {
+              docName = doc.name.startsWith("Dr") ? doc.name : `Dr. ${doc.name}`;
+            }
+
+            return {
+              id: doc.id,
+              name: docName,
+              specialty: doc.specialization || doc.specialty || "Specialist",
+              image: doc.profileImage || doc.image || ""
+            };
+          });
 
           setDoctorList(formattedDoctors);
+          if (formattedDoctors.length > 0) {
+            setSelectedDoctorId(formattedDoctors[0].id);
+          }
         }
       } catch (error) {
         console.error("Error fetching doctors for feedback:", error);
@@ -136,7 +166,7 @@ export default function DoctorFeedback() {
     fetchBookedDoctors();
   }, [user]);
 
- const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedDoctorId) {
       alert("Please select a doctor to leave feedback for.");
@@ -151,20 +181,20 @@ export default function DoctorFeedback() {
       patientId: user.id,
       doctorId: selectedDoctorId,
       rating: rating,
-      comment: feedback,
+      comment: feedback
     };
 
+    setIsSubmitting(true);
     try {
       const token = localStorage.getItem("token");
-      
-      // 👇 THIS IS THE NEW FETCH CALL THAT SAVES TO MONGODB 👇
+
       const response = await fetch("http://localhost:8082/api/feedback", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` // Include if your backend requires auth here
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(feedbackData),
+        body: JSON.stringify(feedbackData)
       });
 
       if (!response.ok) {
@@ -172,38 +202,74 @@ export default function DoctorFeedback() {
       }
 
       alert("Feedback submitted successfully!");
-      navigate("/patient/my-doctors"); // Route back to the doctors page
-      
+      navigate("/patient/my-doctors");
     } catch (error) {
       console.error("Error submitting feedback:", error);
       alert("There was an error saving your feedback. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white p-10 font-sans">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Doctor Feedback</h1>
-        <p className="text-gray-600 text-sm">Share your experience with your healthcare providers</p>
+    <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 font-sans max-w-4xl mx-auto space-y-6">
+      {/* Header & Back Link */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <MessageSquare className="w-6 h-6 text-blue-600" />
+            <span>Doctor Feedback</span>
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Share your experience and review the care provided by your doctors
+          </p>
+        </div>
+        <Link
+          to="/patient/my-doctors"
+          className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-semibold text-xs bg-slate-100 hover:bg-slate-200 px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to My Doctors</span>
+        </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col items-center">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Main Card */}
-        <div className="bg-[#f8f9fa] border border-gray-200 rounded-2xl p-8 w-full max-w-4xl shadow-sm">
-          <h2 className="text-xl font-medium text-gray-800 mb-6">Submit Your Feedback</h2>
-
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm space-y-8">
           {/* Section 1: Select Doctor */}
-          <div className="mb-8">
-            <h3 className="text-sm text-gray-700 mb-4">Select Doctor</h3>
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                  1. Select Doctor
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Choose the doctor you would like to submit feedback for
+                </p>
+              </div>
+            </div>
+
             {isLoading ? (
-              <p className="text-gray-500 text-sm">Loading your doctors...</p>
+              <div className="py-8 text-center">
+                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-xs text-slate-500 font-medium">
+                  Loading your doctors...
+                </p>
+              </div>
             ) : doctorList.length === 0 ? (
-              <p className="text-gray-500 text-sm">You haven't booked any doctors yet.</p>
+              <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-8 text-center">
+                <Stethoscope className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                <p className="text-sm font-semibold text-slate-700">
+                  No doctors found
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  You can provide feedback once you have consulted with a doctor.
+                </p>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {doctorList.map((doctor) => (
-                  <MiniDoctorCard
+                  <FeedbackDoctorCard
                     key={doctor.id}
                     doctor={doctor}
                     isSelected={selectedDoctorId === doctor.id}
@@ -215,31 +281,42 @@ export default function DoctorFeedback() {
           </div>
 
           {/* Section 2: Overall Rating */}
-          <div className="mb-8">
-            <h3 className="text-sm text-gray-700 mb-2">Overall Rating</h3>
+          <div className="pt-6 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-1">
+              2. Overall Rating
+            </h3>
+            <p className="text-xs text-slate-500 mb-3">
+              How would you rate your overall consultation experience?
+            </p>
             <HeartRating rating={rating} setRating={setRating} />
           </div>
 
           {/* Section 3: Feedback Text */}
-          <div>
-            <h3 className="text-sm text-gray-700 mb-3">Your Feedback</h3>
+          <div className="pt-6 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-1">
+              3. Your Feedback
+            </h3>
+            <p className="text-xs text-slate-500 mb-3">
+              Write your review or notes about the doctor's service
+            </p>
             <textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Add your feedback here"
-              className="w-full h-40 p-4 border border-gray-400 rounded-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none text-gray-700"
+              placeholder="Share your thoughts about your consultation, punctuality, treatment advice..."
+              className="w-full h-36 p-4 border border-slate-300 rounded-xl bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-slate-800 text-sm transition-all"
               required
             ></textarea>
           </div>
         </div>
 
-        {/* Submit Button (Outside the card, centered at bottom) */}
-        <div className="mt-8">
+        {/* Submit Button */}
+        <div className="flex justify-end">
           <button
             type="submit"
-            className="bg-[#90CAF9] hover:bg-[#64B5F6] text-black font-semibold py-3 px-10 rounded-full transition-colors shadow-sm"
+            disabled={isSubmitting || doctorList.length === 0}
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-10 rounded-xl transition-all shadow-sm shadow-blue-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit Feedback
+            {isSubmitting ? "Submitting..." : "Submit Feedback"}
           </button>
         </div>
       </form>

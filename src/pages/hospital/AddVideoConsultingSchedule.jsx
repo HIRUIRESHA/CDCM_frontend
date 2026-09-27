@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { showSuccess, showError, showWarning,showConfirm } from "../../utils/alert";
+
 
 export default function AddVideoConsultingSchedule() {
   const navigate = useNavigate();
@@ -46,31 +48,67 @@ export default function AddVideoConsultingSchedule() {
   };
 
   const handleSubmit = async () => {
-    if (!form.doctorId || !form.date || !form.startTime || !form.endTime) {
-      setError("Please fill required fields");
-      return;
-    }
+  if (!form.doctorId || !form.date || !form.startTime || !form.endTime) {
+    await showWarning(
+      "Please fill in all required fields."
+    );
+    return;
+  }
 
-    setSubmitting(true);
+  if (!hospitalId) {
+    await showError(
+      "Hospital not found. Please log in again."
+    );
+    return;
+  }
 
-    try {
-      await axios.post("http://localhost:8082/api/schedules", {
+  if (form.startTime >= form.endTime) {
+    await showWarning(
+      "End time must be later than start time."
+    );
+    return;
+  }
+
+  const confirmed = await showConfirm(
+    "Do you want to create and send this video schedule to the selected doctor?",
+    "Create and Send Video Schedule?",
+    "Yes, Send"
+  );
+
+  if (!confirmed) return;
+
+  setSubmitting(true);
+
+  try {
+    await axios.post(
+      "http://localhost:8082/api/schedules",
+      {
         doctorId: form.doctorId,
         hospitalId,
         date: form.date,
         startTime: form.startTime,
         endTime: form.endTime,
-        type: "VIDEO", 
-        meetingLink: form.meetingLink, // Zoom / Google Meet link
-      });
+        type: "VIDEO",
+        meetingLink: form.meetingLink,
+      }
+    );
 
-      navigate("/hospital/schedule");
-    } catch (err) {
-      setError("Failed to create video schedule");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    await showSuccess(
+      "Video schedule created and sent to the doctor successfully!"
+    );
+
+    navigate("/hospital/schedule");
+
+  } catch (err) {
+    console.error(err);
+
+    await showError(
+      "Failed to create and send the video schedule. Please try again."
+    );
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-white p-6">
@@ -140,12 +178,14 @@ export default function AddVideoConsultingSchedule() {
         </button>
 
         <button
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="bg-purple-600 text-white px-4 py-2 rounded disabled:opacity-50"
-        >
-          {submitting ? "Creating..." : "Create Video Schedule"}
-        </button>
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="bg-purple-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          >
+            {submitting
+              ? "Creating & Sending..."
+              : "Create and Send Video Schedule"}
+</button>
       </div>
     </div>
   );

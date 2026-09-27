@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { getPatientTests } from "../../api/labApi";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { showSuccess, showError, showWarning } from "../../utils/alert";
 
 const Reports = () => {
   const { user } = useAuth();
@@ -85,16 +86,18 @@ await axios.post(
       // refresh UI after updating DB
       await fetchTests();
 
-      alert("Payment Successful ✅");
+      await showSuccess("Payment completed successfully!");
     } catch (err) {
       console.error("Payment update failed:", err);
       alert("Payment completed but backend update failed ❌");
     }
   };
 
-      window.payhere.onDismissed = function () {
-        alert("Payment cancelled ❌");
-      };
+      window.payhere.onDismissed = async function () {
+  await showWarning(
+    "The payment was cancelled."
+  );
+};
 
       window.payhere.onError = function (error) {
         console.error("PayHere Error:", error);
@@ -105,9 +108,13 @@ await axios.post(
       window.payhere.startPayment(payment);
 
     } catch (err) {
-      console.error(err);
-      alert("Payment failed ❌");
-    } finally {
+  console.error(err);
+
+  await showError(
+    "Payment failed. Please try again."
+  );
+}
+    finally {
       setPayingId(null);
     }
   };
