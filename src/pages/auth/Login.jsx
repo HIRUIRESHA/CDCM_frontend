@@ -133,6 +133,10 @@ const Login = () => {
           "hospital",
           JSON.stringify(hospital)
         );
+        localStorage.setItem(
+          "hospitalId",
+          user.id
+        );
 
         if (!hospital.verified) {
           navigate(

@@ -10,7 +10,9 @@ import {
 import { useNavigate } from "react-router-dom";
 
 export default function AddLabTest({ onBack }) {
-const hospitalId = localStorage.getItem("hospitalId");
+  const hospitalObj = JSON.parse(localStorage.getItem("hospital") || "null");
+  const userObj = JSON.parse(localStorage.getItem("user") || "null");
+  const hospitalId = hospitalObj?.id || userObj?.id || localStorage.getItem("hospitalId");
   const navigate = useNavigate();
 
   const [patients, setPatients] = useState([]);
