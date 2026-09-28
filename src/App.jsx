@@ -13,7 +13,7 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import VerifyEmail from "./pages/auth/VerifyEmail";
 import FindDoctor from "./pages/public/FindDoctor";
-import Profile from "./pages/Profile"; // <--- 1. IMPORT THIS
+import Profile from "./pages/Profile"; 
 
 // Private Dashboard Pages
 import PatientDashboard from './pages/patient/PatientDashboard';
@@ -25,7 +25,7 @@ import DoctorFeedback from './pages/patient/DoctorFeedback';
 import Notification from './pages/patient/Notification';
 import Payment from './pages/patient/Payment';
 import Reports from './pages/patient/Reports';
-import Settings from './pages/patient/Settings';
+import Settings from './pages/public/Settings';
 import ForgotPassword from "./pages/public/ForgotPassword";
 import ResetPassword from "./pages/public/ResetPassword";
 import VideoBooking from "./pages/patient/VideoBooking";
@@ -100,8 +100,9 @@ function App() {
           <Route path="/upload-report/:id" element={<UploadReport />} />
           <Route element={<DashboardLayout />}>
             
-            {/* 2. ADD PROFILE ROUTE HERE */}
+            {/* 2. ADD PROFILE & SETTINGS ROUTE HERE */}
             <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
 
             {/* PATIENT */}
            <Route path="patient">
@@ -148,6 +149,7 @@ function App() {
                     <HospitalProfile />
                   }
                 />
+              <Route path="settings" element={<Settings />} />
               <Route path="doctors" element={<DoctorManagement />} />
               <Route path="assigned-doctors" element={<AssignedDoctors />} />
               <Route path="assigned-doctors/:id" element={<DoctorAccountPage />} />
@@ -173,6 +175,7 @@ function App() {
              <Route path="dashboard" element={<DoctorDashboard />} />
               <Route path="schedule" element={<DoctorSchedulePage />} />
               <Route path="account" element={<DoctorAccountPage />} />
+              <Route path="settings" element={<Settings />} />
               <Route path="video-conference" element={<DoctorVideoConferencePage />} />
               <Route path="mypatients" element={<MyPatientsPage />} />
               <Route path="notifications" element={<DoctorNotificationsPage />} />

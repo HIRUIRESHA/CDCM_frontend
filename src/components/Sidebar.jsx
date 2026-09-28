@@ -114,7 +114,7 @@ const SidebarLink = ({ to, icon, label, badge, tag, exact = false }) => {
     );
 };
 
-// --- ENTERPRISE SIDEBAR CONTAINER ---
+// --- SIDEBAR CONTAINER ---
 const SidebarContainer = ({ 
     children, 
     title = "CDCM Health", 
@@ -124,18 +124,47 @@ const SidebarContainer = ({
     mobileOpen = false,
     onClose = () => {}
 }) => {
-    const { logout, user } = useAuth(); 
+    const { logout, user } = useAuth();
+    const location = useLocation();
+
     const hospital = JSON.parse(localStorage.getItem("hospital") || "null");
 
     const displayName = user?.name || hospital?.name || 'Healthcare User';
     const roleLabel = user?.role || (hospital ? 'Hospital Facility' : 'User');
     const avatarSrc = user?.profileImage || hospital?.profileImage || null;
 
-    const profileRoute = 
-        user?.role === 'PATIENT' ? '/patient/settings' :
-        user?.role === 'DOCTOR' ? '/doctor/account' :
-        hospital ? '/hospital/profile' :
-        '/profile';
+    // Determine the current user's role
+    const effectiveRole = (
+        user?.role ||
+        localStorage.getItem("userRole") ||
+        hospital?.role ||
+        (location.pathname.startsWith("/doctor")
+            ? "DOCTOR"
+            : location.pathname.startsWith("/hospital")
+            ? "HOSPITAL"
+            : location.pathname.startsWith("/patient")
+            ? "PATIENT"
+            : "")
+    )?.toUpperCase();
+
+    // Role-based Settings route
+    const settingsPath =
+        effectiveRole === "PATIENT"
+            ? "/patient/settings"
+            : effectiveRole === "DOCTOR"
+            ? "/doctor/settings"
+            : effectiveRole === "HOSPITAL"
+            ? "/hospital/settings"
+            : "/settings";
+
+    const profileRoute =
+        effectiveRole === 'PATIENT'
+            ? '/patient/settings'
+            : effectiveRole === 'DOCTOR'
+            ? '/doctor/settings'
+            : effectiveRole === 'HOSPITAL'
+            ? '/hospital/settings'
+            : '/settings';
 
     const handleLogout = () => {
         localStorage.removeItem('hospital');
@@ -215,48 +244,63 @@ const SidebarContainer = ({
             </nav>
             
             {/* Modern User Profile & Sign Out Footer */}
-            <div className="p-3 border-t border-slate-800/80 bg-slate-950/60 shrink-0">
-                {/* Profile Widget */}
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-slate-700/80 transition-all flex items-center gap-2.5 mb-2 shadow-sm">
-                    <div className="relative shrink-0">
-                        <div className="w-9 h-9 rounded-lg overflow-hidden bg-gradient-to-tr from-teal-500/20 to-blue-500/20 border border-teal-500/30 flex items-center justify-center">
-                            {avatarSrc ? (
-                                <img src={avatarSrc} alt={displayName} className="w-full h-full object-cover" />
-                            ) : (
-                                <span className="text-xs font-black text-teal-300">
-                                    {displayName.charAt(0).toUpperCase()}
-                                </span>
-                            )}
-                        </div>
-                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-900" />
-                    </div>
+<div className="p-3 border-t border-slate-800/80 bg-slate-950/60 shrink-0">
 
-                    <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-200 truncate leading-tight">
-                            {displayName}
-                        </p>
-                        <p className="text-[10px] font-medium text-slate-400 truncate capitalize mt-0.5">
-                            {roleLabel}
-                        </p>
-                    </div>
+    {/* Settings */}
+    <SidebarLink
+        to={settingsPath}
+        icon={<Settings size={16} />}
+        label="Settings"
+    />
 
-                    <Link 
-                        to={profileRoute}
-                        title="Profile & Settings"
-                        className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors shrink-0"
-                    >
-                        <Settings size={15} />
-                    </Link>
-                </div>
+    {/* Profile Widget */}
+    <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-slate-700/80 transition-all flex items-center gap-2.5 mb-2 shadow-sm">
+        <div className="relative shrink-0">
+            <div className="w-9 h-9 rounded-lg overflow-hidden bg-gradient-to-tr from-teal-500/20 to-blue-500/20 border border-teal-500/30 flex items-center justify-center">
+                {avatarSrc ? (
+                    <img
+                        src={avatarSrc}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <span className="text-xs font-black text-teal-300">
+                        {displayName.charAt(0).toUpperCase()}
+                    </span>
+                )}
+            </div>
 
-                {/* Logout Button */}
-                <button 
-                    onClick={handleLogout}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all duration-200 cursor-pointer"
-                >
-                    <LogOut size={14} className="transition-transform group-hover:-translate-x-0.5" />
-                    <span>Sign Out</span>
-                </button>
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-900" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-slate-200 truncate leading-tight">
+                {displayName}
+            </p>
+
+            <p className="text-[10px] font-medium text-slate-400 truncate capitalize mt-0.5">
+                {roleLabel}
+            </p>
+        </div>
+
+        <Link
+            to={profileRoute}
+            title="Profile & Settings"
+            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors shrink-0"
+        >
+            <Settings size={15} />
+        </Link>
+    </div>
+
+    {/* Logout Button */}
+    <button
+        onClick={handleLogout}
+        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all duration-200 cursor-pointer"
+    >
+        <LogOut size={14} />
+        <span>Sign Out</span>
+    </button>
+</div>
             </div>
         </aside>
         </SidebarNavContext.Provider>
