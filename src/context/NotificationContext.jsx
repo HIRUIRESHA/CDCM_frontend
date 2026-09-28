@@ -13,36 +13,65 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const filterForUser = useCallback((list) => {
+    if (!Array.isArray(list)) return [];
+    const userRole = (localStorage.getItem("userRole") || "").toUpperCase();
+    return list.filter((n) => {
+      // 1. Strict recipient check: if userId is populated, it must match effectiveUserId
+      if (n.userId && n.userId !== effectiveUserId) {
+        return false;
+      }
+      // 2. Role-based exclusions
+      if (userRole === "HOSPITAL") {
+        if (n.title === "Hospital Assigned Schedule to Doctor" || n.title === "New Patient Feedback") {
+          return false;
+        }
+      }
+      if (userRole === "DOCTOR") {
+        if (n.title === "Appointment Booked Successfully" || n.title === "Appointment Confirmed") {
+          return false;
+        }
+      }
+      if (userRole === "PATIENT") {
+        if (n.title === "Hospital Assigned Schedule to Doctor" || n.title === "Schedule Accepted" || n.title === "Schedule Declined") {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [effectiveUserId]);
+
   const fetchUnread = useCallback(async () => {
     if (!effectiveUserId) {
       setUnreadCount(0);
       return;
     }
     try {
-      const res = await getUnreadCount(effectiveUserId);
-      setUnreadCount(res.data?.unreadCount || 0);
+      const res = await getNotifications(effectiveUserId);
+      const list = Array.isArray(res.data) ? res.data : [];
+      const valid = filterForUser(list);
+      setUnreadCount(valid.filter((n) => !n.read).length);
     } catch (err) {
       // Fallback: if unread-count fails, don't crash
       console.warn("Could not fetch unread count:", err.message);
     }
-  }, [effectiveUserId]);
+  }, [effectiveUserId, filterForUser]);
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (isSilent = false) => {
     if (!effectiveUserId) return;
-    setLoading(true);
+    if (!isSilent) setLoading(true);
     try {
       const res = await getNotifications(effectiveUserId);
       const list = Array.isArray(res.data) ? res.data : [];
-      setNotifications(list);
-      // derive unread count from list as well
-      const count = list.filter((n) => !n.read).length;
-      setUnreadCount(count);
+      const valid = filterForUser(list);
+      setNotifications(valid);
+      setUnreadCount(valid.filter((n) => !n.read).length);
     } catch (err) {
       console.error("Failed to load notifications:", err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  }, [effectiveUserId]);
+  }, [effectiveUserId, filterForUser]);
 
   // Mark single as read
   const markNotificationAsRead = async (id) => {
@@ -78,12 +107,13 @@ export const NotificationProvider = ({ children }) => {
 
   useEffect(() => {
     fetchUnread();
-    fetchAll();
+    fetchAll(false);
 
-    // Poll every 15 seconds for real-time updates
+    // Poll every 8 seconds for real-time updates across the app
     const interval = setInterval(() => {
       fetchUnread();
-    }, 15000);
+      fetchAll(true);
+    }, 8000);
 
     return () => clearInterval(interval);
   }, [fetchUnread, fetchAll]);

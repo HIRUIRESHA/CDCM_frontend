@@ -13,7 +13,9 @@ import TestCategory from "./TestCategory";
 import AddLabTest from "./AddLabTest";
 
 export default function Laboratory() {
-  const hospitalId = localStorage.getItem("hospitalId");
+  const hospitalObj = JSON.parse(localStorage.getItem("hospital") || "null");
+  const userObj = JSON.parse(localStorage.getItem("user") || "null");
+  const hospitalId = hospitalObj?.id || userObj?.id || localStorage.getItem("hospitalId");
 
   const [tests, setTests] = useState([]);
   const [testCounts, setTestCounts] = useState({ pending: 0, inProgress: 0, total: 0 });

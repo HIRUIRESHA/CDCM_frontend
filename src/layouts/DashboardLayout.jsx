@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate, useLocation, Link } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PatientSidebar, DoctorSidebar, HospitalSidebar, AdminSidebar } from '../components/Sidebar';
 import NotificationBell from '../components/NotificationBell';
@@ -8,6 +9,12 @@ const DashboardLayout = () => {
     const { user } = useAuth();
     const hospital = JSON.parse(localStorage.getItem("hospital") || "null");
     const location = useLocation();
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+    // Auto-close mobile sidebar whenever the route changes
+    useEffect(() => {
+        setMobileSidebarOpen(false);
+    }, [location.pathname]);
 
     // 1. Security Check: If no user is logged in, redirect to login
     if (!user && !hospital) {
@@ -39,19 +46,31 @@ const DashboardLayout = () => {
 
     // 3. Render the Layout
     return (
-        <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
-            {/* The specific sidebar based on role */}
-            <SidebarComponent />
+        <div className="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden">
+            {/* The specific sidebar based on role with responsive mobile drawer support */}
+            <SidebarComponent 
+                mobileOpen={mobileSidebarOpen} 
+                onClose={() => setMobileSidebarOpen(false)} 
+            />
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Top Modern Header with Notification Bell */}
-                <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-6 flex items-center justify-between shrink-0 z-30">
-                    <div className="flex items-center gap-3">
-                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider">
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                {/* Top Modern Header with Hamburger on Mobile and Notification Bell */}
+                <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-6 flex items-center justify-between shrink-0 z-30">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        {/* Mobile Hamburger Menu Toggle */}
+                        <button
+                            onClick={() => setMobileSidebarOpen(true)}
+                            className="p-2 -ml-1 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition lg:hidden cursor-pointer shrink-0"
+                            aria-label="Open Navigation Menu"
+                        >
+                            <Menu size={20} />
+                        </button>
+
+                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 uppercase tracking-wider shrink-0">
                             {effectiveRole || 'Portal'}
                         </span>
-                        <h2 className="text-sm font-semibold text-slate-600 hidden sm:block">
+                        <h2 className="text-sm font-semibold text-slate-600 hidden sm:block truncate">
                             Welcome back, <span className="font-bold text-slate-900">{displayName}</span>
                         </h2>
                     </div>
