@@ -6,6 +6,8 @@ import {
   deleteTestCategory,
   getAllLabTests
 } from "../../api/labApi";
+import { showSuccess, showError, showWarning,showConfirm } from "../../utils/alert";
+
 
 import TestCategory from "./TestCategory";
 import AddLabTest from "./AddLabTest";
@@ -45,19 +47,55 @@ export default function Laboratory() {
   };
 
   const handleSave = async () => {
-    try {
-      if (editId) {
-        await updateTestCategory(editId, form);
-      } else {
-        await addTestCategory(hospitalId, form);
-      }
-      setForm({ testName: "", price: "" });
-      setEditId(null);
-      load();
-    } catch (error) {
-      console.error("Save error:", error);
+  if (!form.testName || !form.price) {
+    await showWarning(
+      "Please enter the test name and price."
+    );
+    return;
+  }
+
+  const isEditing = !!editId;
+
+  const confirmed = await showConfirm(
+    isEditing
+      ? "Do you want to update this test category?"
+      : "Do you want to add this test category?",
+    isEditing ? "Update Test Category?" : "Add Test Category?",
+    isEditing ? "Yes, Update" : "Yes, Add"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    if (isEditing) {
+      await updateTestCategory(editId, form);
+
+      await showSuccess(
+        "Test category updated successfully!"
+      );
+    } else {
+      await addTestCategory(hospitalId, form);
+
+      await showSuccess(
+        "Test category added successfully!"
+      );
     }
-  };
+
+    setForm({ testName: "", price: "" });
+    setEditId(null);
+
+    await load();
+
+  } catch (error) {
+    console.error("Save error:", error);
+
+    await showError(
+      isEditing
+        ? "Failed to update test category."
+        : "Failed to add test category."
+    );
+  }
+};
 
   const handleEdit = (t) => {
     setForm({ testName: t.testName, price: t.price });
@@ -66,15 +104,31 @@ export default function Laboratory() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this test?")) {
-      try {
-        await deleteTestCategory(id);
-        load();
-      } catch (error) {
-        console.error("Delete error:", error);
-      }
-    }
-  };
+  const confirmed = await showConfirm(
+    "Do you want to delete this test category? This action cannot be undone.",
+    "Delete Test Category?",
+    "Yes, Delete"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await deleteTestCategory(id);
+
+    await showSuccess(
+      "Test category deleted successfully!"
+    );
+
+    await load();
+
+  } catch (error) {
+    console.error("Delete error:", error);
+
+    await showError(
+      "Failed to delete test category."
+    );
+  }
+};
 
   if (view === "addTest") return <AddLabTest onBack={() => setView("landing")} />;
 

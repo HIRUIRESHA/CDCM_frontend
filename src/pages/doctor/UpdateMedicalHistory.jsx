@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
+import Swal from "sweetalert2";
+import { showSuccess, showError } from "../../utils/alert";
 
 const UpdateMedicalHistory = () => {
   const { patientId } = useParams();
@@ -25,37 +27,46 @@ const UpdateMedicalHistory = () => {
   });
 
 const handleSubmit = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
+  e.preventDefault();
+  const token = localStorage.getItem("token");
 
-    const record = {
-      patientId,
-      doctorId: user.id,
-      doctorName: user.name, 
-      hospitalName: scheduledHospital,
-      dateOfVisit: new Date().toISOString().split('T')[0], 
-      ...formData
-    };
+  const record = {
+    patientId,
+    doctorId: user.id,
+    doctorName: user.name,
+    hospitalName: scheduledHospital,
+    dateOfVisit: new Date().toISOString().split("T")[0],
+    ...formData
+  };
 
-    try {
-      await axios.post("http://localhost:8082/api/medical-records/add", record, {
-        headers: { 
+  try {
+    await axios.post(
+      "http://localhost:8082/api/medical-records/add",
+      record,
+      {
+        headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
         }
-      });
-      
-      // ✅ This will show the popup and wait for the user to click OK
-      alert("Medical History Updated Successfully!");
-      
-      // ✅ This only runs AFTER the user clicks OK
-      navigate("/doctor/mypatients"); 
-      
-    } catch (err) {
-      console.error("Save Error:", err);
-      alert("Failed to save record. Please check the backend connection.");
-    }
-  };
+      }
+    );
+
+    const result = await showSuccess(
+  "Medical History Updated Successfully!"
+);
+
+if (result.isConfirmed) {
+  navigate("/doctor/mypatients");
+}
+
+  } catch (err) {
+    console.error("Save Error:", err);
+
+    await showError(
+      "Failed to save record. Please check the backend connection."
+    );
+  }
+};
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen flex justify-center items-start">

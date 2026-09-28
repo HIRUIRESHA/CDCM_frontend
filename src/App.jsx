@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 // Layouts
 import DashboardLayout from './layouts/DashboardLayout';
@@ -38,7 +39,7 @@ import Analytics from './pages/hospital/Analytics';
 import Emergency from './pages/hospital/Emergency';
 import Laboratory from './pages/hospital/Laboratory';
 import Notifications from './pages/hospital/Notifications';
-import PatientManagement from './pages/hospital/patientManagement';
+import PatientManagement from './pages/hospital/PatientManagement';
 import Schedule from './pages/hospital/Schedule';
 import AddSchedule from './pages/hospital/AddSchedule';
 import UploadReport from './pages/hospital/UploadReport';
@@ -76,7 +77,8 @@ const Placeholder = ({ title }) => <h1 className="text-2xl p-4">{title} Page</h1
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <NotificationProvider>
+        <BrowserRouter>
         <Routes>
 
           {/* GROUP 1: PUBLIC ROUTES */}
@@ -150,6 +152,7 @@ function App() {
               <Route path="settings" element={<Settings />} />
               <Route path="doctors" element={<DoctorManagement />} />
               <Route path="assigned-doctors" element={<AssignedDoctors />} />
+              <Route path="assigned-doctors/:id" element={<DoctorAccountPage />} />
               <Route path="assign-doctor" element={<AssignDoctor />} />
               <Route path="staff" element={<Placeholder title="Manage Staff" />} />
               <Route path="analytics" element={<Analytics />} />
@@ -197,6 +200,7 @@ function App() {
 
         </Routes>
       </BrowserRouter>
+      </NotificationProvider>
     </AuthProvider>
   );
 }
