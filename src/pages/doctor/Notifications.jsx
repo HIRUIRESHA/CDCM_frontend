@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNotifications } from "../../context/NotificationContext";
 import {
   Bell,
@@ -17,9 +17,14 @@ export default function DoctorNotifications() {
     notifications,
     loading,
     unreadCount,
+    fetchAll,
     markNotificationAsRead,
     markAllNotificationsAsRead,
   } = useNotifications();
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   const [filter, setFilter] = useState("ALL"); // ALL, UNREAD, READ
 
@@ -61,8 +66,8 @@ export default function DoctorNotifications() {
                 Doctor Notifications
               </h1>
               {unreadCount > 0 && (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500 text-white animate-pulse">
-                  {unreadCount} New
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                  {unreadCount} unread
                 </span>
               )}
             </div>
@@ -108,13 +113,13 @@ export default function DoctorNotifications() {
             onClick={() => setFilter("UNREAD")}
             className={`px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
               filter === "UNREAD"
-                ? "bg-white text-rose-600 shadow-sm"
-                : "text-slate-600 hover:text-rose-600"
+                ? "bg-white text-indigo-700 shadow-sm"
+                : "text-slate-600 hover:text-indigo-700"
             }`}
           >
             <span>Unread</span>
             {unreadCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
+              <span className="px-1.5 py-0.2 rounded-full bg-indigo-600 text-white text-[10px] font-bold">
                 {unreadCount}
               </span>
             )}
@@ -166,25 +171,25 @@ export default function DoctorNotifications() {
                 }}
                 className={`p-5 rounded-2xl border transition-all duration-200 flex items-start gap-4 cursor-pointer relative group ${
                   isUnread
-                    ? "bg-rose-50/20 border-rose-200 hover:bg-rose-50/40 shadow-sm"
+                    ? "bg-indigo-50/20 border-indigo-200/70 hover:bg-indigo-50/30 shadow-sm"
                     : "bg-white border-slate-200/80 hover:bg-slate-50/60"
                 }`}
               >
                 {/* Left accent bar for unread */}
                 {isUnread && (
-                  <span className="absolute left-0 top-3 bottom-3 w-1.5 bg-rose-500 rounded-r-full" />
+                  <span className="absolute left-0 top-3.5 bottom-3.5 w-1 bg-indigo-600 rounded-r-full" />
                 )}
 
                 {/* Icon based on notification */}
                 <div
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
                     isUnread
-                      ? "bg-rose-100 text-rose-600"
+                      ? "bg-indigo-100 text-indigo-700"
                       : isFeedback
                       ? "bg-amber-100 text-amber-600"
                       : isVideo
                       ? "bg-purple-100 text-purple-600"
-                      : "bg-indigo-50 text-indigo-600"
+                      : "bg-slate-100 text-slate-600"
                   }`}
                 >
                   {isFeedback ? <Star size={18} /> : isVideo ? <Video size={18} /> : <Bell size={18} />}
@@ -194,14 +199,15 @@ export default function DoctorNotifications() {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                     <div className="flex items-center gap-2">
-                      <h4 className={`text-sm ${isUnread ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}>
+                      {isUnread && (
+                        <span
+                          className="w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-indigo-100 shrink-0"
+                          title="Unread notification"
+                        />
+                      )}
+                      <h4 className={`text-sm ${isUnread ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>
                         {n.title || "Doctor Notification"}
                       </h4>
-                      {isUnread && (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-rose-500 text-white">
-                          Unread
-                        </span>
-                      )}
                     </div>
                     <span className="text-xs text-slate-400 flex items-center gap-1">
                       <Clock size={12} />

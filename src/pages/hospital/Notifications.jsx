@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNotifications } from "../../context/NotificationContext";
 import {
   Bell,
@@ -8,7 +8,8 @@ import {
   Calendar,
   Filter,
   Sparkles,
-  Inbox
+  Inbox,
+  RefreshCw
 } from "lucide-react";
 
 export default function HospitalNotifications() {
@@ -16,11 +17,17 @@ export default function HospitalNotifications() {
     notifications,
     loading,
     unreadCount,
+    fetchAll,
     markNotificationAsRead,
     markAllNotificationsAsRead,
   } = useNotifications();
 
   const [filter, setFilter] = useState("ALL"); // ALL, UNREAD, READ
+
+  // Always refresh notifications when opening the page
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   const filtered = (notifications || []).filter((n) => {
     if (filter === "UNREAD") return !n.read;
@@ -60,34 +67,46 @@ export default function HospitalNotifications() {
                 Hospital Notifications
               </h1>
               {unreadCount > 0 && (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500 text-white animate-pulse">
-                  {unreadCount} New
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200/80">
+                  {unreadCount} unread
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Real-time alerts for appointments, schedules, and doctor assignments
+              Real-time alerts for payments, appointments, schedules, and doctor assignments
             </p>
           </div>
         </div>
 
-        <button
-          onClick={markAllNotificationsAsRead}
-          disabled={unreadCount === 0}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition shadow-sm self-start sm:self-center ${
-            unreadCount > 0
-              ? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-teal-500/25 active:scale-95 cursor-pointer"
-              : "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
-          }`}
-        >
-          <CheckCheck size={16} />
-          <span>Mark all as read</span>
-          {unreadCount > 0 && (
-            <span className="w-5 h-5 rounded-full bg-white text-teal-700 text-[10px] font-black flex items-center justify-center">
-              {unreadCount}
-            </span>
-          )}
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-center">
+          <button
+            onClick={() => fetchAll()}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer border border-slate-200 shadow-sm"
+            title="Refresh notifications"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin text-teal-600" : ""} />
+            <span>Refresh</span>
+          </button>
+
+          <button
+            onClick={markAllNotificationsAsRead}
+            disabled={unreadCount === 0}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition shadow-sm ${
+              unreadCount > 0
+                ? "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white shadow-teal-500/25 active:scale-95 cursor-pointer"
+                : "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+            }`}
+          >
+            <CheckCheck size={16} />
+            <span>Mark all as read</span>
+            {unreadCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-white text-teal-700 text-[10px] font-black flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* FILTER TABS */}
@@ -107,13 +126,13 @@ export default function HospitalNotifications() {
             onClick={() => setFilter("UNREAD")}
             className={`px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
               filter === "UNREAD"
-                ? "bg-white text-rose-600 shadow-sm"
-                : "text-slate-600 hover:text-rose-600"
+                ? "bg-white text-teal-700 shadow-sm"
+                : "text-slate-600 hover:text-teal-700"
             }`}
           >
             <span>Unread</span>
             {unreadCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">
+              <span className="px-1.5 py-0.2 rounded-full bg-teal-600 text-white text-[10px] font-bold">
                 {unreadCount}
               </span>
             )}
@@ -162,20 +181,20 @@ export default function HospitalNotifications() {
                 }}
                 className={`p-5 rounded-2xl border transition-all duration-200 flex items-start gap-4 cursor-pointer relative group ${
                   isUnread
-                    ? "bg-rose-50/20 border-rose-200 hover:bg-rose-50/40 shadow-sm"
+                    ? "bg-teal-50/20 border-teal-200/70 hover:bg-teal-50/30 shadow-sm"
                     : "bg-white border-slate-200/80 hover:bg-slate-50/60"
                 }`}
               >
                 {/* Left accent bar for unread */}
                 {isUnread && (
-                  <span className="absolute left-0 top-3 bottom-3 w-1.5 bg-rose-500 rounded-r-full" />
+                  <span className="absolute left-0 top-3.5 bottom-3.5 w-1 bg-teal-600 rounded-r-full" />
                 )}
 
                 {/* Notification Icon */}
                 <div
                   className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
                     isUnread
-                      ? "bg-rose-100 text-rose-600"
+                      ? "bg-teal-100 text-teal-700"
                       : "bg-slate-100 text-slate-500"
                   }`}
                 >
@@ -186,14 +205,15 @@ export default function HospitalNotifications() {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                     <div className="flex items-center gap-2">
-                      <h4 className={`text-sm ${isUnread ? "font-bold text-slate-900" : "font-semibold text-slate-700"}`}>
+                      {isUnread && (
+                        <span
+                          className="w-2.5 h-2.5 rounded-full bg-teal-600 ring-4 ring-teal-100 shrink-0"
+                          title="Unread notification"
+                        />
+                      )}
+                      <h4 className={`text-sm ${isUnread ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>
                         {n.title || "Notification"}
                       </h4>
-                      {isUnread && (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-rose-500 text-white">
-                          Unread
-                        </span>
-                      )}
                     </div>
                     <span className="text-xs text-slate-400 flex items-center gap-1">
                       <Clock size={12} />
