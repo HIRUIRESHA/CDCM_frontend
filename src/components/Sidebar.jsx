@@ -66,12 +66,11 @@ const SidebarContainer = ({ children, title, titleColor = "text-white" }) => {
             
             {/* Settings and Logout at bottom */}
             <div className="p-4 border-t border-[#1a2557] space-y-1">
-                <button 
-                    className="flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg text-sm font-medium text-white hover:bg-[#1a2557] transition-colors"
-                >
-                    <Settings size={20} />
-                    <span>Settings</span>
-                </button>
+                <SidebarLink 
+                    to={user?.role === 'PATIENT' ? '/patient/settings' : '/settings'} 
+                    icon={<Settings size={20} />} 
+                    label="Settings" 
+                />
                 <button 
                     onClick={logout}
                     className="flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg text-sm font-medium text-white hover:bg-[#1a2557] transition-colors"
