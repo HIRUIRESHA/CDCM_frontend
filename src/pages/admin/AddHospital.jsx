@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Building2, Mail, Lock, Phone, MapPin, FileBadge, User } from 'lucide-react';
+import { Building2, Mail, Lock, Phone, MapPin, FileBadge, User, Eye,
+  EyeOff, } from 'lucide-react';
 
 const AddHospital = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,9 @@ const AddHospital = () => {
     licenseNumber: '',
     managerName: ''
   });
+
+  const [showPassword, setShowPassword] =
+    useState(false);
 
   const [status, setStatus] = useState({ type: '', message: '' });
 
@@ -70,7 +74,26 @@ const AddHospital = () => {
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-4">Account Credentials</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <InputField icon={<Mail size={18} />} label="Email Address" name="email" type="email" value={formData.email} onChange={handleChange} required />
-              <InputField icon={<Lock size={18} />} label="Password" name="password" type="password" value={formData.password} onChange={handleChange} required />
+              <InputField
+  icon={<Lock size={18} />}
+  label="Temporary Password"
+  name="password"
+  type={
+    showPassword
+      ? "text"
+      : "password"
+  }
+  value={formData.password}
+  onChange={handleChange}
+  required
+  passwordToggle
+  showPassword={showPassword}
+  onTogglePassword={() =>
+    setShowPassword(
+      (current) => !current
+    )
+  }
+/>
             </div>
           </div>
 
@@ -113,22 +136,60 @@ const AddHospital = () => {
 };
 
 // Reusable Input Component
-const InputField = ({ label, name, type, value, onChange, icon, required }) => (
+const InputField = ({
+  label,
+  name,
+  type,
+  value,
+  onChange,
+  icon,
+  required,
+  passwordToggle = false,
+  showPassword = false,
+  onTogglePassword,
+}) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
+    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+      {label}
+    </label>
+
     <div className="relative">
       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
         {icon}
       </div>
+
       <input
         type={type}
         name={name}
         value={value}
         onChange={onChange}
         required={required}
-        className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+        className={`block w-full pl-10 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${
+          passwordToggle
+            ? "pr-11"
+            : "pr-3"
+        }`}
         placeholder={`Enter ${label.toLowerCase()}`}
       />
+
+      {passwordToggle && (
+        <button
+          type="button"
+          onClick={onTogglePassword}
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+          aria-label={
+            showPassword
+              ? "Hide password"
+              : "Show password"
+          }
+        >
+          {showPassword ? (
+            <EyeOff size={18} />
+          ) : (
+            <Eye size={18} />
+          )}
+        </button>
+      )}
     </div>
   </div>
 );
