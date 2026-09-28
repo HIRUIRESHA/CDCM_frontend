@@ -246,12 +246,6 @@ const SidebarContainer = ({
             {/* Modern User Profile & Sign Out Footer */}
 <div className="p-3 border-t border-slate-800/80 bg-slate-950/60 shrink-0">
 
-    {/* Settings */}
-    <SidebarLink
-        to={settingsPath}
-        icon={<Settings size={16} />}
-        label="Settings"
-    />
 
     {/* Profile Widget */}
     <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-slate-700/80 transition-all flex items-center gap-2.5 mb-2 shadow-sm">
@@ -301,7 +295,6 @@ const SidebarContainer = ({
         <span>Sign Out</span>
     </button>
 </div>
-            </div>
         </aside>
         </SidebarNavContext.Provider>
     );
