@@ -1370,7 +1370,11 @@ const Settings = () => {
                       Registered Email
                     </span>
                     <p className="text-sm font-bold text-slate-800 mt-1 truncate">
-                      {user?.email || "N/A"}
+                      {doctorPersonalData.email ||
+                        patientData.email ||
+                        hospitalData.email ||
+                        user?.email ||
+                        "N/A"}
                     </p>
                   </div>
 
@@ -1390,9 +1394,23 @@ const Settings = () => {
                       Email Verification
                     </span>
                     <div className="flex items-center gap-1.5 mt-1">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="text-sm font-bold text-emerald-700">
-                        {user?.verified !== false ? "Verified & Active" : "Pending Verification"}
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          user?.verified !== false
+                            ? "bg-emerald-500"
+                            : "bg-amber-500"
+                        }`}
+                      />
+                      <span
+                        className={`text-sm font-bold ${
+                          user?.verified !== false
+                            ? "text-emerald-700"
+                            : "text-amber-700"
+                        }`}
+                      >
+                        {user?.verified !== false
+                          ? "Verified & Active"
+                          : "Pending Verification"}
                       </span>
                     </div>
                   </div>
