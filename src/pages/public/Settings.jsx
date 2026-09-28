@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
   User,
@@ -29,9 +30,19 @@ import {
 import api from "../../api/api";
 
 const Settings = () => {
+  const location = useLocation();
   const { user, updateUser, logout } = useAuth();
   const token = localStorage.getItem("token");
-  const role = user?.role ? user.role.toUpperCase() : "PATIENT";
+  const role = (
+    user?.role ||
+    localStorage.getItem("userRole") ||
+    JSON.parse(localStorage.getItem("hospital") || "null")?.role ||
+    (location.pathname.startsWith("/doctor")
+      ? "DOCTOR"
+      : location.pathname.startsWith("/hospital")
+      ? "HOSPITAL"
+      : "PATIENT")
+  )?.toUpperCase();
 
   // Active Tab
   const [activeTab, setActiveTab] = useState("profile");

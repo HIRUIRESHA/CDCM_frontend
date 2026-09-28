@@ -39,8 +39,29 @@ const SidebarLink = ({ to, icon, label, badge }) => {
 
 // --- UPDATED SIDEBAR CONTAINER ---
 const SidebarContainer = ({ children, title, titleColor = "text-white" }) => {
-    // 1. Get 'user' along with logout
-    const { logout, user } = useAuth(); 
+    const { logout, user } = useAuth();
+    const location = useLocation();
+    const effectiveRole = (
+        user?.role ||
+        localStorage.getItem("userRole") ||
+        JSON.parse(localStorage.getItem("hospital") || "null")?.role ||
+        (location.pathname.startsWith("/doctor")
+            ? "DOCTOR"
+            : location.pathname.startsWith("/hospital")
+            ? "HOSPITAL"
+            : location.pathname.startsWith("/patient")
+            ? "PATIENT"
+            : "")
+    )?.toUpperCase();
+
+    const settingsPath =
+        effectiveRole === "PATIENT"
+            ? "/patient/settings"
+            : effectiveRole === "DOCTOR"
+            ? "/doctor/settings"
+            : effectiveRole === "HOSPITAL"
+            ? "/hospital/settings"
+            : "/settings";
 
     return (
         <aside className="w-64 bg-[#0a1647] flex flex-col h-screen sticky top-0">
@@ -78,7 +99,7 @@ const SidebarContainer = ({ children, title, titleColor = "text-white" }) => {
             {/* Settings and Logout at bottom */}
             <div className="p-4 border-t border-[#1a2557] space-y-1">
                 <SidebarLink 
-                    to={user?.role === 'PATIENT' ? '/patient/settings' : '/settings'} 
+                    to={settingsPath} 
                     icon={<Settings size={20} />} 
                     label="Settings" 
                 />
