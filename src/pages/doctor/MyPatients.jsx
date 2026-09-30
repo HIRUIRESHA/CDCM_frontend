@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import Swal from "sweetalert2";
 
 // Fallback avatar for broken images
 const defaultAvatar = "https://ui-avatars.com/api/?name=Patient&background=random";
@@ -40,6 +41,197 @@ const MyPatients = () => {
 
     if (user?.id) fetchPatients();
   }, [user]);
+
+  // Handle Medical History button click with OTP gate
+  const handleMedicalHistoryClick = async (appt) => {
+    const doctorId = user?.id || user?._id;
+
+    // 1. Payment Verification Check
+    const isPaid = appt.isPaid === true || appt.paymentStatus?.toUpperCase() === "PAID";
+    if (!isPaid) {
+      await Swal.fire({
+        icon: "warning",
+        title: "Payment Required",
+        text: "Medical history access is available only after the patient's appointment payment has been completed.",
+        confirmButtonColor: "#2563eb",
+        confirmButtonText: "OK"
+      });
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    try {
+      Swal.showLoading();
+
+      // 2. Check current access status from backend
+      const res = await axios.get(
+        `http://localhost:8082/api/medical-records/access-status?appointmentId=${appt.id}&doctorId=${doctorId}`,
+        { headers }
+      );
+
+      Swal.close();
+      const statusData = res.data;
+
+      // 3. Active 1-hour access already exists
+      if (statusData.hasActiveAccess) {
+        navigate(`/doctor/update-history/${appt.patientId}`, {
+          state: {
+            appointmentId: appt.id,
+            hospitalName: appt.hospitalName || "Selected Hospital",
+            accessExpiresAt: statusData.accessExpiresAt
+          }
+        });
+        return;
+      }
+
+      // 4. Access has already expired for this consultation
+      if (statusData.accessExpired) {
+        await Swal.fire({
+          icon: "error",
+          title: "Access Expired",
+          text: "The 1-hour medical history access window for this consultation has ended.",
+          confirmButtonColor: "#dc2626",
+          confirmButtonText: "OK"
+        });
+        return;
+      }
+
+      // 5. Account/appointment locked due to too many failed attempts
+      if (statusData.locked) {
+        await Swal.fire({
+          icon: "error",
+          title: "Access Locked",
+          text: "Too many failed OTP attempts. Medical history access has been locked for this appointment.",
+          confirmButtonColor: "#dc2626",
+          confirmButtonText: "OK"
+        });
+        return;
+      }
+
+      // 6. No OTP issued (legacy appointment prior to feature)
+      if (!statusData.otpIssued) {
+        await Swal.fire({
+          icon: "info",
+          title: "No Access Code Issued",
+          text: "No medical history access code was issued for this appointment.",
+          confirmButtonColor: "#2563eb",
+          confirmButtonText: "OK"
+        });
+        return;
+      }
+
+      // 7. Payment complete & OTP issued, but access not yet active -> Prompt for OTP
+      promptForOtp(appt, headers);
+
+    } catch (err) {
+      console.error("Error checking access status:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Connection Error",
+        text: "Unable to verify medical history access status. Please try again.",
+        confirmButtonColor: "#dc2626",
+        confirmButtonText: "OK"
+      });
+    }
+  };
+
+  // SweetAlert2 OTP prompt dialog
+  const promptForOtp = async (appt, headers, initialError = null) => {
+    const doctorId = user?.id || user?._id;
+
+    const { value: enteredOtp, isConfirmed } = await Swal.fire({
+      title: "Medical History Access",
+      html: `
+        <div style="font-size: 0.95rem; color: #4b5563; margin-bottom: 0.75rem; line-height: 1.4;">
+          Ask the patient for the 6-digit medical history access code sent to their registered email.
+        </div>
+        ${initialError ? `<div style="color: #dc2626; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; background-color: #fee2e2; padding: 0.5rem; rounded: 0.5rem;">⚠️ ${initialError}</div>` : ""}
+      `,
+      input: "text",
+      inputPlaceholder: "Enter 6-digit OTP",
+      inputAttributes: {
+        maxlength: "6",
+        autocapitalize: "off",
+        autocorrect: "off",
+        inputmode: "numeric",
+        pattern: "[0-9]*",
+        style: "text-align: center; letter-spacing: 0.35em; font-size: 1.4rem; font-weight: bold; padding: 0.5rem;"
+      },
+      showCancelButton: true,
+      confirmButtonText: "Verify & Access",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#2563eb",
+      cancelButtonColor: "#6b7280",
+      reverseButtons: true,
+      inputValidator: (value) => {
+        if (!value) {
+          return "Please enter the 6-digit access code";
+        }
+        const trimmed = value.trim();
+        if (!/^\d{6}$/.test(trimmed)) {
+          return "Access code must be exactly 6 digits (numbers only)";
+        }
+        return null;
+      }
+    });
+
+    if (!isConfirmed || !enteredOtp) return;
+
+    try {
+      Swal.showLoading();
+      const verifyRes = await axios.post(
+        "http://localhost:8082/api/medical-records/verify-access",
+        {
+          appointmentId: appt.id,
+          doctorId: doctorId,
+          otp: enteredOtp.trim()
+        },
+        { headers }
+      );
+
+      if (verifyRes.data?.success) {
+        await Swal.fire({
+          icon: "success",
+          title: "Access Granted",
+          text: "Medical history access is available for 1 hour.",
+          confirmButtonColor: "#2563eb",
+          confirmButtonText: "Proceed to Records"
+        });
+
+        navigate(`/doctor/update-history/${appt.patientId}`, {
+          state: {
+            appointmentId: appt.id,
+            hospitalName: appt.hospitalName || "Selected Hospital",
+            accessExpiresAt: verifyRes.data.accessExpiresAt
+          }
+        });
+      }
+    } catch (err) {
+      const status = err.response?.status;
+      const msg = err.response?.data?.message || "Verification failed. Please check the code and try again.";
+
+      if (status === 429) {
+        Swal.fire({
+          icon: "error",
+          title: "Access Locked",
+          text: msg,
+          confirmButtonColor: "#dc2626"
+        });
+      } else if (status === 403 && (msg.toLowerCase().includes("expired") || err.response?.data?.hasActiveAccess === false)) {
+        Swal.fire({
+          icon: "error",
+          title: "Access Expired",
+          text: msg,
+          confirmButtonColor: "#dc2626"
+        });
+      } else {
+        // Re-prompt for OTP allowing doctor to re-try manually
+        promptForOtp(appt, headers, msg);
+      }
+    }
+  };
 
   if (loading) return <div className="p-10 text-center text-gray-500 font-medium">Loading Patients...</div>;
 
@@ -107,16 +299,11 @@ const MyPatients = () => {
                         </td>
                         <td className="p-5 text-center">
                           <button 
-                            onClick={() => {
-                              // Safety check: ensure we are sending a real value
-                              const hName = appt.hospitalName || "Selected Hospital";
-                              navigate(`/doctor/update-history/${appt.patientId}`, {
-                                state: { hospitalName: hName }
-                              });
-                            }}
-                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-lg transition-all transform active:scale-95"
+                            onClick={() => handleMedicalHistoryClick(appt)}
+                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-lg transition-all transform active:scale-95 inline-flex items-center gap-1.5"
                           >
-                            📝 MEDICAL HISTORY
+                            <span>📝</span>
+                            <span>MEDICAL HISTORY</span>
                           </button>
                         </td>
                       </tr>
