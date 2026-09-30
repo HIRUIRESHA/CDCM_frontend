@@ -120,6 +120,29 @@ const formatTime = (time) => {
   });
 };
 
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+const readValidCache = (id) => {
+  if (!id) return null;
+  try {
+    const raw = sessionStorage.getItem(`doctorScheduleCache_${id}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      parsed &&
+      typeof parsed.timestamp === "number" &&
+      Array.isArray(parsed.schedules)
+    ) {
+      if (Date.now() - parsed.timestamp <= CACHE_TTL_MS) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn("Error reading doctor schedule cache:", err);
+  }
+  return null;
+};
+
 export default function SchedulePage() {
   const user = (() => {
     try {
@@ -139,8 +162,9 @@ export default function SchedulePage() {
     user?.firstName ||
     "Doctor";
 
-  const [schedules, setSchedules] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const initialCache = readValidCache(doctorId);
+  const [schedules, setSchedules] = useState(initialCache?.schedules || []);
+  const [loading, setLoading] = useState(!initialCache);
   const [cancelTargetId, setCancelTargetId] =
     useState(null);
   const [toast, setToast] = useState(null);
@@ -166,11 +190,15 @@ export default function SchedulePage() {
     }, 3500);
   };
 
-  const loadSchedules = async () => {
+  const loadSchedules = async ({ showLoading = true } = {}) => {
     if (!doctorId) {
       setSchedules([]);
       setLoading(false);
       return;
+    }
+
+    if (showLoading) {
+      setLoading(true);
     }
 
     try {
@@ -186,23 +214,52 @@ export default function SchedulePage() {
       );
 
       setSchedules(physicalSchedules);
+
+      try {
+        sessionStorage.setItem(
+          `doctorScheduleCache_${doctorId}`,
+          JSON.stringify({
+            schedules: physicalSchedules,
+            timestamp: Date.now(),
+          })
+        );
+      } catch (storageErr) {
+        console.warn("Error saving doctor schedule cache:", storageErr);
+      }
     } catch (err) {
       console.error(
         "Failed to load schedules:",
         err
       );
 
-      showToast(
-        "error",
-        "Unable to load schedules."
-      );
+      if (showLoading) {
+        showToast(
+          "error",
+          "Unable to load schedules."
+        );
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadSchedules();
+    if (!doctorId) {
+      setSchedules([]);
+      setLoading(false);
+      return;
+    }
+
+    const cachedData = readValidCache(doctorId);
+    if (cachedData) {
+      setSchedules(cachedData.schedules);
+      setLoading(false);
+      loadSchedules({ showLoading: false });
+    } else {
+      loadSchedules({ showLoading: true });
+    }
   }, [doctorId]);
 
   const acceptSchedule = async (id) => {
@@ -224,7 +281,7 @@ export default function SchedulePage() {
         "Schedule accepted successfully!"
       );
 
-      await loadSchedules();
+      await loadSchedules({ showLoading: false });
     } catch (err) {
       console.error(err);
 
@@ -255,7 +312,7 @@ export default function SchedulePage() {
         "Schedule rejected successfully!"
       );
 
-      await loadSchedules();
+      await loadSchedules({ showLoading: false });
     } catch (err) {
       console.error(err);
 
@@ -284,7 +341,7 @@ export default function SchedulePage() {
 
       setCancelTargetId(null);
 
-      await loadSchedules();
+      await loadSchedules({ showLoading: false });
     } catch (err) {
       console.error(err);
 

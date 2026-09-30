@@ -7,40 +7,89 @@ import Swal from "sweetalert2";
 // Fallback avatar for broken images
 const defaultAvatar = "https://ui-avatars.com/api/?name=Patient&background=random";
 
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Helper to group appointments by date
+const groupAppointmentsByDate = (list) => {
+  if (!Array.isArray(list)) return {};
+  return list.reduce((acc, appt) => {
+    const date = appt.date;
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(appt);
+    return acc;
+  }, {});
+};
+
+// Helper to safely read and validate cached appointments
+const readValidCache = (id) => {
+  if (!id) return null;
+  try {
+    const raw = sessionStorage.getItem(`doctorMyPatientsCache_${id}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.timestamp === "number" && Array.isArray(parsed.appointments)) {
+      if (Date.now() - parsed.timestamp <= CACHE_TTL_MS) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn("Error reading doctor patients cache:", err);
+  }
+  return null;
+};
+
 const MyPatients = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [groupedAppointments, setGroupedAppointments] = useState({});
-  const [loading, setLoading] = useState(true);
+  const doctorId = user?.id || user?._id;
+
+  const initialCache = readValidCache(doctorId);
+  const [groupedAppointments, setGroupedAppointments] = useState(() => {
+    return initialCache ? groupAppointmentsByDate(initialCache.appointments) : {};
+  });
+  const [loading, setLoading] = useState(!initialCache);
 
   useEffect(() => {
-    const fetchPatients = async () => {
+    if (!doctorId) {
+      setLoading(false);
+      return;
+    }
+
+    const cacheKey = `doctorMyPatientsCache_${doctorId}`;
+    const cachedData = readValidCache(doctorId);
+
+    if (cachedData) {
+      setGroupedAppointments(groupAppointmentsByDate(cachedData.appointments));
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    (async () => {
       try {
-        setLoading(true);
-        // Using port 8082 as per your configuration
-        const res = await axios.get(`http://localhost:8082/api/appointments/doctor/${user.id}`);
-        
-        // DEBUG: Check your console (F12) to see if hospitalName exists in the list
-        console.log("Backend Raw Data:", res.data);
-
-        // Grouping logic: Group by Date
-        const grouped = res.data.reduce((acc, appt) => {
-          const date = appt.date;
-          if (!acc[date]) acc[date] = [];
-          acc[date].push(appt);
-          return acc;
-        }, {});
-
+        const res = await axios.get(`http://localhost:8082/api/appointments/doctor/${doctorId}`);
+        const rawAppointments = Array.isArray(res.data) ? res.data : [];
+        const grouped = groupAppointmentsByDate(rawAppointments);
         setGroupedAppointments(grouped);
+
+        try {
+          sessionStorage.setItem(
+            cacheKey,
+            JSON.stringify({
+              appointments: rawAppointments,
+              timestamp: Date.now()
+            })
+          );
+        } catch (storageErr) {
+          console.warn("Error saving doctor patients cache:", storageErr);
+        }
       } catch (err) {
         console.error("Error fetching patient data", err);
       } finally {
         setLoading(false);
       }
-    };
-
-    if (user?.id) fetchPatients();
-  }, [user]);
+    })();
+  }, [doctorId]);
 
   // Handle Medical History button click with OTP gate
   const handleMedicalHistoryClick = async (appt) => {
