@@ -333,8 +333,6 @@ export default function SchedulePage() {
 
       <header className="relative mx-3 mt-3 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#18265E] via-[#30368D] to-[#463B9C] px-5 pb-8 pt-7 text-white shadow-xl sm:mx-5 sm:px-8 sm:pb-9 sm:pt-8 lg:mx-7 lg:px-10">
 
-        {/* Decorative shapes */}
-
         <div className="pointer-events-none absolute -right-20 -top-28 h-80 w-80 rounded-full border-[55px] border-white/[0.035]" />
 
         <div className="pointer-events-none absolute -bottom-40 left-[25%] h-96 w-96 rounded-full bg-white/[0.025]" />
@@ -347,7 +345,7 @@ export default function SchedulePage() {
 
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
 
-            {/* Doctor */}
+            {/* DOCTOR */}
 
             <div className="flex items-center gap-4">
 
@@ -360,6 +358,7 @@ export default function SchedulePage() {
                 <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#30368D] bg-emerald-500 text-xs font-bold">
                   ✓
                 </span>
+
               </div>
 
               <div>
@@ -387,9 +386,11 @@ export default function SchedulePage() {
                   <span>
                     {counts.accepted} active shifts
                   </span>
+
                 </div>
 
               </div>
+
             </div>
 
             {/* TODAY */}
@@ -401,6 +402,7 @@ export default function SchedulePage() {
               </div>
 
               <div>
+
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-indigo-200">
                   Today
                 </p>
@@ -408,15 +410,14 @@ export default function SchedulePage() {
                 <p className="mt-1 text-sm font-semibold sm:text-base">
                   {today}
                 </p>
+
               </div>
 
             </div>
 
           </div>
 
-          {/* ================================================= */}
           {/* STATISTICS */}
-          {/* ================================================= */}
 
           <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
 
@@ -466,9 +467,7 @@ export default function SchedulePage() {
 
       <main className="mx-auto max-w-[1600px] px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
 
-        {/* ================================================= */}
         {/* SCHEDULE CARD */}
-        {/* ================================================= */}
 
         <section className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_10px_40px_rgba(40,50,100,0.07)]">
 
@@ -510,6 +509,7 @@ export default function SchedulePage() {
                 disabled={loading}
                 className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-600 transition hover:border-indigo-200 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
+
                 <span
                   className={
                     loading
@@ -521,14 +521,14 @@ export default function SchedulePage() {
                 </span>
 
                 Refresh
+
               </button>
 
             </div>
+
           </div>
 
-          {/* ================================================= */}
           {/* FILTER BAR */}
-          {/* ================================================= */}
 
           <div className="flex flex-col justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:px-7">
 
@@ -588,9 +588,7 @@ export default function SchedulePage() {
 
           </div>
 
-          {/* ================================================= */}
           {/* LOADING */}
-          {/* ================================================= */}
 
           {loading ? (
 
@@ -605,8 +603,6 @@ export default function SchedulePage() {
             </div>
 
           ) : !doctorId ? (
-
-            /* NO DOCTOR */
 
             <div className="flex min-h-[340px] flex-col items-center justify-center px-6 text-center">
 
@@ -625,8 +621,6 @@ export default function SchedulePage() {
             </div>
 
           ) : filteredSchedules.length === 0 ? (
-
-            /* EMPTY */
 
             <div className="flex min-h-[340px] flex-col items-center justify-center px-6 text-center">
 
@@ -660,13 +654,14 @@ export default function SchedulePage() {
           ) : (
 
             <>
+
               {/* ================================================= */}
               {/* DESKTOP TABLE */}
               {/* ================================================= */}
 
               <div className="hidden overflow-x-auto md:block">
 
-                <table className="w-full min-w-[900px] text-left">
+                <table className="w-full min-w-[1100px] text-left">
 
                   <thead className="bg-slate-50/80">
 
@@ -682,6 +677,12 @@ export default function SchedulePage() {
 
                       <th className="px-6 py-5">
                         Hospital
+                      </th>
+
+                      {/* NEW PATIENT COUNT COLUMN */}
+
+                      <th className="px-6 py-5">
+                        Patients
                       </th>
 
                       <th className="px-6 py-5">
@@ -706,6 +707,11 @@ export default function SchedulePage() {
 
                         const isProcessing =
                           processingId === id;
+
+                        const bookedPatientCount =
+                          Number(
+                            s.bookedPatientCount || 0
+                          );
 
                         return (
                           <tr
@@ -808,6 +814,64 @@ export default function SchedulePage() {
 
                             </td>
 
+                            {/* ================================================= */}
+                            {/* PATIENT COUNT */}
+                            {/* ================================================= */}
+
+                            <td className="px-6 py-5">
+
+                              <div className="flex items-center gap-3">
+
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
+
+                                  <svg
+                                    className="h-5 w-5"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"
+                                    />
+
+                                    <circle
+                                      cx="9"
+                                      cy="7"
+                                      r="4"
+                                    />
+
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
+                                    />
+
+                                  </svg>
+
+                                </div>
+
+                                <div>
+
+                                  <p className="text-sm font-bold text-slate-700">
+                                    {bookedPatientCount}
+                                  </p>
+
+                                  <p className="mt-1 text-xs text-slate-400">
+                                    {bookedPatientCount ===
+                                    1
+                                      ? "patient booked"
+                                      : "patients booked"}
+                                  </p>
+
+                                </div>
+
+                              </div>
+
+                            </td>
+
                             {/* STATUS */}
 
                             <td className="px-6 py-5">
@@ -838,6 +902,7 @@ export default function SchedulePage() {
                                 {s.status ===
                                   "PENDING" && (
                                   <>
+
                                     <button
                                       onClick={() =>
                                         acceptSchedule(
@@ -867,6 +932,7 @@ export default function SchedulePage() {
                                     >
                                       ✕ Reject
                                     </button>
+
                                   </>
                                 )}
 
@@ -930,6 +996,11 @@ export default function SchedulePage() {
 
                     const isProcessing =
                       processingId === id;
+
+                    const bookedPatientCount =
+                      Number(
+                        s.bookedPatientCount || 0
+                      );
 
                     return (
                       <div
@@ -1014,6 +1085,69 @@ export default function SchedulePage() {
 
                         </div>
 
+                        {/* ================================================= */}
+                        {/* MOBILE PATIENT COUNT */}
+                        {/* ================================================= */}
+
+                        <div className="mb-4 flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+
+                          <div className="flex items-center gap-3">
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-blue-500 shadow-sm">
+
+                              <svg
+                                className="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"
+                                />
+
+                                <circle
+                                  cx="9"
+                                  cy="7"
+                                  r="4"
+                                />
+
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
+                                />
+
+                              </svg>
+
+                            </div>
+
+                            <div>
+
+                              <p className="text-xs font-semibold uppercase tracking-wide text-blue-500">
+                                Bookings
+                              </p>
+
+                              <p className="mt-0.5 text-sm font-bold text-slate-700">
+                                {bookedPatientCount}{" "}
+                                {bookedPatientCount ===
+                                1
+                                  ? "patient"
+                                  : "patients"}
+                              </p>
+
+                            </div>
+
+                          </div>
+
+                          <span className="rounded-full bg-white px-3 py-1 text-[10px] font-semibold text-blue-600 shadow-sm">
+                            Confirmed
+                          </span>
+
+                        </div>
+
                         {/* ACTIONS */}
 
                         {s.status ===
@@ -1076,12 +1210,11 @@ export default function SchedulePage() {
                 )}
 
               </div>
+
             </>
           )}
 
-          {/* ================================================= */}
           {/* FOOTER */}
-          {/* ================================================= */}
 
           {!loading &&
             schedules.length > 0 && (
@@ -1112,9 +1245,7 @@ export default function SchedulePage() {
 
         </section>
 
-        {/* ================================================= */}
         {/* INFORMATION PANEL */}
-        {/* ================================================= */}
 
         <div className="mt-6 flex flex-col justify-between gap-4 rounded-2xl border border-indigo-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:px-7">
 
@@ -1132,7 +1263,8 @@ export default function SchedulePage() {
 
               <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500">
                 Review your hospital shifts and respond to pending
-                assignments. Only accepted shifts can be cancelled.
+                assignments. Patient bookings are shown for each shift.
+                Only accepted shifts can be cancelled.
               </p>
 
             </div>
