@@ -11,7 +11,6 @@ export default function VideoConference() {
   const [cancelTargetId, setCancelTargetId] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // FILTER
   const [activeFilter, setActiveFilter] = useState("ALL");
 
   const showToast = (type, msg) => {
@@ -22,7 +21,10 @@ export default function VideoConference() {
     }, 3500);
   };
 
+  // ==============================
   // LOAD DOCTOR VIDEO SCHEDULES
+  // ==============================
+
   const loadSchedules = async () => {
     if (!doctorId) {
       setLoading(false);
@@ -30,18 +32,25 @@ export default function VideoConference() {
     }
 
     try {
+      setLoading(true);
+
       const res = await axios.get(
         `http://localhost:8082/api/schedules/doctor/${doctorId}`
       );
 
       const videoSchedules = (res.data || []).filter(
-        (s) => s.type === "VIDEO"
+        (schedule) =>
+          String(schedule.type || "").toUpperCase() === "VIDEO"
       );
 
       setSchedules(videoSchedules);
     } catch (err) {
       console.error("Error loading video schedules:", err);
-      showToast("error", "Failed to load video schedules.");
+
+      showToast(
+        "error",
+        "Failed to load video schedules."
+      );
     } finally {
       setLoading(false);
     }
@@ -51,44 +60,78 @@ export default function VideoConference() {
     loadSchedules();
   }, [doctorId]);
 
+  // ==============================
   // ACCEPT SCHEDULE
+  // ==============================
+
   const acceptSchedule = async (id) => {
+    if (!id) return;
+
     try {
       await axios.put(
         `http://localhost:8082/api/schedules/accept/${id}`
       );
 
-      showToast("success", "Schedule accepted successfully.");
+      showToast(
+        "success",
+        "Video consultation schedule accepted successfully."
+      );
 
       await loadSchedules();
     } catch (err) {
       console.error("Error accepting schedule:", err);
-      showToast("error", "Failed to accept schedule.");
+
+      const message =
+        err.response?.data?.message ||
+        "Failed to accept schedule.";
+
+      showToast("error", message);
     }
   };
 
+  // ==============================
   // REJECT SCHEDULE
+  // ==============================
+
   const rejectSchedule = async (id) => {
+    if (!id) return;
+
     try {
       await axios.put(
         `http://localhost:8082/api/schedules/reject/${id}`
       );
 
-      showToast("success", "Schedule rejected successfully.");
+      showToast(
+        "success",
+        "Video consultation schedule rejected."
+      );
 
       await loadSchedules();
     } catch (err) {
       console.error("Error rejecting schedule:", err);
-      showToast("error", "Failed to reject schedule.");
+
+      const message =
+        err.response?.data?.message ||
+        "Failed to reject schedule.";
+
+      showToast("error", message);
     }
   };
 
+  // ==============================
   // OPEN CANCEL CONFIRMATION
+  // ==============================
+
   const cancelSchedule = (id) => {
+    if (!id) return;
+
     setCancelTargetId(id);
   };
 
+  // ==============================
   // CONFIRM CANCEL
+  // ==============================
+
   const confirmCancel = async () => {
     if (!cancelTargetId) return;
 
@@ -123,19 +166,19 @@ export default function VideoConference() {
   const totalCount = schedules.length;
 
   const pendingCount = schedules.filter(
-    (s) => s.status === "PENDING"
+    (schedule) => schedule.status === "PENDING"
   ).length;
 
   const acceptedCount = schedules.filter(
-    (s) => s.status === "ACCEPTED"
+    (schedule) => schedule.status === "ACCEPTED"
   ).length;
 
   const rejectedCount = schedules.filter(
-    (s) => s.status === "REJECTED"
+    (schedule) => schedule.status === "REJECTED"
   ).length;
 
   const cancelledCount = schedules.filter(
-    (s) => s.status === "CANCELLED"
+    (schedule) => schedule.status === "CANCELLED"
   ).length;
 
   // ==============================
@@ -182,12 +225,16 @@ export default function VideoConference() {
     },
   ];
 
+  // ==============================
+  // RENDER
+  // ==============================
+
   return (
     <div className="min-h-screen bg-[#F5F5F2] px-4 py-6 md:px-8 lg:px-10">
 
-      {/* ========================================= */}
-      {/* PAGE HEADER */}
-      {/* ========================================= */}
+      {/* ==============================
+          PAGE HEADER
+      ============================== */}
 
       <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
 
@@ -213,6 +260,7 @@ export default function VideoConference() {
             <span className="text-xs font-semibold uppercase tracking-wider text-[#7657D9]">
               Video Consultation
             </span>
+
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
@@ -227,17 +275,19 @@ export default function VideoConference() {
         {/* ONLINE STATUS */}
 
         <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-sm">
+
           <span className="h-2.5 w-2.5 rounded-full bg-[#22A579]" />
 
           <span className="text-sm font-medium text-gray-600">
             Online consultations
           </span>
+
         </div>
       </div>
 
-      {/* ========================================= */}
-      {/* STATISTICS */}
-      {/* ========================================= */}
+      {/* ==============================
+          STATISTICS
+      ============================== */}
 
       {!loading && (
         <div className="mb-7 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
@@ -346,6 +396,7 @@ export default function VideoConference() {
                   strokeWidth="1.8"
                 >
                   <circle cx="12" cy="12" r="8" />
+
                   <path
                     strokeLinecap="round"
                     d="M12 8v4l2.5 1.5"
@@ -436,9 +487,9 @@ export default function VideoConference() {
         </div>
       )}
 
-      {/* ========================================= */}
-      {/* MAIN CARD */}
-      {/* ========================================= */}
+      {/* ==============================
+          MAIN CARD
+      ============================== */}
 
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 
@@ -465,11 +516,12 @@ export default function VideoConference() {
             </span>
 
           </div>
+
         </div>
 
-        {/* ========================================= */}
-        {/* FILTER TABS */}
-        {/* ========================================= */}
+        {/* ==============================
+            FILTER TABS
+        ============================== */}
 
         {!loading && (
           <div className="border-b border-gray-100 px-5 py-4 md:px-6">
@@ -477,12 +529,15 @@ export default function VideoConference() {
             <div className="flex flex-wrap items-center gap-2">
 
               {filters.map((filter) => {
-                const isActive = activeFilter === filter.key;
+                const isActive =
+                  activeFilter === filter.key;
 
                 return (
                   <button
                     key={filter.key}
-                    onClick={() => setActiveFilter(filter.key)}
+                    onClick={() =>
+                      setActiveFilter(filter.key)
+                    }
                     className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
                       isActive
                         ? "bg-[#7657D9] text-white shadow-sm"
@@ -498,9 +553,9 @@ export default function VideoConference() {
           </div>
         )}
 
-        {/* ========================================= */}
-        {/* LOADING */}
-        {/* ========================================= */}
+        {/* ==============================
+            LOADING
+        ============================== */}
 
         {loading ? (
           <div className="flex min-h-[300px] flex-col items-center justify-center">
@@ -514,13 +569,14 @@ export default function VideoConference() {
           </div>
         ) : filteredSchedules.length === 0 ? (
 
-          /* ========================================= */
-          /* EMPTY FILTER RESULT */
-          /* ========================================= */
+          /* ==============================
+             EMPTY STATE
+          ============================== */
 
           <div className="flex min-h-[320px] flex-col items-center justify-center px-6 text-center">
 
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F0EBFF]">
+
               <svg
                 className="h-8 w-8 text-[#7657D9]"
                 fill="none"
@@ -534,6 +590,7 @@ export default function VideoConference() {
                   d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h6a4 4 0 004-4V8a4 4 0 00-4-4H5a4 4 0 00-4 4v6a4 4 0 004 4z"
                 />
               </svg>
+
             </div>
 
             <h3 className="mt-5 text-base font-semibold text-gray-900">
@@ -544,7 +601,7 @@ export default function VideoConference() {
 
             <p className="mt-1 max-w-sm text-sm text-gray-400">
               {activeFilter === "ALL"
-                ? "Video consultation requests will appear here when patients schedule an online appointment."
+                ? "Video consultation requests will appear here when hospitals create online consultation schedules."
                 : `There are currently no ${activeFilter.toLowerCase()} video consultation requests.`}
             </p>
 
@@ -552,13 +609,13 @@ export default function VideoConference() {
 
         ) : (
 
-          /* ========================================= */
-          /* TABLE */
-          /* ========================================= */
+          /* ==============================
+             TABLE
+          ============================== */
 
           <div className="overflow-x-auto">
 
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[1050px] text-sm">
 
               <thead>
                 <tr className="border-b border-gray-100 bg-[#FAFAFA]">
@@ -572,11 +629,15 @@ export default function VideoConference() {
                   </th>
 
                   <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                    Patient
+                    Patients
                   </th>
 
                   <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                     Status
+                  </th>
+
+                  <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                    Conference
                   </th>
 
                   <th className="px-6 py-4 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-400">
@@ -591,13 +652,18 @@ export default function VideoConference() {
                 {filteredSchedules.map((s) => {
                   const id = s.id || s._id;
 
+                  const bookedPatientCount =
+                    Number(s.bookedPatientCount) || 0;
+
                   return (
                     <tr
                       key={id}
                       className="group transition-colors hover:bg-[#FAFAFF]"
                     >
 
-                      {/* DATE */}
+                      {/* ==============================
+                          DATE
+                      ============================== */}
 
                       <td className="px-6 py-5">
 
@@ -622,14 +688,16 @@ export default function VideoConference() {
                           </div>
 
                           <span className="font-medium text-gray-800">
-                            {s.date}
+                            {s.date || "—"}
                           </span>
 
                         </div>
 
                       </td>
 
-                      {/* TIME */}
+                      {/* ==============================
+                          TIME
+                      ============================== */}
 
                       <td className="px-6 py-5">
 
@@ -642,7 +710,11 @@ export default function VideoConference() {
                             stroke="currentColor"
                             strokeWidth="1.8"
                           >
-                            <circle cx="12" cy="12" r="8" />
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="8"
+                            />
 
                             <path
                               strokeLinecap="round"
@@ -651,33 +723,63 @@ export default function VideoConference() {
                           </svg>
 
                           <span>
-                            {s.startTime} - {s.endTime}
+                            {s.startTime || "—"}{" "}
+                            -{" "}
+                            {s.endTime || "—"}
                           </span>
 
                         </div>
 
                       </td>
 
-                      {/* PATIENT */}
+                      {/* ==============================
+                          PATIENT COUNT
+                      ============================== */}
 
                       <td className="px-6 py-5">
 
                         <div className="flex items-center gap-3">
 
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E9F7F2] text-xs font-bold text-[#22A579]">
-                            {(s.patientName || "P")
-                              .charAt(0)
-                              .toUpperCase()}
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
+
+                            <svg
+                              className="h-4 w-4 text-blue-500"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"
+                              />
+
+                              <circle
+                                cx="9"
+                                cy="7"
+                                r="4"
+                              />
+
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
+                              />
+                            </svg>
+
                           </div>
 
                           <div>
 
-                            <p className="font-medium text-gray-800">
-                              {s.patientName || "Patient"}
+                            <p className="font-semibold text-gray-800">
+                              {bookedPatientCount}
                             </p>
 
                             <p className="text-xs text-gray-400">
-                              Video consultation
+                              {bookedPatientCount === 1
+                                ? "patient booked"
+                                : "patients booked"}
                             </p>
 
                           </div>
@@ -686,7 +788,9 @@ export default function VideoConference() {
 
                       </td>
 
-                      {/* STATUS */}
+                      {/* ==============================
+                          STATUS
+                      ============================== */}
 
                       <td className="px-6 py-5">
 
@@ -716,13 +820,67 @@ export default function VideoConference() {
                             }`}
                           />
 
-                          {s.status}
+                          {s.status || "UNKNOWN"}
 
                         </span>
 
                       </td>
 
-                      {/* ACTION */}
+                      {/* ==============================
+                          CONFERENCE
+                      ============================== */}
+
+                      <td className="px-6 py-5">
+
+                        {s.status === "ACCEPTED" &&
+                        s.meetingLink ? (
+                          <a
+                            href={s.meetingLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded-lg bg-[#7657D9] px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-[#6647C7] active:scale-95"
+                          >
+
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h6a4 4 0 004-4V8a4 4 0 00-4-4H5a4 4 0 00-4 4v6a4 4 0 004 4z"
+                              />
+                            </svg>
+
+                            Join Conference
+
+                          </a>
+                        ) : s.status === "ACCEPTED" ? (
+
+                          <span className="inline-flex items-center gap-2 text-xs font-medium text-amber-500">
+
+                            <span className="h-2 w-2 rounded-full bg-amber-400" />
+
+                            Link unavailable
+
+                          </span>
+
+                        ) : (
+
+                          <span className="text-xs text-gray-400">
+                            Not available
+                          </span>
+
+                        )}
+
+                      </td>
+
+                      {/* ==============================
+                          ACTION
+                      ============================== */}
 
                       <td className="px-6 py-5">
 
@@ -776,13 +934,14 @@ export default function VideoConference() {
 
               </tbody>
             </table>
+
           </div>
         )}
       </div>
 
-      {/* ========================================= */}
-      {/* CANCEL CONFIRMATION MODAL */}
-      {/* ========================================= */}
+      {/* ==============================
+          CANCEL CONFIRMATION MODAL
+      ============================== */}
 
       {cancelTargetId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
@@ -838,9 +997,9 @@ export default function VideoConference() {
         </div>
       )}
 
-      {/* ========================================= */}
-      {/* TOAST */}
-      {/* ========================================= */}
+      {/* ==============================
+          TOAST
+      ============================== */}
 
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 w-[320px] rounded-2xl border border-gray-200 bg-white p-4 shadow-xl">
