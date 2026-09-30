@@ -228,13 +228,7 @@ const removeDoctor = async (doctorId) => {
                             padding: "5px 12px", borderRadius: 5, fontSize: 11, fontWeight: 600, cursor: "pointer"
                           }}
                         >View</button>
-                        <button
-                          onClick={() => navigate(`/hospital/assign-doctor/${doc.id}`)}
-                          style={{
-                            background: "#3b82f6", color: "white", border: "none",
-                            padding: "5px 12px", borderRadius: 5, fontSize: 11, fontWeight: 600, cursor: "pointer"
-                          }}
-                        >Edit</button>
+                        
                         <button
                           onClick={() => removeDoctor(doc.id)}
                           style={{
