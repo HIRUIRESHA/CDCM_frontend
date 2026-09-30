@@ -51,19 +51,54 @@ const PulseDot = ({ color = "bg-emerald-400" }) => (
   </span>
 );
 
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+const readValidCache = (id) => {
+  if (!id) return null;
+  try {
+    const raw = sessionStorage.getItem(`doctorDashboardCache_${id}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.timestamp === "number") {
+      if (Date.now() - parsed.timestamp <= CACHE_TTL_MS) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to read doctor dashboard cache:", e);
+  }
+  return null;
+};
+
 export default function DoctorDashboard() {
   const { user } = useAuth();
   const navigate  = useNavigate();
   const doctorId  = user?.id || user?._id;
 
-  const [schedules,    setSchedules]    = useState([]);
-  const [appointments, setAppointments] = useState([]);
-  const [feedbacks,    setFeedbacks]    = useState([]);
-  const [doctorProfile,setDoctorProfile]= useState(null);
-  const [loading,      setLoading]      = useState(true);
+  const initialCache = readValidCache(doctorId);
+
+  const [schedules,    setSchedules]    = useState(initialCache?.schedules || []);
+  const [appointments, setAppointments] = useState(initialCache?.appointments || []);
+  const [feedbacks,    setFeedbacks]    = useState(initialCache?.feedbacks || []);
+  const [doctorProfile,setDoctorProfile]= useState(initialCache?.doctorProfile || null);
+  const [loading,      setLoading]      = useState(!initialCache);
 
   useEffect(() => {
     if (!doctorId) { setLoading(false); return; }
+
+    const cacheKey = `doctorDashboardCache_${doctorId}`;
+    const cachedData = readValidCache(doctorId);
+
+    if (cachedData) {
+      if (cachedData.schedules) setSchedules(cachedData.schedules);
+      if (cachedData.appointments) setAppointments(cachedData.appointments);
+      if (cachedData.feedbacks) setFeedbacks(cachedData.feedbacks);
+      if (cachedData.doctorProfile !== undefined) setDoctorProfile(cachedData.doctorProfile);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     (async () => {
       try {
         const [schRes, apptRes, fbRes, profRes] = await Promise.allSettled([
@@ -72,12 +107,47 @@ export default function DoctorDashboard() {
           axios.get(`http://localhost:8082/api/feedback/doctor/${doctorId}`),
           axios.get(`http://localhost:8082/api/auth/doctors/${doctorId}`),
         ]);
-        if (schRes.status  === "fulfilled") setSchedules(schRes.value.data   || []);
-        if (apptRes.status === "fulfilled") setAppointments(apptRes.value.data || []);
-        if (fbRes.status   === "fulfilled") setFeedbacks(fbRes.value.data    || []);
-        if (profRes.status === "fulfilled") setDoctorProfile(profRes.value.data);
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
+
+        let freshSchedules = null;
+        let freshAppointments = null;
+        let freshFeedbacks = null;
+        let freshProfile = null;
+
+        if (schRes.status  === "fulfilled") {
+          freshSchedules = schRes.value.data || [];
+          setSchedules(freshSchedules);
+        }
+        if (apptRes.status === "fulfilled") {
+          freshAppointments = apptRes.value.data || [];
+          setAppointments(freshAppointments);
+        }
+        if (fbRes.status   === "fulfilled") {
+          freshFeedbacks = fbRes.value.data || [];
+          setFeedbacks(freshFeedbacks);
+        }
+        if (profRes.status === "fulfilled") {
+          freshProfile = profRes.value.data;
+          setDoctorProfile(freshProfile);
+        }
+
+        // Persist combined fresh data to cache, retaining cached value if an endpoint failed
+        try {
+          const updatedCache = {
+            schedules: freshSchedules !== null ? freshSchedules : (cachedData?.schedules || []),
+            appointments: freshAppointments !== null ? freshAppointments : (cachedData?.appointments || []),
+            feedbacks: freshFeedbacks !== null ? freshFeedbacks : (cachedData?.feedbacks || []),
+            doctorProfile: freshProfile !== null ? freshProfile : (cachedData?.doctorProfile || null),
+            timestamp: Date.now(),
+          };
+          sessionStorage.setItem(cacheKey, JSON.stringify(updatedCache));
+        } catch (storageErr) {
+          console.warn("Failed to write doctor dashboard cache:", storageErr);
+        }
+      } catch (e) {
+        console.error("Error refreshing doctor dashboard data:", e);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [doctorId]);
 
