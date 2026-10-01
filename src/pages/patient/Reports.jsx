@@ -39,7 +39,7 @@ const Reports = () => {
 
       // 1. Get hash from backend
       const res = await axios.get(
-        `http://localhost:8082/api/payments/generate-hash/${test.id}/${test.price}`
+        `https://cdcm-backend.onrender.com/api/payments/generate-hash/${test.id}/${test.price}`
       );
 
       const data = res.data;
@@ -55,7 +55,7 @@ const Reports = () => {
 
         return_url: "http://localhost:5173/payment-success",
         cancel_url: "http://localhost:5173/payment-failed",
-        notify_url: "http://localhost:8082/api/payments/notify",
+        notify_url: "https://cdcm-backend.onrender.com/api/payments/notify",
 
         items: `Lab Test - ${test.testType}`,
         first_name: user.firstName,
@@ -74,7 +74,7 @@ const Reports = () => {
       const token = localStorage.getItem("token");
 
 await axios.post(
-  `http://localhost:8082/api/lab/pay/${test.id}`,
+  `https://cdcm-backend.onrender.com/api/lab/pay/${test.id}`,
   {},
   {
     headers: {

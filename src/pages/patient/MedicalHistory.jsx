@@ -255,7 +255,7 @@ const MedicalHistory = () => {
       try {
         setLoading(true);
         const res = await axios.get(
-          `http://localhost:8082/api/medical-records/patient/${user.id}`
+          `https://cdcm-backend.onrender.com/api/medical-records/patient/${user.id}`
         );
         setHistory(res.data);
       } catch (err) {

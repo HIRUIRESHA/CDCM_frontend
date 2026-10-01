@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
   // ------------------- REGISTER -------------------
   const register = async (endpoint, formData) => {
     try {
-      const response = await fetch(`http://localhost:8082/api/auth/${endpoint}`, {
+      const response = await fetch(`https://cdcm-backend.onrender.com/api/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
