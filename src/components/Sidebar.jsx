@@ -206,7 +206,7 @@ const SidebarContainer = ({
                                 {title}
                             </span>
                             <div className="flex items-center gap-1.5 mt-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                {/* <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> */}
                                 <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase truncate">
                                     {portalTag}
                                 </span>

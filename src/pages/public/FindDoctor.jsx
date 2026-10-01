@@ -237,22 +237,48 @@ function FindDoctor() {
           }
         };
 
-        window.payhere.onDismissed = function onDismissed() {
+        window.payhere.onDismissed = async function onDismissed() {
+          try {
+            await axios.put(
+              `http://localhost:8082/api/appointments/cancel-pending/${orderId}`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+          } catch (err) {
+            console.warn("Failed to release pending appointment:", err);
+          }
           setIsModalOpen(false);
           setNotification({
             type: "error",
             title: "Payment Incomplete",
-            message: "You closed the payment window. Your appointment remains pending until payment is completed.",
+            message: "You closed the payment window. The appointment number was released.",
           });
         };
 
-        window.payhere.onError = function onError(error) {
+        window.payhere.onError = async function onError(error) {
           console.error("Payment Error:", error);
+          try {
+            await axios.put(
+              `http://localhost:8082/api/appointments/cancel-pending/${orderId}`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+          } catch (err) {
+            console.warn("Failed to release pending appointment:", err);
+          }
           setIsModalOpen(false);
           setNotification({
             type: "error",
             title: "Payment Failed",
-            message: "An error occurred during payment processing. Appointment is not confirmed.",
+            message: "An error occurred during payment processing. The appointment number was released.",
           });
         };
 
