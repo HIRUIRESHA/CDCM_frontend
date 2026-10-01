@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -8,7 +9,7 @@ import {
   showConfirm,
 } from "../../utils/alert";
 
-const API_URL = "http://localhost:8082/api";
+const API_URL = "https://cdcm-backend.onrender.com/api";
 
 /* =========================================================
    ICONS
@@ -241,12 +242,11 @@ export default function AddVideoConsultingSchedule() {
 
   const [doctors, setDoctors] = useState([]);
   const [loadingDoctors, setLoadingDoctors] = useState(true);
-
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   /* =======================================================
-     LOAD DOCTORS
+     LOAD DOCTORS FROM DEPLOYED BACKEND
   ======================================================= */
 
   useEffect(() => {
@@ -255,20 +255,29 @@ export default function AddVideoConsultingSchedule() {
         setError(
           "Hospital information not found. Please log in again."
         );
-
+        setDoctors([]);
         setLoadingDoctors(false);
         return;
       }
 
       try {
+        setLoadingDoctors(true);
+        setError("");
+
         const res = await axios.get(
-          `https://cdcm-backend.onrender.com/api/hospital/doctors/hospital/${hospitalId}`
+          `${API_URL}/hospital/doctors/hospital/${hospitalId}`
         );
+
+        const doctorList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+            ? res.data.data
+            : [];
+
+        setDoctors(doctorList);
       } catch (err) {
         console.error("Doctor loading error:", err);
-
         setDoctors([]);
-
         setError(
           "Unable to load doctors assigned to this hospital."
         );
@@ -346,7 +355,6 @@ export default function AddVideoConsultingSchedule() {
       await showWarning(
         "Please fill in all required fields."
       );
-
       return false;
     }
 
@@ -354,7 +362,13 @@ export default function AddVideoConsultingSchedule() {
       await showError(
         "Hospital information not found. Please log in again."
       );
+      return false;
+    }
 
+    if (form.date < today) {
+      await showWarning(
+        "Please select today or a future consultation date."
+      );
       return false;
     }
 
@@ -362,7 +376,6 @@ export default function AddVideoConsultingSchedule() {
       await showWarning(
         "End time must be later than start time."
       );
-
       return false;
     }
 
@@ -370,7 +383,6 @@ export default function AddVideoConsultingSchedule() {
       await showWarning(
         "Please enter a valid meeting URL such as https://meet.google.com/... or https://zoom.us/..."
       );
-
       return false;
     }
 
@@ -378,10 +390,12 @@ export default function AddVideoConsultingSchedule() {
   };
 
   /* =======================================================
-     SUBMIT
+     SUBMIT VIDEO SCHEDULE TO DEPLOYED BACKEND
   ======================================================= */
 
   const handleSubmit = async () => {
+    if (submitting) return;
+
     const valid = await validateForm();
 
     if (!valid) return;
@@ -405,10 +419,6 @@ export default function AddVideoConsultingSchedule() {
 
     try {
       await axios.post(`${API_URL}/schedules`, {
-  try {
-    await axios.post(
-      "https://cdcm-backend.onrender.com/api/schedules",
-      {
         doctorId: form.doctorId,
         hospitalId: hospitalId,
         date: form.date,
@@ -484,9 +494,7 @@ export default function AddVideoConsultingSchedule() {
     <div className="min-h-screen bg-[#F7F8FC] font-sans text-gray-900">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
 
-        {/* =================================================
-            HEADER
-        ================================================= */}
+        {/* HEADER */}
 
         <div className="mb-7">
           <button
@@ -514,15 +522,11 @@ export default function AddVideoConsultingSchedule() {
           </div>
         </div>
 
-        {/* =================================================
-            MAIN GRID
-        ================================================= */}
+        {/* MAIN GRID */}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
 
-          {/* =================================================
-              FORM CARD
-          ================================================= */}
+          {/* FORM CARD */}
 
           <div className="rounded-3xl border border-gray-200 bg-white shadow-sm">
 
@@ -564,9 +568,7 @@ export default function AddVideoConsultingSchedule() {
                 </div>
               )}
 
-              {/* =================================================
-                  DOCTOR
-              ================================================= */}
+              {/* DOCTOR */}
 
               <div>
                 <label
@@ -594,13 +596,12 @@ export default function AddVideoConsultingSchedule() {
                       {loadingDoctors
                         ? "Loading doctors..."
                         : doctors.length === 0
-                        ? "No doctors available"
-                        : "Choose a doctor"}
+                          ? "No doctors available"
+                          : "Choose a doctor"}
                     </option>
 
                     {doctors.map((doctor) => {
-                      const doctorId =
-                        doctor.id || doctor._id;
+                      const doctorId = doctor.id || doctor._id;
 
                       return (
                         <option
@@ -611,8 +612,7 @@ export default function AddVideoConsultingSchedule() {
                           {doctor.firstName || ""}{" "}
                           {doctor.lastName || ""}
                           {" · "}
-                          {doctor.specialization ||
-                            "General"}
+                          {doctor.specialization || "General"}
                         </option>
                       );
                     })}
@@ -660,17 +660,14 @@ export default function AddVideoConsultingSchedule() {
                       </p>
 
                       <p className="mt-0.5 text-xs text-gray-500">
-                        {selectedDoctor.specialization ||
-                          "General"}
+                        {selectedDoctor.specialization || "General"}
                       </p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* =================================================
-                  DATE
-              ================================================= */}
+              {/* DATE */}
 
               <div>
                 <label
@@ -704,9 +701,7 @@ export default function AddVideoConsultingSchedule() {
                 </p>
               </div>
 
-              {/* =================================================
-                  TIME
-              ================================================= */}
+              {/* TIME */}
 
               <div>
                 <div className="mb-2 flex items-center justify-between">
@@ -722,7 +717,7 @@ export default function AddVideoConsultingSchedule() {
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-                  {/* START */}
+                  {/* START TIME */}
 
                   <div>
                     <label
@@ -749,7 +744,7 @@ export default function AddVideoConsultingSchedule() {
                     </div>
                   </div>
 
-                  {/* END */}
+                  {/* END TIME */}
 
                   <div>
                     <label
@@ -782,18 +777,14 @@ export default function AddVideoConsultingSchedule() {
                   form.startTime < form.endTime && (
                     <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2.5 text-xs font-medium text-emerald-700">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-
-                      Valid consultation time:
-                      {" "}
+                      Valid consultation time:{" "}
                       {formatTime(form.startTime)} -{" "}
                       {formatTime(form.endTime)}
                     </div>
                   )}
               </div>
 
-              {/* =================================================
-                  MEETING LINK
-              ================================================= */}
+              {/* MEETING LINK */}
 
               <div>
                 <label
@@ -832,17 +823,12 @@ export default function AddVideoConsultingSchedule() {
                 </div>
               </div>
 
-              {/* =================================================
-                  ACTIONS
-              ================================================= */}
+              {/* ACTIONS */}
 
               <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:justify-end">
-
                 <button
                   type="button"
-                  onClick={() =>
-                    navigate("/hospital/schedule")
-                  }
+                  onClick={() => navigate("/hospital/schedule")}
                   disabled={submitting}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -895,15 +881,11 @@ export default function AddVideoConsultingSchedule() {
             </div>
           </div>
 
-          {/* =================================================
-              RIGHT SIDE
-          ================================================= */}
+          {/* RIGHT SIDE */}
 
           <div className="space-y-5">
 
-            {/* =================================================
-                VIDEO PREVIEW
-            ================================================= */}
+            {/* VIDEO PREVIEW */}
 
             <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
               <div className="mb-5">
@@ -996,7 +978,7 @@ export default function AddVideoConsultingSchedule() {
 
                 <div className="my-4 border-t border-gray-200" />
 
-                {/* MEETING */}
+                {/* MEETING LINK */}
 
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm">
@@ -1042,9 +1024,7 @@ export default function AddVideoConsultingSchedule() {
               </div>
             </div>
 
-            {/* =================================================
-                INFORMATION
-            ================================================= */}
+            {/* INFORMATION */}
 
             <div className="rounded-3xl border border-purple-100 bg-purple-50/60 p-6">
               <div className="flex items-start gap-3">
@@ -1088,9 +1068,7 @@ export default function AddVideoConsultingSchedule() {
               </div>
             </div>
 
-            {/* =================================================
-                HOSPITAL
-            ================================================= */}
+            {/* HOSPITAL */}
 
             <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-3">
@@ -1112,9 +1090,7 @@ export default function AddVideoConsultingSchedule() {
           </div>
         </div>
 
-        {/* =================================================
-            FOOTER
-        ================================================= */}
+        {/* FOOTER */}
 
         <div className="mt-8 border-t border-gray-200 pt-5 text-center">
           <p className="text-xs text-gray-400">
