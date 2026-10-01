@@ -8,7 +8,7 @@ import {
   showWarning,
 } from "../../utils/alert";
 
-const API_URL = "http://localhost:8082/api";
+const API_URL = "https://cdcm-backend.onrender.com/api";
 
 /* =========================
    ICONS
@@ -178,17 +178,21 @@ export default function AddSchedulePage() {
       }
 
       try {
-        // Fetch doctors assigned to this hospital
         const res = await axios.get(
-          `https://cdcm-backend.onrender.com/api/hospital/doctors/hospital/${hospitalId}`
+          `${API_URL}/hospital/doctors/hospital/${hospitalId}`
         );
 
-        setDoctors(Array.isArray(response.data) ? response.data : []);
+        const doctorList = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+
+        setDoctors(doctorList);
       } catch (err) {
         console.error("Doctor loading error:", err);
 
         setDoctors([]);
-
         setError(
           "Unable to load doctors assigned to this hospital."
         );
@@ -279,7 +283,7 @@ export default function AddSchedulePage() {
     if (!isValid) return;
 
     const doctorName = selectedDoctor
-      ? `${selectedDoctor.title || ""} ${
+      ? `${selectedDoctor.title || "Dr."} ${
           selectedDoctor.firstName || ""
         } ${selectedDoctor.lastName || ""}`.trim()
       : "the selected doctor";
@@ -297,15 +301,13 @@ export default function AddSchedulePage() {
 
     try {
       await axios.post(`${API_URL}/schedules`, {
-  try {
-    await axios.post(
-      "https://cdcm-backend.onrender.com/api/schedules",
-      {
         doctorId: form.doctorId,
         hospitalId: hospitalId,
         date: form.date,
         startTime: form.startTime,
         endTime: form.endTime,
+        type: "IN_PERSON",
+        meetingLink: "",
       });
 
       await showSuccess(
@@ -320,15 +322,13 @@ export default function AddSchedulePage() {
         err?.response?.data?.message ||
         err?.response?.data?.error;
 
-      setError(
+      const message =
         backendMessage ||
-          "Failed to create and send the schedule. Please try again."
-      );
+        "Failed to create and send the schedule. Please try again.";
 
-      await showError(
-        backendMessage ||
-          "Failed to create and send the schedule. Please try again."
-      );
+      setError(message);
+
+      await showError(message);
     } finally {
       setSubmitting(false);
     }
@@ -502,8 +502,7 @@ export default function AddSchedulePage() {
                           {doctor.firstName || ""}{" "}
                           {doctor.lastName || ""}
                           {" · "}
-                          {doctor.specialization ||
-                            "General"}
+                          {doctor.specialization || "General"}
                         </option>
                       );
                     })}
@@ -551,8 +550,7 @@ export default function AddSchedulePage() {
                       </p>
 
                       <p className="mt-0.5 text-xs text-gray-500">
-                        {selectedDoctor.specialization ||
-                          "General"}
+                        {selectedDoctor.specialization || "General"}
                       </p>
                     </div>
                   </div>
@@ -689,9 +687,7 @@ export default function AddSchedulePage() {
 
                 <button
                   type="button"
-                  onClick={() =>
-                    navigate("/hospital/schedule")
-                  }
+                  onClick={() => navigate("/hospital/schedule")}
                   disabled={submitting}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
