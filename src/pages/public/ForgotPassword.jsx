@@ -48,7 +48,7 @@ export default function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post("http://localhost:8082/api/auth/forgot-password", null, {
+      await axios.post("https://cdcm-backend.onrender.com/api/auth/forgot-password", null, {
         params: { email, role }
       });
       addToast("success", "Reset link sent!", `Check ${email} for your password reset link.`);

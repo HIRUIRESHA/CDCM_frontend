@@ -6,7 +6,7 @@ import {
   showConfirm,
 } from "../../utils/alert";
 
-const API_URL = "http://localhost:8082/api/schedules";
+const API_URL = "https://cdcm-backend.onrender.com/api/schedules";
 
 const statCards = [
   {

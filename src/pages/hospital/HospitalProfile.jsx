@@ -34,7 +34,7 @@ const HospitalProfile = () => {
       setError("");
 
       const response = await fetch(
-        "http://localhost:8082/api/hospitals/me",
+        "https://cdcm-backend.onrender.com/api/hospitals/me",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -96,7 +96,7 @@ const HospitalProfile = () => {
       formData.append("file", file);
 
       const response = await fetch(
-        "http://localhost:8082/api/upload",
+        "https://cdcm-backend.onrender.com/api/upload",
         {
           method: "POST",
           headers: {
@@ -151,7 +151,7 @@ const HospitalProfile = () => {
       setMessage("");
 
       const response = await fetch(
-        "http://localhost:8082/api/hospitals/me",
+        "https://cdcm-backend.onrender.com/api/hospitals/me",
         {
           method: "PUT",
           headers: {

@@ -102,10 +102,10 @@ export default function DoctorDashboard() {
     (async () => {
       try {
         const [schRes, apptRes, fbRes, profRes] = await Promise.allSettled([
-          axios.get(`http://localhost:8082/api/schedules/doctor/${doctorId}`),
-          axios.get(`http://localhost:8082/api/appointments/doctor/${doctorId}`),
-          axios.get(`http://localhost:8082/api/feedback/doctor/${doctorId}`),
-          axios.get(`http://localhost:8082/api/auth/doctors/${doctorId}`),
+          axios.get(`https://cdcm-backend.onrender.com/api/schedules/doctor/${doctorId}`),
+          axios.get(`https://cdcm-backend.onrender.com/api/appointments/doctor/${doctorId}`),
+          axios.get(`https://cdcm-backend.onrender.com/api/feedback/doctor/${doctorId}`),
+          axios.get(`https://cdcm-backend.onrender.com/api/auth/doctors/${doctorId}`),
         ]);
 
         let freshSchedules = null;

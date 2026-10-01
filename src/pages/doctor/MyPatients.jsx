@@ -67,7 +67,7 @@ const MyPatients = () => {
 
     (async () => {
       try {
-        const res = await axios.get(`http://localhost:8082/api/appointments/doctor/${doctorId}`);
+        const res = await axios.get(`https://cdcm-backend.onrender.com/api/appointments/doctor/${doctorId}`);
         const rawAppointments = Array.isArray(res.data) ? res.data : [];
         const grouped = groupAppointmentsByDate(rawAppointments);
         setGroupedAppointments(grouped);
@@ -116,7 +116,7 @@ const MyPatients = () => {
 
       // 2. Check current access status from backend
       const res = await axios.get(
-        `http://localhost:8082/api/medical-records/access-status?appointmentId=${appt.id}&doctorId=${doctorId}`,
+        `https://cdcm-backend.onrender.com/api/medical-records/access-status?appointmentId=${appt.id}&doctorId=${doctorId}`,
         { headers }
       );
 
@@ -231,7 +231,7 @@ const MyPatients = () => {
     try {
       Swal.showLoading();
       const verifyRes = await axios.post(
-        "http://localhost:8082/api/medical-records/verify-access",
+        "https://cdcm-backend.onrender.com/api/medical-records/verify-access",
         {
           appointmentId: appt.id,
           doctorId: doctorId,

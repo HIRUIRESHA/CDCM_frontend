@@ -36,7 +36,7 @@ export default function AddSchedulePage() {
       try {
         // Fetch doctors assigned to this hospital
         const res = await axios.get(
-          `http://localhost:8082/api/hospital/doctors/hospital/${hospitalId}`
+          `https://cdcm-backend.onrender.com/api/hospital/doctors/hospital/${hospitalId}`
         );
         setDoctors(res.data);
       } catch (err) {
@@ -91,7 +91,7 @@ export default function AddSchedulePage() {
 
   try {
     await axios.post(
-      "http://localhost:8082/api/schedules",
+      "https://cdcm-backend.onrender.com/api/schedules",
       {
         doctorId: form.doctorId,
         hospitalId: hospitalId,

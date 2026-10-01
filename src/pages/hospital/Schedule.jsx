@@ -43,7 +43,7 @@ export default function SchedulePage() {
 
     setLoading(true);
 
-    let url = `http://localhost:8082/api/schedules/hospital/${hospitalId}`;
+    let url = `https://cdcm-backend.onrender.com/api/schedules/hospital/${hospitalId}`;
     if (selectedDate) url += `?date=${selectedDate}`;
 
     axios

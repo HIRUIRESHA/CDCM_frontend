@@ -106,7 +106,7 @@ const HospitalVerifyEmail = () => {
       setMessage("");
 
       const response = await fetch(
-        "http://localhost:8082/api/hospitals/request-verification-code",
+        "https://cdcm-backend.onrender.com/api/hospitals/request-verification-code",
         {
           method: "POST",
 
@@ -177,7 +177,7 @@ const HospitalVerifyEmail = () => {
       setMessage("");
 
       const response = await fetch(
-        "http://localhost:8082/api/auth/verify",
+        "https://cdcm-backend.onrender.com/api/auth/verify",
         {
           method: "POST",
 
