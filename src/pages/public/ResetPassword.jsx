@@ -70,7 +70,7 @@ export default function ResetPassword() {
 
     try {
       await axios.post(
-        "http://localhost:8082/api/auth/reset-password",
+        "https://cdcm-backend.onrender.com/api/auth/reset-password",
         {
           token: token,
           newPassword: password,

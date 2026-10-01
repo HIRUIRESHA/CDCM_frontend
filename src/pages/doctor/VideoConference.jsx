@@ -1,12 +1,42 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+const readValidCache = (id) => {
+  if (!id) return null;
+  try {
+    const raw = sessionStorage.getItem(`doctorVideoScheduleCache_${id}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      parsed &&
+      typeof parsed.timestamp === "number" &&
+      Array.isArray(parsed.schedules)
+    ) {
+      if (Date.now() - parsed.timestamp <= CACHE_TTL_MS) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn("Error reading doctor video schedule cache:", err);
+  }
+  return null;
+};
+
 export default function VideoConference() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  })();
   const doctorId = user?.id || user?._id;
 
-  const [schedules, setSchedules] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const initialCache = readValidCache(doctorId);
+  const [schedules, setSchedules] = useState(initialCache?.schedules || []);
+  const [loading, setLoading] = useState(!initialCache);
 
   const [cancelTargetId, setCancelTargetId] = useState(null);
   const [toast, setToast] = useState(null);
@@ -25,17 +55,20 @@ export default function VideoConference() {
   // LOAD DOCTOR VIDEO SCHEDULES
   // ==============================
 
-  const loadSchedules = async () => {
+  const loadSchedules = async ({ showLoading = true } = {}) => {
+
     if (!doctorId) {
       setLoading(false);
       return;
     }
 
-    try {
+    if (showLoading) {
       setLoading(true);
+    }
 
+    try {
       const res = await axios.get(
-        `http://localhost:8082/api/schedules/doctor/${doctorId}`
+        `https://cdcm-backend.onrender.com/api/schedules/doctor/${doctorId}`
       );
 
       const videoSchedules = (res.data || []).filter(
@@ -44,20 +77,45 @@ export default function VideoConference() {
       );
 
       setSchedules(videoSchedules);
+
+      try {
+        sessionStorage.setItem(
+          `doctorVideoScheduleCache_${doctorId}`,
+          JSON.stringify({
+            schedules: videoSchedules,
+            timestamp: Date.now(),
+          })
+        );
+      } catch (storageErr) {
+        console.warn("Error saving doctor video schedule cache:", storageErr);
+      }
     } catch (err) {
       console.error("Error loading video schedules:", err);
 
-      showToast(
-        "error",
-        "Failed to load video schedules."
-      );
+      if (showLoading) {
+        showToast("error", "Failed to load video schedules.");
+      } dev
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadSchedules();
+    if (!doctorId) {
+      setLoading(false);
+      return;
+    }
+
+    const cachedData = readValidCache(doctorId);
+    if (cachedData) {
+      setSchedules(cachedData.schedules);
+      setLoading(false);
+      loadSchedules({ showLoading: false });
+    } else {
+      loadSchedules({ showLoading: true });
+    }
   }, [doctorId]);
 
   // ==============================
@@ -69,7 +127,7 @@ export default function VideoConference() {
 
     try {
       await axios.put(
-        `http://localhost:8082/api/schedules/accept/${id}`
+        `https://cdcm-backend.onrender.com/api/schedules/accept/${id}`
       );
 
       showToast(
@@ -77,7 +135,7 @@ export default function VideoConference() {
         "Video consultation schedule accepted successfully."
       );
 
-      await loadSchedules();
+      await loadSchedules({ showLoading: false });
     } catch (err) {
       console.error("Error accepting schedule:", err);
 
@@ -98,7 +156,7 @@ export default function VideoConference() {
 
     try {
       await axios.put(
-        `http://localhost:8082/api/schedules/reject/${id}`
+        `https://cdcm-backend.onrender.com/api/schedules/reject/${id}`
       );
 
       showToast(
@@ -106,7 +164,7 @@ export default function VideoConference() {
         "Video consultation schedule rejected."
       );
 
-      await loadSchedules();
+      await loadSchedules({ showLoading: false });
     } catch (err) {
       console.error("Error rejecting schedule:", err);
 
@@ -137,7 +195,7 @@ export default function VideoConference() {
 
     try {
       await axios.put(
-        `http://localhost:8082/api/schedules/cancel/${cancelTargetId}`
+        `https://cdcm-backend.onrender.com/api/schedules/cancel/${cancelTargetId}`
       );
 
       showToast(
@@ -145,7 +203,7 @@ export default function VideoConference() {
         "Video consultation schedule cancelled successfully."
       );
 
-      await loadSchedules();
+      await loadSchedules({ showLoading: false });
     } catch (err) {
       console.error("Error cancelling schedule:", err);
 
@@ -538,11 +596,10 @@ export default function VideoConference() {
                     onClick={() =>
                       setActiveFilter(filter.key)
                     }
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                      isActive
-                        ? "bg-[#7657D9] text-white shadow-sm"
-                        : "border border-gray-200 bg-white text-gray-600 hover:border-[#7657D9] hover:bg-[#F0EBFF] hover:text-[#7657D9]"
-                    }`}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${isActive
+                      ? "bg-[#7657D9] text-white shadow-sm"
+                      : "border border-gray-200 bg-white text-gray-600 hover:border-[#7657D9] hover:bg-[#F0EBFF] hover:text-[#7657D9]"
+                      }`}
                   >
                     {filter.label} ({filter.count})
                   </button>
@@ -795,29 +852,27 @@ export default function VideoConference() {
                       <td className="px-6 py-5">
 
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                            s.status === "PENDING"
-                              ? "bg-amber-50 text-amber-600"
-                              : s.status === "ACCEPTED"
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${s.status === "PENDING"
+                            ? "bg-amber-50 text-amber-600"
+                            : s.status === "ACCEPTED"
                               ? "bg-[#E9F7F2] text-[#22A579]"
                               : s.status === "REJECTED"
-                              ? "bg-red-50 text-red-600"
-                              : s.status === "CANCELLED"
-                              ? "bg-gray-100 text-gray-500"
-                              : "bg-gray-100 text-gray-500"
-                          }`}
+                                ? "bg-red-50 text-red-600"
+                                : s.status === "CANCELLED"
+                                  ? "bg-gray-100 text-gray-500"
+                                  : "bg-gray-100 text-gray-500"
+                            }`}
                         >
 
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              s.status === "PENDING"
-                                ? "bg-amber-500"
-                                : s.status === "ACCEPTED"
+                            className={`h-1.5 w-1.5 rounded-full ${s.status === "PENDING"
+                              ? "bg-amber-500"
+                              : s.status === "ACCEPTED"
                                 ? "bg-[#22A579]"
                                 : s.status === "REJECTED"
-                                ? "bg-red-500"
-                                : "bg-gray-400"
-                            }`}
+                                  ? "bg-red-500"
+                                  : "bg-gray-400"
+                              }`}
                           />
 
                           {s.status || "UNKNOWN"}
@@ -833,7 +888,7 @@ export default function VideoConference() {
                       <td className="px-6 py-5">
 
                         {s.status === "ACCEPTED" &&
-                        s.meetingLink ? (
+                          s.meetingLink ? (
                           <a
                             href={s.meetingLink}
                             target="_blank"
@@ -921,10 +976,10 @@ export default function VideoConference() {
 
                         {(s.status === "CANCELLED" ||
                           s.status === "REJECTED") && (
-                          <span className="text-xs text-gray-400">
-                            No action
-                          </span>
-                        )}
+                            <span className="text-xs text-gray-400">
+                              No action
+                            </span>
+                          )}
 
                       </td>
 
@@ -1007,11 +1062,10 @@ export default function VideoConference() {
           <div className="flex items-start gap-3">
 
             <div
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                toast.type === "success"
-                  ? "bg-[#E9F7F2]"
-                  : "bg-red-50"
-              }`}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${toast.type === "success"
+                ? "bg-[#E9F7F2]"
+                : "bg-red-50"
+                }`}
             >
 
               {toast.type === "success" ? (
@@ -1048,11 +1102,10 @@ export default function VideoConference() {
             <div className="min-w-0">
 
               <p
-                className={`text-sm font-semibold ${
-                  toast.type === "success"
-                    ? "text-[#22A579]"
-                    : "text-red-600"
-                }`}
+                className={`text-sm font-semibold ${toast.type === "success"
+                  ? "text-[#22A579]"
+                  : "text-red-600"
+                  }`}
               >
                 {toast.type === "success"
                   ? "Success"

@@ -6,7 +6,7 @@ import {
   showConfirm,
 } from "../../utils/alert";
 
-const API_URL = "http://localhost:8082/api/schedules";
+const API_URL = "https://cdcm-backend.onrender.com/api/schedules";
 
 const statCards = [
   {
@@ -228,11 +228,15 @@ export default function SchedulePage() {
     }, 3500);
   };
 
-  const loadSchedules = async () => {
+  const loadSchedules = async ({ showLoading = true } = {}) => {
     if (!doctorId) {
       setSchedules([]);
       setLoading(false);
       return;
+    }
+
+    if (showLoading) {
+      setLoading(true);
     }
 
     try {
@@ -243,16 +247,43 @@ export default function SchedulePage() {
       );
 
       setSchedules(physicalSchedules);
+
+      try {
+        sessionStorage.setItem(
+          `doctorScheduleCache_${doctorId}`,
+          JSON.stringify({
+            schedules: physicalSchedules,
+            timestamp: Date.now(),
+          })
+        );
+      } catch (storageErr) {
+        console.warn("Error saving doctor schedule cache:", storageErr);
+      }
     } catch (err) {
       console.error("Failed to load schedules:", err);
       showToast("error", "Unable to load schedules.");
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    loadSchedules();
+    if (!doctorId) {
+      setSchedules([]);
+      setLoading(false);
+      return;
+    }
+
+    const cachedData = readValidCache(doctorId);
+    if (cachedData) {
+      setSchedules(cachedData.schedules);
+      setLoading(false);
+      loadSchedules({ showLoading: false });
+    } else {
+      loadSchedules({ showLoading: true });
+    }
   }, [doctorId]);
 
   const refreshSchedules = async () => {

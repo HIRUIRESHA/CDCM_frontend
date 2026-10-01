@@ -261,12 +261,8 @@ export default function AddVideoConsultingSchedule() {
       }
 
       try {
-        const response = await axios.get(
-          `${API_URL}/hospital/doctors/hospital/${hospitalId}`
-        );
-
-        setDoctors(
-          Array.isArray(response.data) ? response.data : []
+        const res = await axios.get(
+          `https://cdcm-backend.onrender.com/api/hospital/doctors/hospital/${hospitalId}`
         );
       } catch (err) {
         console.error("Doctor loading error:", err);
@@ -409,6 +405,10 @@ export default function AddVideoConsultingSchedule() {
 
     try {
       await axios.post(`${API_URL}/schedules`, {
+  try {
+    await axios.post(
+      "https://cdcm-backend.onrender.com/api/schedules",
+      {
         doctorId: form.doctorId,
         hospitalId: hospitalId,
         date: form.date,

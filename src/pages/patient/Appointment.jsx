@@ -36,11 +36,11 @@ function PatientAppointments() {
         };
 
         const [apptRes, docsRes, hospsRes] = await Promise.all([
-          fetch(`http://localhost:8082/api/appointments/patient/${user.id}`, {
+          fetch(`https://cdcm-backend.onrender.com/api/appointments/patient/${user.id}`, {
             headers: authHeaders
           }),
-          fetch("http://localhost:8082/api/hospital/doctors/assigned-all"),
-          fetch("http://localhost:8082/api/hospital/doctors/all-hospitals")
+          fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/assigned-all"),
+          fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/all-hospitals")
         ]);
 
         if (apptRes.ok) {
@@ -86,7 +86,7 @@ function PatientAppointments() {
         const token = localStorage.getItem('token');
 
         const response = await fetch(
-          `http://localhost:8082/api/video-appointments/patient/${user.id}`,
+          `https://cdcm-backend.onrender.com/api/video-appointments/patient/${user.id}`,
           {
             headers: {
               "Authorization": `Bearer ${token}`,

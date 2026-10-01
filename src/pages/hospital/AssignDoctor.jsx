@@ -15,7 +15,7 @@ const AssignDoctor = () => {
   const loadDoctors = async () => {
 
     const res = await fetch(
-      `http://localhost:8082/api/hospital/doctors/search?keyword=`,
+      `https://cdcm-backend.onrender.com/api/hospital/doctors/search?keyword=`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -37,7 +37,7 @@ const AssignDoctor = () => {
     setSearch(value);
 
     const res = await fetch(
-      `http://localhost:8082/api/hospital/doctors/search?keyword=${value}`,
+      `https://cdcm-backend.onrender.com/api/hospital/doctors/search?keyword=${value}`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -61,7 +61,7 @@ const AssignDoctor = () => {
 
   try {
     const res = await fetch(
-      `http://localhost:8082/api/hospital/doctors/${doctorId}/assign/${user.id}`,
+      `https://cdcm-backend.onrender.com/api/hospital/doctors/${doctorId}/assign/${user.id}`,
       {
         method: "PUT",
         headers: {

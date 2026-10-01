@@ -101,7 +101,7 @@ const HospitalChangePassword = () => {
       setError("");
 
       const response = await fetch(
-        "http://localhost:8082/api/hospitals/first-login-password",
+        "https://cdcm-backend.onrender.com/api/hospitals/first-login-password",
         {
           method: "PUT",
 

@@ -15,7 +15,7 @@ const DoctorManagement = () => {
   useEffect(() => {
     if (!user) return;
 
-    fetch(`http://localhost:8082/api/hospital/doctors/hospital/${user.id}`, {
+    fetch(`https://cdcm-backend.onrender.com/api/hospital/doctors/hospital/${user.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -40,7 +40,7 @@ const removeDoctor = async (doctorId) => {
 
   try {
     const res = await fetch(
-      `http://localhost:8082/api/hospital/doctors/${doctorId}/remove/${user.id}`,
+      `https://cdcm-backend.onrender.com/api/hospital/doctors/${doctorId}/remove/${user.id}`,
       {
         method: "DELETE",
         headers: {
@@ -228,13 +228,7 @@ const removeDoctor = async (doctorId) => {
                             padding: "5px 12px", borderRadius: 5, fontSize: 11, fontWeight: 600, cursor: "pointer"
                           }}
                         >View</button>
-                        <button
-                          onClick={() => navigate(`/hospital/assign-doctor/${doc.id}`)}
-                          style={{
-                            background: "#3b82f6", color: "white", border: "none",
-                            padding: "5px 12px", borderRadius: 5, fontSize: 11, fontWeight: 600, cursor: "pointer"
-                          }}
-                        >Edit</button>
+                        
                         <button
                           onClick={() => removeDoctor(doc.id)}
                           style={{

@@ -35,9 +35,9 @@ function FindDoctor() {
   const fetchData = async () => {
     try {
       const [docRes, specRes, hospRes] = await Promise.all([
-        fetch("http://localhost:8082/api/hospital/doctors/assigned-all"),
-        fetch("http://localhost:8082/api/hospital/doctors/specializations"),
-        fetch("http://localhost:8082/api/hospital/doctors/all-hospitals"),
+        fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/assigned-all"),
+        fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/specializations"),
+        fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/all-hospitals"),
       ]);
 
       const docs = await docRes.json();
@@ -58,7 +58,7 @@ function FindDoctor() {
           doctorsList.map(async (doc) => {
             try {
               const schedRes = await fetch(
-                `http://localhost:8082/api/schedules/doctor/${doc.id}`
+                `https://cdcm-backend.onrender.com/api/schedules/doctor/${doc.id}`
               );
               if (schedRes.ok) {
                 const schedData = await schedRes.json();
@@ -115,7 +115,7 @@ function FindDoctor() {
 
   try {
     const response = await fetch(
-      `http://localhost:8082/api/appointments/schedule/${schedule.id}`
+      `https://cdcm-backend.onrender.com/api/appointments/schedule/${schedule.id}`
     );
     if (response.ok) {
       const data = await response.json();
@@ -145,7 +145,7 @@ function FindDoctor() {
       const token = localStorage.getItem("token");
       
       // 1. Create Appointment Record
-      const response = await fetch("http://localhost:8082/api/appointments/book", {
+      const response = await fetch("https://cdcm-backend.onrender.com/api/appointments/book", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -168,7 +168,7 @@ function FindDoctor() {
         const amount = appointmentData.amount || 1000.00;
 
         // Fetch Secure Hash from Backend
-        const hashRes = await axios.get(`http://localhost:8082/api/payments/generate-hash/${orderId}/${amount}`);
+        const hashRes = await axios.get(`https://cdcm-backend.onrender.com/api/payments/generate-hash/${orderId}/${amount}`);
         const hashData = hashRes.data;
 
         // Prepare PayHere Payment Object
@@ -177,7 +177,7 @@ function FindDoctor() {
           merchant_id: hashData.merchantId, 
           return_url: "http://localhost:5173/payment-success",
           cancel_url: "http://localhost:5173/payment-failed",
-          notify_url: "http://localhost:8082/api/payments/notify", 
+          notify_url: "https://cdcm-backend.onrender.com/api/payments/notify", 
           order_id: orderId, 
           items: `Booking with Dr. ${bookingDoc.firstName}`,
           amount: hashData.amount, 
@@ -198,7 +198,7 @@ function FindDoctor() {
           try {
             // Confirm payment with backend
             const confirmRes = await axios.post(
-              `http://localhost:8082/api/payments/payment-success/${orderId}`,
+              `https://cdcm-backend.onrender.com/api/payments/payment-success/${orderId}`,
               {
                 payhereId: orderId,
                 amount: amount,
@@ -237,22 +237,48 @@ function FindDoctor() {
           }
         };
 
-        window.payhere.onDismissed = function onDismissed() {
+        window.payhere.onDismissed = async function onDismissed() {
+          try {
+            await axios.put(
+              `https://cdcm-backend.onrender.com/api/appointments/cancel-pending/${orderId}`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+          } catch (err) {
+            console.warn("Failed to release pending appointment:", err);
+          }
           setIsModalOpen(false);
           setNotification({
             type: "error",
             title: "Payment Incomplete",
-            message: "You closed the payment window. Your appointment remains pending until payment is completed.",
+            message: "You closed the payment window. The appointment number was released.",
           });
         };
 
-        window.payhere.onError = function onError(error) {
+        window.payhere.onError = async function onError(error) {
           console.error("Payment Error:", error);
+          try {
+            await axios.put(
+              `https://cdcm-backend.onrender.com/api/appointments/cancel-pending/${orderId}`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+          } catch (err) {
+            console.warn("Failed to release pending appointment:", err);
+          }
           setIsModalOpen(false);
           setNotification({
             type: "error",
             title: "Payment Failed",
-            message: "An error occurred during payment processing. Appointment is not confirmed.",
+            message: "An error occurred during payment processing. The appointment number was released.",
           });
         };
 
