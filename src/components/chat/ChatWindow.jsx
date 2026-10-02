@@ -25,36 +25,23 @@ const ChatWindow = ({
 
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState("");
-
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [connected, setConnected] = useState(false);
 
+    const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
 
-    
-    // REFS
-    
+    const subscriptionsRef = useRef([]);
+    const activeConversationRef = useRef(null);
 
-    const messagesEndRef =
-        useRef(null);
-
-    // Store all active subscriptions
-    const subscriptionsRef =
-        useRef([]);
-
-    // Currently opened conversation
-    const activeConversationRef =
-        useRef(null);
-
-    // Keep latest callback without forcing subscriptions
-    // to be recreated every render
     const onConversationMessageRef =
         useRef(onConversationMessage);
 
 
-    
-    // UPDATE CALLBACK REF
-    
+    /* =========================================================
+       UPDATE CALLBACK REF
+    ========================================================= */
 
     useEffect(() => {
 
@@ -64,9 +51,9 @@ const ChatWindow = ({
     }, [onConversationMessage]);
 
 
-    
-    // CONNECT WEBSOCKET
-    
+    /* =========================================================
+       CONNECT WEBSOCKET
+    ========================================================= */
 
     useEffect(() => {
 
@@ -76,44 +63,13 @@ const ChatWindow = ({
 
         let mounted = true;
 
-
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            "Connecting to WebSocket..."
-        );
-
-        console.log(
-            "Current user:",
-            currentUser.id
-        );
-
-        console.log(
-            "======================================"
-        );
-
-
         connectWebSocket(
 
             () => {
 
-                if (!mounted) {
-                    return;
-                }
+                if (!mounted) return;
 
-                console.log(
-                    "======================================"
-                );
-
-                console.log(
-                    "WEBSOCKET CONNECTED"
-                );
-
-                console.log(
-                    "======================================"
-                );
+                console.log("WebSocket connected");
 
                 setConnected(true);
 
@@ -121,9 +77,7 @@ const ChatWindow = ({
 
             (error) => {
 
-                if (!mounted) {
-                    return;
-                }
+                if (!mounted) return;
 
                 console.error(
                     "WebSocket connection error:",
@@ -136,22 +90,11 @@ const ChatWindow = ({
 
         );
 
-
         return () => {
 
             mounted = false;
 
-            console.log(
-                "Cleaning up WebSocket..."
-            );
-
-
             setConnected(false);
-
-
-            
-            // Remove all subscriptions
-            
 
             subscriptionsRef.current.forEach(
                 (subscription) => {
@@ -172,17 +115,10 @@ const ChatWindow = ({
                 }
             );
 
-
             subscriptionsRef.current = [];
 
+            activeConversationRef.current = null;
 
-            activeConversationRef.current =
-                null;
-
-
-            
-            // Disconnect WebSocket
-            
             disconnectWebSocket();
 
         };
@@ -190,9 +126,9 @@ const ChatWindow = ({
     }, [currentUser?.id]);
 
 
-    
-    // UPDATE ACTIVE CONVERSATION REF
-    
+    /* =========================================================
+       ACTIVE CONVERSATION
+    ========================================================= */
 
     useEffect(() => {
 
@@ -204,9 +140,9 @@ const ChatWindow = ({
     }, [conversation?.id]);
 
 
-    
-    // LOAD EXISTING MESSAGES
-    
+    /* =========================================================
+       LOAD MESSAGES
+    ========================================================= */
 
     useEffect(() => {
 
@@ -218,28 +154,11 @@ const ChatWindow = ({
 
         }
 
-
         const conversationId =
             String(conversation.id);
 
-
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            "Opening conversation:",
-            conversationId
-        );
-
-        console.log(
-            "======================================"
-        );
-
-
         activeConversationRef.current =
             conversationId;
-
 
         let cancelled = false;
 
@@ -250,34 +169,17 @@ const ChatWindow = ({
 
                 setLoading(true);
 
-
-                console.log(
-                    "Loading messages for conversation:",
-                    conversationId
-                );
-
-
                 const data =
                     await getMessages(
                         conversationId
                     );
 
-
-                if (cancelled) {
-                    return;
-                }
-
+                if (cancelled) return;
 
                 const databaseMessages =
                     Array.isArray(data)
                         ? data
                         : [];
-
-
-                console.log(
-                    "Existing messages:",
-                    databaseMessages
-                );
 
 
                 setMessages(
@@ -296,17 +198,13 @@ const ChatWindow = ({
                                 }
 
 
-                                // Only keep messages belonging
-                                // to the currently opened chat
                                 if (
                                     currentMessage.conversationId &&
                                     String(
                                         currentMessage.conversationId
                                     ) !== conversationId
                                 ) {
-
                                     return;
-
                                 }
 
 
@@ -348,7 +246,6 @@ const ChatWindow = ({
                         );
 
 
-                        // Sort oldest -> newest
                         mergedMessages.sort(
                             (a, b) => {
 
@@ -359,14 +256,12 @@ const ChatWindow = ({
                                           ).getTime()
                                         : 0;
 
-
                                 const timeB =
                                     b?.sentAt
                                         ? new Date(
                                               b.sentAt
                                           ).getTime()
                                         : 0;
-
 
                                 return (
                                     timeA -
@@ -418,15 +313,9 @@ const ChatWindow = ({
     }, [conversation?.id]);
 
 
-    
-    // CONVERSATION IDS
-    //
-    // IMPORTANT:
-    // Only the IDs are used as dependency.
-    //
-    // When lastMessage changes, subscriptions will NOT
-    // be destroyed and recreated.
-    
+    /* =========================================================
+       CONVERSATION IDS
+    ========================================================= */
 
     const conversationIdsKey =
         conversations
@@ -440,9 +329,9 @@ const ChatWindow = ({
             .join("|");
 
 
-    
-    // SUBSCRIBE TO ALL CONVERSATIONS
-    
+    /* =========================================================
+       SUBSCRIBE TO CONVERSATIONS
+    ========================================================= */
 
     useEffect(() => {
 
@@ -450,33 +339,9 @@ const ChatWindow = ({
             !connected ||
             !conversationIdsKey
         ) {
-
             return;
-
         }
 
-
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            "SUBSCRIBING TO ALL CONVERSATIONS"
-        );
-
-        console.log(
-            "Conversation IDs:",
-            conversationIdsKey
-        );
-
-        console.log(
-            "======================================"
-        );
-
-
-        
-        // Remove old subscriptions
-       
 
         subscriptionsRef.current.forEach(
             (subscription) => {
@@ -501,10 +366,6 @@ const ChatWindow = ({
         subscriptionsRef.current = [];
 
 
-        
-        // Subscribe to every conversation
-        
-
         const conversationIdList =
             conversationIdsKey
                 .split("|")
@@ -514,12 +375,6 @@ const ChatWindow = ({
         conversationIdList.forEach(
             (conversationId) => {
 
-                console.log(
-                    "Creating subscription for:",
-                    conversationId
-                );
-
-
                 const subscription =
                     subscribeToConversation(
 
@@ -527,39 +382,10 @@ const ChatWindow = ({
 
                         (newMessage) => {
 
-                            console.log(
-                                "======================================"
-                            );
-
-                            console.log(
-                                "REALTIME MESSAGE RECEIVED"
-                            );
-
-                            console.log(
-                                "Conversation:",
-                                conversationId
-                            );
-
-                            console.log(
-                                "Message:",
-                                newMessage
-                            );
-
-                            console.log(
-                                "======================================"
-                            );
-
-
-                            
-                            // Ignore malformed messages
-                            
-
                             if (
                                 !newMessage?.conversationId
                             ) {
-
                                 return;
-
                             }
 
 
@@ -569,30 +395,13 @@ const ChatWindow = ({
                                 );
 
 
-                            
-                            // Safety check
-                            
-
                             if (
                                 messageConversationId !==
                                 conversationId
                             ) {
-
-                                console.warn(
-                                    "Conversation ID mismatch:",
-                                    {
-                                        subscriptionConversationId:
-                                            conversationId,
-                                        messageConversationId
-                                    }
-                                );
-
                                 return;
-
                             }
 
-
-                            
 
                             if (
                                 onConversationMessageRef.current
@@ -605,32 +414,13 @@ const ChatWindow = ({
                             }
 
 
-                            
-                            // If this is NOT the currently opened chat,
-                            // don't add it to ChatWindow messages.
-                            
-
                             if (
                                 activeConversationRef.current !==
                                 messageConversationId
                             ) {
-
-                                console.log(
-                                    "Message belongs to another conversation."
-                                );
-
-                                console.log(
-                                    "Updating conversation list only."
-                                );
-
                                 return;
-
                             }
 
-
-                            
-                            // Add realtime message to current chat
-                            
 
                             setMessages(
                                 (previousMessages) => {
@@ -661,14 +451,7 @@ const ChatWindow = ({
                                         );
 
 
-                                    if (
-                                        alreadyExists
-                                    ) {
-
-                                        console.log(
-                                            "Duplicate realtime message ignored:",
-                                            newMessage?.id
-                                        );
+                                    if (alreadyExists) {
 
                                         return previousMessages;
 
@@ -691,14 +474,12 @@ const ChatWindow = ({
                                                       ).getTime()
                                                     : 0;
 
-
                                             const timeB =
                                                 b?.sentAt
                                                     ? new Date(
                                                           b.sentAt
                                                       ).getTime()
                                                     : 0;
-
 
                                             return (
                                                 timeA -
@@ -725,27 +506,13 @@ const ChatWindow = ({
                         subscription
                     );
 
-                    console.log(
-                        "Subscription created:",
-                        conversationId
-                    );
-
                 }
 
             }
         );
 
 
-        // -----------------------------------------------------
-        // Cleanup
-        // -----------------------------------------------------
-
         return () => {
-
-            console.log(
-                "Cleaning up conversation subscriptions..."
-            );
-
 
             subscriptionsRef.current.forEach(
                 (subscription) => {
@@ -766,7 +533,6 @@ const ChatWindow = ({
                 }
             );
 
-
             subscriptionsRef.current = [];
 
         };
@@ -777,9 +543,9 @@ const ChatWindow = ({
     ]);
 
 
-    
-    // AUTO SCROLL
-    
+    /* =========================================================
+       AUTO SCROLL
+    ========================================================= */
 
     useEffect(() => {
 
@@ -795,9 +561,9 @@ const ChatWindow = ({
     }, [messages]);
 
 
-    
-    // SEND MESSAGE
-    
+    /* =========================================================
+       SEND MESSAGE
+    ========================================================= */
 
     const handleSend = () => {
 
@@ -811,16 +577,14 @@ const ChatWindow = ({
             !conversation?.id ||
             !currentUser?.id
         ) {
-
             return;
-
         }
 
 
         if (!connected) {
 
             console.error(
-                "Cannot send message. WebSocket is not connected."
+                "WebSocket is not connected."
             );
 
             return;
@@ -833,44 +597,10 @@ const ChatWindow = ({
                 conversation.id
             );
 
-
         const senderId =
             String(
                 currentUser.id
             );
-
-
-        console.log(
-            "======================================"
-        );
-
-        console.log(
-            "SENDING MESSAGE"
-        );
-
-        console.log(
-            "Conversation:",
-            conversationId
-        );
-
-        console.log(
-            "Sender:",
-            senderId
-        );
-
-        console.log(
-            "Role:",
-            currentUser.role
-        );
-
-        console.log(
-            "Content:",
-            messageText
-        );
-
-        console.log(
-            "======================================"
-        );
 
 
         setSending(true);
@@ -882,21 +612,14 @@ const ChatWindow = ({
                 sendWebSocketMessage(
 
                     conversationId,
-
                     senderId,
-
                     currentUser.role,
-
                     messageText
 
                 );
 
 
             if (success) {
-
-                console.log(
-                    "Message sent successfully through WebSocket."
-                );
 
                 setText("");
 
@@ -911,7 +634,7 @@ const ChatWindow = ({
         } catch (error) {
 
             console.error(
-                "Failed to send WebSocket message:",
+                "Failed to send message:",
                 error
             );
 
@@ -924,13 +647,11 @@ const ChatWindow = ({
     };
 
 
-    
-    // ENTER KEY
-    
+    /* =========================================================
+       ENTER KEY
+    ========================================================= */
 
-    const handleKeyDown = (
-        event
-    ) => {
+    const handleKeyDown = (event) => {
 
         if (
             event.key === "Enter" &&
@@ -946,28 +667,29 @@ const ChatWindow = ({
     };
 
 
-    
-    // EMPTY STATE
-    
+    /* =========================================================
+       EMPTY STATE
+    ========================================================= */
 
     if (!conversation) {
 
         return (
 
-            <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="flex min-h-[600px] items-center justify-center bg-slate-50">
 
-                <div className="text-center text-gray-400">
+                <div className="max-w-sm px-6 text-center">
 
-                    <div className="text-5xl mb-3">
+                    <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-4xl shadow-sm ring-1 ring-slate-100">
                         💬
                     </div>
 
-                    <p className="font-medium">
+                    <h3 className="text-lg font-bold text-slate-800">
                         Select a conversation
-                    </p>
+                    </h3>
 
-                    <p className="text-sm mt-1">
-                        Choose an appointment to start messaging
+                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                        Choose a doctor from the conversation
+                        list to start messaging.
                     </p>
 
                 </div>
@@ -979,140 +701,327 @@ const ChatWindow = ({
     }
 
 
-    
-    // CONVERSATION NAME
-    
+    /* =========================================================
+       CONVERSATION INFORMATION
+    ========================================================= */
+
+    /*
+     * The backend may return conversation information
+     * using different nested structures.
+     *
+     * These fallbacks allow the UI to work with:
+     *
+     * conversation.doctorName
+     * conversation.doctor.name
+     * conversation.doctor.fullName
+     *
+     * conversation.appointmentId
+     * conversation.appointment.id
+     *
+     * conversation.hospitalName
+     * conversation.hospital.name
+     * conversation.appointment.hospital.name
+     */
+
+
+    /* =========================================================
+       DOCTOR / PATIENT NAME
+    ========================================================= */
 
     const conversationName =
         currentUser?.role === "DOCTOR"
-            ? conversation.patientName ||
-              "Patient"
-            : conversation.doctorName ||
-              "Doctor";
+
+            ? (
+                conversation.patientName ||
+                conversation.patientFullName ||
+                conversation.patient?.name ||
+                conversation.patient?.fullName ||
+                conversation.patient?.full_name ||
+                "Patient"
+            )
+
+            : (
+                conversation.doctorName ||
+                conversation.doctorFullName ||
+                conversation.doctor?.name ||
+                conversation.doctor?.fullName ||
+                conversation.doctor?.full_name ||
+                "Doctor"
+            );
 
 
-    
-    // APPOINTMENT NUMBER
-    
+    /* =========================================================
+       APPOINTMENT NUMBER
+    ========================================================= */
 
     const appointmentNumber =
         conversation.appointmentNumber ||
+        conversation.appointmentNo ||
+        conversation.appointmentNumberText ||
         conversation.appointmentId ||
+        conversation.appointment?.appointmentNumber ||
+        conversation.appointment?.appointmentNo ||
+        conversation.appointment?.appointmentId ||
+        conversation.appointment?.id ||
         "N/A";
 
 
-    
-    // APPOINTMENT DATE
-    
+    /* =========================================================
+       APPOINTMENT DATE
+    ========================================================= */
 
     const appointmentDate =
         conversation.appointmentDate ||
+        conversation.appointment?.appointmentDate ||
+        conversation.appointment?.date ||
+        conversation.appointment?.appointment_date ||
+        conversation.date ||
         "N/A";
 
 
-    
-    // HOSPITAL NAME
-    
+    /* =========================================================
+       HOSPITAL NAME
+    ========================================================= */
 
     const hospitalName =
         conversation.hospitalName ||
+        conversation.hospital?.name ||
+        conversation.hospital?.hospitalName ||
+        conversation.hospital?.fullName ||
+        conversation.appointment?.hospitalName ||
+        conversation.appointment?.hospital?.name ||
+        conversation.appointment?.hospital?.hospitalName ||
         "N/A";
 
 
-    
-    // RENDER
-    
+    /* =========================================================
+       FORMAT APPOINTMENT DATE
+    ========================================================= */
+
+    const formatAppointmentDate = (date) => {
+
+        if (
+            !date ||
+            date === "N/A"
+        ) {
+            return "N/A";
+        }
+
+
+        try {
+
+            const parsedDate =
+                new Date(date);
+
+
+            if (
+                Number.isNaN(
+                    parsedDate.getTime()
+                )
+            ) {
+
+                return String(date);
+
+            }
+
+
+            return parsedDate.toLocaleDateString(
+                "en-GB",
+                {
+                    year: "numeric",
+                    month: "short",
+                    day: "2-digit",
+                }
+            );
+
+        } catch (error) {
+
+            return String(date);
+
+        }
+
+    };
+
+
+    const displayAppointmentDate =
+        formatAppointmentDate(
+            appointmentDate
+        );
+
+
+    /* =========================================================
+       INITIALS
+    ========================================================= */
+
+    const initials =
+        String(
+            conversationName
+        )
+            .split(" ")
+            .filter(Boolean)
+            .map(
+                (name) =>
+                    name.charAt(0)
+            )
+            .join("")
+            .slice(0, 2)
+            .toUpperCase();
+
+
+    /* =========================================================
+       FORMAT MESSAGE TIME
+    ========================================================= */
+
+    const formatTime = (date) => {
+
+        if (!date) {
+            return "";
+        }
+
+
+        try {
+
+            const parsedDate =
+                new Date(date);
+
+
+            if (
+                Number.isNaN(
+                    parsedDate.getTime()
+                )
+            ) {
+
+                return "";
+
+            }
+
+
+            return parsedDate.toLocaleTimeString(
+                [],
+                {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }
+            );
+
+        } catch (error) {
+
+            return "";
+
+        }
+
+    };
+
+
+    /* =========================================================
+       RENDER
+    ========================================================= */
 
     return (
 
-        <div className="flex-1 flex flex-col bg-gray-50">
+        <div className="flex h-full min-h-0 flex-col bg-[#f8fafc]">
 
 
-            {/* ================================================= */}
-            {/* HEADER */}
-            {/* ================================================= */}
+            {/* =====================================================
+                CHAT HEADER
+            ===================================================== */}
 
-            <div className="bg-white border-b p-4">
+            <div className="shrink-0 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between gap-4">
 
-                    <div className="flex items-center gap-3">
 
-                        {/* Profile Circle */}
+                    {/* =================================================
+                        DOCTOR / PATIENT
+                    ================================================= */}
 
-                        <div className="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold flex-shrink-0">
+                    <div className="flex min-w-0 items-center gap-3">
 
-                            {conversationName
-                                .charAt(0)
-                                .toUpperCase()}
+                        <div className="relative shrink-0">
+
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-sm font-bold text-white shadow-md shadow-indigo-100">
+
+                                {initials}
+
+                            </div>
+
+
+                            {/* ONLINE STATUS */}
+
+                            <span
+                                className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${
+                                    connected
+                                        ? "bg-emerald-500"
+                                        : "bg-amber-400"
+                                }`}
+                            />
 
                         </div>
 
 
-                        {/* Conversation Information */}
+                        <div className="min-w-0">
 
-                        <div>
-
-                            <h2 className="font-bold text-gray-800">
+                            <h2 className="truncate text-base font-bold text-slate-900 sm:text-lg">
 
                                 {conversationName}
 
                             </h2>
 
 
-                            <p className="text-sm text-gray-500">
+                            <div className="mt-0.5 flex items-center gap-2">
 
-                                Appointment #
-                                {appointmentNumber}
+                                <span className="text-xs text-slate-400">
 
-                            </p>
+                                    {currentUser?.role === "DOCTOR"
+                                        ? "Patient conversation"
+                                        : "Doctor conversation"}
 
-
-                            <p className="text-sm text-gray-400">
-
-                                Date:{" "}
-                                {appointmentDate}
-
-                            </p>
+                                </span>
 
 
-                            <p className="text-sm text-gray-400">
+                                <span className="h-1 w-1 rounded-full bg-slate-300" />
 
-                                Hospital:{" "}
-                                {hospitalName}
 
-                            </p>
+                                <span
+                                    className={`text-xs font-semibold ${
+                                        connected
+                                            ? "text-emerald-600"
+                                            : "text-amber-600"
+                                    }`}
+                                >
+
+                                    {connected
+                                        ? "Online"
+                                        : "Connecting"}
+
+                                </span>
+
+                            </div>
 
                         </div>
 
                     </div>
 
 
-                    {/* ================================================= */}
-                    {/* WEBSOCKET STATUS */}
-                    {/* ================================================= */}
+                    {/* =================================================
+                        CONNECTION STATUS
+                    ================================================= */}
 
-                    <div className="flex items-center gap-2 text-sm">
+                    <div className="hidden shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 sm:flex">
 
                         <span
-                            className={`w-2.5 h-2.5 rounded-full ${
+                            className={`h-2 w-2 rounded-full ${
                                 connected
-                                    ? "bg-green-500"
-                                    : "bg-red-500"
+                                    ? "bg-emerald-500"
+                                    : "bg-amber-400"
                             }`}
                         />
 
 
-                        <span
-                            className={
-                                connected
-                                    ? "text-green-600"
-                                    : "text-red-500"
-                            }
-                        >
+                        <span className="text-xs font-semibold text-slate-600">
 
                             {connected
-                                ? "Online"
+                                ? "Secure connection"
                                 : "Connecting..."}
 
                         </span>
@@ -1121,114 +1030,274 @@ const ChatWindow = ({
 
                 </div>
 
+
+                {/* =================================================
+                    APPOINTMENT INFORMATION
+                ================================================= */}
+
+                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+
+
+                    {/* APPOINTMENT */}
+
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                            Appointment
+                        </p>
+
+
+                        <p className="mt-1 truncate text-xs font-semibold text-slate-700">
+
+                            {appointmentNumber !== "N/A"
+                                ? `#${appointmentNumber}`
+                                : "N/A"}
+
+                        </p>
+
+                    </div>
+
+
+                    {/* DATE */}
+
+                    <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                            Date
+                        </p>
+
+
+                        <p className="mt-1 truncate text-xs font-semibold text-slate-700">
+
+                            {displayAppointmentDate}
+
+                        </p>
+
+                    </div>
+
+
+                    {/* HOSPITAL */}
+
+                    <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                            Hospital
+                        </p>
+
+
+                        <p className="mt-1 truncate text-xs font-semibold text-slate-700">
+
+                            {hospitalName}
+
+                        </p>
+
+                    </div>
+
+                </div>
+
             </div>
 
 
-            {/* ================================================= */}
-            {/* MESSAGES */}
-            {/* ================================================= */}
+            {/* =====================================================
+                MESSAGES AREA
+                ONLY THIS SECTION SCROLLS
+            ===================================================== */}
 
-            <div className="flex-1 overflow-y-auto p-5">
+            <div
+                ref={messagesContainerRef}
+                className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6"
+            >
 
                 {loading ? (
 
-                    <div className="text-center text-gray-400">
+                    <div className="flex min-h-[350px] items-center justify-center">
 
-                        Loading messages...
+                        <div className="text-center">
+
+                            <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600" />
+
+                            <p className="mt-3 text-sm font-medium text-slate-500">
+                                Loading messages...
+                            </p>
+
+                        </div>
 
                     </div>
 
                 ) : messages.length === 0 ? (
 
-                    <div className="text-center text-gray-400 mt-10">
+                    /* =================================================
+                       NO MESSAGES
+                    ================================================= */
 
-                        <div className="text-4xl mb-3">
+                    <div className="flex min-h-[350px] flex-col items-center justify-center text-center">
+
+                        <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-3xl shadow-sm ring-1 ring-slate-100">
                             👋
                         </div>
 
-                        <p>
-                            No messages yet.
-                        </p>
 
-                        <p className="text-sm mt-1">
-                            Start the conversation.
+                        <h3 className="text-base font-bold text-slate-700">
+                            Start the conversation
+                        </h3>
+
+
+                        <p className="mt-1.5 max-w-xs text-sm leading-6 text-slate-400">
+
+                            There are no messages yet.
+                            Send a message to begin communicating
+                            with this doctor.
+
                         </p>
 
                     </div>
 
                 ) : (
 
-                    messages.map(
-                        (message, index) => {
+                    /* =================================================
+                       MESSAGE LIST
+                    ================================================= */
 
-                            const isMine =
-                                String(
-                                    message?.senderId
-                                ) ===
-                                String(
-                                    currentUser?.id
-                                );
+                    <div className="mx-auto w-full max-w-4xl">
 
 
-                            return (
+                        {/* CONVERSATION DIVIDER */}
 
-                                <div
-                                    key={
-                                        message?.id ||
-                                        `${message?.sentAt}-${index}`
-                                    }
-                                    className={`mb-4 flex ${
-                                        isMine
-                                            ? "justify-end"
-                                            : "justify-start"
-                                    }`}
-                                >
+                        <div className="mb-6 flex items-center gap-3">
+
+                            <div className="h-px flex-1 bg-slate-200" />
+
+
+                            <span className="rounded-full bg-white px-3 py-1 text-[10px] font-semibold text-slate-400 shadow-sm ring-1 ring-slate-100">
+
+                                Conversation
+
+                            </span>
+
+
+                            <div className="h-px flex-1 bg-slate-200" />
+
+                        </div>
+
+
+                        {/* MESSAGES */}
+
+                        {messages.map(
+                            (message, index) => {
+
+                                const isMine =
+                                    String(
+                                        message?.senderId
+                                    ) ===
+                                    String(
+                                        currentUser?.id
+                                    );
+
+
+                                return (
 
                                     <div
-                                        className={`max-w-[75%] px-4 py-3 rounded-2xl ${
+                                        key={
+                                            message?.id ||
+                                            `${message?.sentAt}-${index}`
+                                        }
+                                        className={`mb-5 flex ${
                                             isMine
-                                                ? "bg-blue-600 text-white rounded-br-sm"
-                                                : "bg-white text-gray-800 rounded-bl-sm shadow-sm"
+                                                ? "justify-end"
+                                                : "justify-start"
                                         }`}
                                     >
 
-                                        <p className="break-words whitespace-pre-wrap">
-
-                                            {message?.content}
-
-                                        </p>
-
-
-                                        <p
-                                            className={`text-xs mt-1 ${
+                                        <div
+                                            className={`flex max-w-[85%] gap-2.5 sm:max-w-[70%] ${
                                                 isMine
-                                                    ? "text-blue-100"
-                                                    : "text-gray-400"
+                                                    ? "flex-row-reverse"
+                                                    : "flex-row"
                                             }`}
                                         >
 
-                                            {message?.sentAt
-                                                ? new Date(
-                                                      message.sentAt
-                                                  ).toLocaleTimeString(
-                                                      [],
-                                                      {
-                                                          hour: "2-digit",
-                                                          minute: "2-digit"
-                                                      }
-                                                  )
-                                                : ""}
 
-                                        </p>
+                                            {/* AVATAR */}
+
+                                            <div
+                                                className={`mt-1 hidden h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[10px] font-bold sm:flex ${
+                                                    isMine
+                                                        ? "bg-indigo-100 text-indigo-600"
+                                                        : "bg-slate-200 text-slate-600"
+                                                }`}
+                                            >
+
+                                                {isMine
+                                                    ? "ME"
+                                                    : initials}
+
+                                            </div>
+
+
+                                            {/* MESSAGE */}
+
+                                            <div>
+
+                                                <div
+                                                    className={`rounded-2xl px-4 py-3 shadow-sm ${
+                                                        isMine
+                                                            ? "rounded-br-md bg-indigo-600 text-white"
+                                                            : "rounded-bl-md border border-slate-100 bg-white text-slate-700"
+                                                    }`}
+                                                >
+
+                                                    <p className="break-words whitespace-pre-wrap text-sm leading-6">
+
+                                                        {message?.content}
+
+                                                    </p>
+
+                                                </div>
+
+
+                                                {/* TIME */}
+
+                                                <div
+                                                    className={`mt-1.5 flex items-center gap-1 px-1 ${
+                                                        isMine
+                                                            ? "justify-end"
+                                                            : "justify-start"
+                                                    }`}
+                                                >
+
+                                                    <span className="text-[10px] text-slate-400">
+
+                                                        {formatTime(
+                                                            message?.sentAt
+                                                        )}
+
+                                                    </span>
+
+
+                                                    {isMine && (
+
+                                                        <span className="text-[10px] font-semibold text-indigo-500">
+
+                                                            ✓
+
+                                                        </span>
+
+                                                    )}
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
 
                                     </div>
 
-                                </div>
+                                );
 
-                            );
+                            }
+                        )}
 
-                        }
-                    )
+                    </div>
 
                 )}
 
@@ -1238,55 +1307,106 @@ const ChatWindow = ({
             </div>
 
 
-            {/* ================================================= */}
-            {/* INPUT */}
-            {/* ================================================= */}
+            {/* =====================================================
+                MESSAGE INPUT
+                STAYS AT BOTTOM
+            ===================================================== */}
 
-            <div className="bg-white border-t p-4">
+            <div className="shrink-0 border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
 
-                <div className="flex gap-3">
-
-                    <input
-                        type="text"
-                        value={text}
-                        onChange={(event) =>
-                            setText(
-                                event.target.value
-                            )
-                        }
-                        onKeyDown={
-                            handleKeyDown
-                        }
-                        placeholder={
-                            connected
-                                ? "Type a message..."
-                                : "Connecting to chat..."
-                        }
-                        disabled={
-                            !connected ||
-                            sending
-                        }
-                        className="flex-1 border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    />
+                <div className="mx-auto max-w-4xl">
 
 
-                    <button
-                        onClick={
-                            handleSend
-                        }
-                        disabled={
-                            !text.trim() ||
-                            sending ||
-                            !connected
-                        }
-                        className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
+                    {/* INPUT BOX */}
 
-                        {sending
-                            ? "Sending..."
-                            : "Send"}
+                    <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 transition focus-within:border-indigo-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
 
-                    </button>
+
+                        {/* TEXT INPUT */}
+
+                        <input
+                            type="text"
+                            value={text}
+                            onChange={(event) =>
+                                setText(
+                                    event.target.value
+                                )
+                            }
+                            onKeyDown={handleKeyDown}
+                            placeholder={
+                                connected
+                                    ? "Write a message..."
+                                    : "Connecting to secure chat..."
+                            }
+                            disabled={
+                                !connected ||
+                                sending
+                            }
+                            className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-slate-700 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+
+
+                        {/* SEND BUTTON */}
+
+                        <button
+                            type="button"
+                            onClick={handleSend}
+                            disabled={
+                                !text.trim() ||
+                                sending ||
+                                !connected
+                            }
+                            className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-700 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+
+                            {sending ? (
+
+                                <>
+
+                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+
+                                    <span className="hidden sm:inline">
+                                        Sending
+                                    </span>
+
+                                </>
+
+                            ) : (
+
+                                <>
+
+                                    <span>
+                                        ➤
+                                    </span>
+
+
+                                    <span className="hidden sm:inline">
+                                        Send
+                                    </span>
+
+                                </>
+
+                            )}
+
+                        </button>
+
+                    </div>
+
+
+                    {/* INPUT FOOTER */}
+
+                    <div className="mt-2 flex items-center justify-between px-1">
+
+                        <p className="text-[10px] text-slate-400">
+                            Press Enter to send
+                        </p>
+
+
+                        <p className="text-[10px] text-slate-400">
+                            Secure patient communication
+                        </p>
+
+                    </div>
 
                 </div>
 
