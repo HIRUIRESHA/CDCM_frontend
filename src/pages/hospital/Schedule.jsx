@@ -1,8 +1,18 @@
+
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API_URL = "http://localhost:8082/api/schedules";
+/* =========================
+   API
+========================= */
+
+const API_URL =
+  "https://cdcm-backend.onrender.com/api/schedules";
+
+/* =========================
+   STATUS CONFIG
+========================= */
 
 const STATUS_CONFIG = {
   ACCEPTED: {
@@ -12,6 +22,7 @@ const STATUS_CONFIG = {
     dot: "bg-emerald-500",
     border: "border-emerald-200",
   },
+
   PENDING: {
     label: "Pending",
     bg: "bg-amber-50",
@@ -19,6 +30,7 @@ const STATUS_CONFIG = {
     dot: "bg-amber-500",
     border: "border-amber-200",
   },
+
   REJECTED: {
     label: "Rejected",
     bg: "bg-rose-50",
@@ -26,6 +38,7 @@ const STATUS_CONFIG = {
     dot: "bg-rose-500",
     border: "border-rose-200",
   },
+
   CANCELLED: {
     label: "Cancelled",
     bg: "bg-slate-100",
@@ -35,6 +48,10 @@ const STATUS_CONFIG = {
   },
 };
 
+/* =========================
+   DATE / TIME HELPERS
+========================= */
+
 function formatTime(time) {
   if (!time) return "--";
 
@@ -43,7 +60,9 @@ function formatTime(time) {
 
   if (Number.isNaN(hour)) return time;
 
-  const formattedHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+  const formattedHour =
+    hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+
   const period = hour >= 12 ? "PM" : "AM";
 
   return `${formattedHour}:${minutes} ${period}`;
@@ -71,7 +90,9 @@ function formatShortDate(dateStr) {
 
   const date = new Date(`${dateStr}T00:00:00`);
 
-  if (Number.isNaN(date.getTime())) return dateStr;
+  if (Number.isNaN(date.getTime())) {
+    return dateStr;
+  }
 
   return date.toLocaleDateString("en-US", {
     month: "short",
@@ -269,17 +290,21 @@ function ScheduleCard({ schedule }) {
 
   return (
     <div className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:border-indigo-200 hover:shadow-md">
+
       {/* TOP ROW */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+
         {/* LEFT */}
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-4">
+
             {/* Doctor avatar */}
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
               <DoctorIcon className="h-6 w-6" />
             </div>
 
             <div className="min-w-0">
+
               <h3 className="truncate text-lg font-bold text-gray-900">
                 {schedule.doctorName || "Unknown Doctor"}
               </h3>
@@ -289,25 +314,31 @@ function ScheduleCard({ schedule }) {
               </p>
 
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-400">
+
                 <span className="inline-flex items-center gap-1.5">
                   <CalendarIcon className="h-3.5 w-3.5" />
                   {formatShortDate(schedule.date)}
                 </span>
 
-                <span className="text-gray-300">•</span>
+                <span className="text-gray-300">
+                  •
+                </span>
 
                 <span className="inline-flex items-center gap-1.5">
                   <ClockIcon className="h-3.5 w-3.5" />
+
                   {formatTime(schedule.startTime)} -{" "}
                   {formatTime(schedule.endTime)}
                 </span>
+
               </div>
             </div>
           </div>
         </div>
 
         {/* RIGHT */}
-        <div className="flex items-center gap-3 lg:pl-4">
+        <div className="flex flex-wrap items-center gap-3 lg:pl-4">
+
           {/* Schedule type */}
           <span
             className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold ${
@@ -322,7 +353,9 @@ function ScheduleCard({ schedule }) {
               <HospitalIcon className="h-4 w-4" />
             )}
 
-            {isVideo ? "Video Consultation" : "Physical Visit"}
+            {isVideo
+              ? "Video Consultation"
+              : "Physical Visit"}
           </span>
 
           {/* Status */}
@@ -333,17 +366,22 @@ function ScheduleCard({ schedule }) {
               className={`h-2 w-2 rounded-full ${cfg.dot}`}
             />
 
-            <span className={`text-xs font-semibold ${cfg.text}`}>
+            <span
+              className={`text-xs font-semibold ${cfg.text}`}
+            >
               {cfg.label}
             </span>
           </span>
+
         </div>
       </div>
 
       {/* DETAILS */}
       <div className="mt-5 grid grid-cols-1 gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
+
         {/* Date */}
         <div className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
+
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-gray-500 shadow-sm">
             <CalendarIcon className="h-4 w-4" />
           </div>
@@ -357,10 +395,12 @@ function ScheduleCard({ schedule }) {
               {formatDate(schedule.date)}
             </p>
           </div>
+
         </div>
 
         {/* Time */}
         <div className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
+
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-gray-500 shadow-sm">
             <ClockIcon className="h-4 w-4" />
           </div>
@@ -375,14 +415,18 @@ function ScheduleCard({ schedule }) {
               {formatTime(schedule.endTime)}
             </p>
           </div>
+
         </div>
       </div>
 
       {/* VIDEO LINK */}
       {isVideo && schedule.meetingLink && (
         <div className="mt-3 rounded-xl border border-purple-100 bg-purple-50/60 px-4 py-3">
+
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+
             <div className="flex min-w-0 items-center gap-2">
+
               <VideoIcon className="h-4 w-4 shrink-0 text-purple-600" />
 
               <span className="text-xs font-semibold text-purple-700">
@@ -396,6 +440,7 @@ function ScheduleCard({ schedule }) {
               <span className="truncate text-xs text-gray-500">
                 {schedule.meetingLink}
               </span>
+
             </div>
 
             <a
@@ -406,6 +451,7 @@ function ScheduleCard({ schedule }) {
             >
               Open Meeting →
             </a>
+
           </div>
         </div>
       )}
@@ -431,15 +477,53 @@ export default function SchedulePage() {
   const [showFilter, setShowFilter] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  /* =========================
+     GET HOSPITAL
+  ========================= */
+
   const hospital = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem("hospital") || "null");
-    } catch {
+      const storedHospital =
+        localStorage.getItem("hospital");
+
+      if (!storedHospital) {
+        return null;
+      }
+
+      return JSON.parse(storedHospital);
+    } catch (error) {
+      console.error(
+        "Error reading hospital from localStorage:",
+        error
+      );
+
       return null;
     }
   }, []);
 
-  const hospitalId = hospital?.id || hospital?._id;
+  const hospitalId =
+    hospital?.id || hospital?._id;
+
+  /* =========================
+     DEBUG INFORMATION
+  ========================= */
+
+  useEffect(() => {
+    console.log(
+      "Hospital from localStorage:",
+      hospital
+    );
+
+    console.log(
+      "Hospital ID:",
+      hospitalId
+    );
+
+    console.log(
+      "Schedule API:",
+      API_URL
+    );
+  }, [hospital, hospitalId]);
 
   /* =========================
      LOAD SCHEDULES
@@ -447,6 +531,11 @@ export default function SchedulePage() {
 
   const loadSchedules = async (isRefresh = false) => {
     if (!hospitalId) {
+      console.warn(
+        "Hospital ID not found. Cannot load schedules."
+      );
+
+      setSchedules([]);
       setLoading(false);
       return;
     }
@@ -458,23 +547,68 @@ export default function SchedulePage() {
     }
 
     try {
-      let url = `${API_URL}/hospital/${hospitalId}`;
+      let url =
+        `${API_URL}/hospital/${encodeURIComponent(
+          hospitalId
+        )}`;
 
       if (selectedDate) {
-        url += `?date=${selectedDate}`;
+        url += `?date=${encodeURIComponent(
+          selectedDate
+        )}`;
       }
+
+      console.log(
+        "Fetching schedules from:",
+        url
+      );
 
       const response = await axios.get(url);
 
-      setSchedules(Array.isArray(response.data) ? response.data : []);
+      console.log(
+        "Schedule API response:",
+        response.data
+      );
+
+      const data = Array.isArray(response.data)
+        ? response.data
+        : [];
+
+      setSchedules(data);
+
     } catch (error) {
-      console.error("Schedule fetch error:", error);
+
+      console.error(
+        "Schedule fetch error:",
+        error
+      );
+
+      console.error(
+        "Status:",
+        error.response?.status
+      );
+
+      console.error(
+        "Response:",
+        error.response?.data
+      );
+
+      console.error(
+        "Request URL:",
+        error.config?.url
+      );
+
       setSchedules([]);
+
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
+
+  /* =========================
+     LOAD WHEN HOSPITAL / DATE CHANGES
+  ========================= */
 
   useEffect(() => {
     loadSchedules();
@@ -489,19 +623,23 @@ export default function SchedulePage() {
       total: schedules.length,
 
       accepted: schedules.filter(
-        (schedule) => schedule.status === "ACCEPTED"
+        (schedule) =>
+          schedule.status === "ACCEPTED"
       ).length,
 
       pending: schedules.filter(
-        (schedule) => schedule.status === "PENDING"
+        (schedule) =>
+          schedule.status === "PENDING"
       ).length,
 
       rejected: schedules.filter(
-        (schedule) => schedule.status === "REJECTED"
+        (schedule) =>
+          schedule.status === "REJECTED"
       ).length,
 
       cancelled: schedules.filter(
-        (schedule) => schedule.status === "CANCELLED"
+        (schedule) =>
+          schedule.status === "CANCELLED"
       ).length,
     };
   }, [schedules]);
@@ -516,7 +654,8 @@ export default function SchedulePage() {
     }
 
     return schedules.filter(
-      (schedule) => schedule.status === statusFilter
+      (schedule) =>
+        schedule.status === statusFilter
     );
   }, [schedules, statusFilter]);
 
@@ -530,21 +669,25 @@ export default function SchedulePage() {
       label: "All Appointments",
       count: counts.total,
     },
+
     {
       value: "ACCEPTED",
       label: "Accepted",
       count: counts.accepted,
     },
+
     {
       value: "PENDING",
       label: "Pending",
       count: counts.pending,
     },
+
     {
       value: "REJECTED",
       label: "Rejected",
       count: counts.rejected,
     },
+
     {
       value: "CANCELLED",
       label: "Cancelled",
@@ -554,7 +697,8 @@ export default function SchedulePage() {
 
   const activeFilter =
     filterOptions.find(
-      (option) => option.value === statusFilter
+      (option) =>
+        option.value === statusFilter
     ) || filterOptions[0];
 
   /* =========================
@@ -564,8 +708,11 @@ export default function SchedulePage() {
   if (!hospitalId) {
     return (
       <div className="min-h-screen bg-[#F7F8FC] font-sans text-gray-900">
+
         <div className="mx-auto flex min-h-screen max-w-4xl items-center justify-center px-6">
+
           <div className="w-full rounded-3xl border border-gray-200 bg-white p-10 text-center shadow-sm">
+
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
               <HospitalIcon className="h-8 w-8" />
             </div>
@@ -575,16 +722,20 @@ export default function SchedulePage() {
             </h2>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-              We could not find the logged-in hospital information.
-              Please sign in again to continue managing schedules.
+              We could not find the logged-in hospital
+              information. Please sign in again to continue
+              managing schedules.
             </p>
 
             <button
-              onClick={() => navigate("/hospital")}
+              onClick={() =>
+                navigate("/hospital")
+              }
               className="mt-6 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
             >
               Go to Hospital Dashboard
             </button>
+
           </div>
         </div>
       </div>
@@ -597,14 +748,14 @@ export default function SchedulePage() {
 
   return (
     <div className="min-h-screen bg-[#F7F8FC] font-sans text-gray-900">
+
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
 
-        {/* ==================================
-            PAGE HEADER
-        ================================== */}
-
+        {/* PAGE HEADER */}
         <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
           <div>
+
             <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">
               <span className="h-1.5 w-1.5 rounded-full bg-indigo-600" />
               Hospital Management
@@ -615,15 +766,19 @@ export default function SchedulePage() {
             </h1>
 
             <p className="mt-2 max-w-xl text-sm leading-6 text-gray-500">
-              Manage physical and video consultation schedules for
-              your hospital.
+              Manage physical and video consultation
+              schedules for your hospital.
             </p>
+
           </div>
 
           {/* ACTIONS */}
           <div className="flex flex-col gap-2 sm:flex-row">
+
             <button
-              onClick={() => navigate("/hospital/schedule/add")}
+              onClick={() =>
+                navigate("/hospital/schedule/add")
+              }
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
               <PlusIcon className="h-4 w-4" />
@@ -632,41 +787,48 @@ export default function SchedulePage() {
 
             <button
               onClick={() =>
-                navigate("/hospital/schedule/video/add")
+                navigate(
+                  "/hospital/schedule/video/add"
+                )
               }
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-purple-200 hover:bg-purple-50 hover:text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
             >
               <VideoIcon className="h-4 w-4" />
               Video Schedule
             </button>
+
           </div>
         </div>
 
-        {/* ==================================
-            DATE TOOLBAR
-        ================================== */}
-
+        {/* DATE TOOLBAR */}
         <div className="mb-7 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+
               <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                 <CalendarIcon className="h-4 w-4 text-indigo-500" />
                 Schedule Date
               </div>
 
               <div className="flex items-center gap-2">
+
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) =>
-                    setSelectedDate(e.target.value)
+                    setSelectedDate(
+                      e.target.value
+                    )
                   }
                   className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
                 />
 
                 <button
-                  onClick={() => setSelectedDate("")}
+                  onClick={() =>
+                    setSelectedDate("")
+                  }
                   className={`rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                     selectedDate === ""
                       ? "bg-indigo-50 text-indigo-700"
@@ -675,34 +837,42 @@ export default function SchedulePage() {
                 >
                   All Dates
                 </button>
+
               </div>
             </div>
 
             <button
-              onClick={() => loadSchedules(true)}
+              onClick={() =>
+                loadSchedules(true)
+              }
               disabled={refreshing}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <RefreshIcon
                 className={`h-4 w-4 ${
-                  refreshing ? "animate-spin" : ""
+                  refreshing
+                    ? "animate-spin"
+                    : ""
                 }`}
               />
 
-              {refreshing ? "Refreshing..." : "Refresh"}
+              {refreshing
+                ? "Refreshing..."
+                : "Refresh"}
             </button>
+
           </div>
         </div>
 
-        {/* ==================================
-            STATS
-        ================================== */}
-
+        {/* STATS */}
         <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+
           <StatCard
             label="Total"
             value={counts.total}
-            icon={<CalendarIcon className="h-5 w-5" />}
+            icon={
+              <CalendarIcon className="h-5 w-5" />
+            }
             iconBg="bg-indigo-50"
             iconColor="text-indigo-600"
           />
@@ -710,7 +880,11 @@ export default function SchedulePage() {
           <StatCard
             label="Accepted"
             value={counts.accepted}
-            icon={<span className="text-lg font-bold">✓</span>}
+            icon={
+              <span className="text-lg font-bold">
+                ✓
+              </span>
+            }
             iconBg="bg-emerald-50"
             iconColor="text-emerald-600"
             numberColor="text-emerald-600"
@@ -719,7 +893,9 @@ export default function SchedulePage() {
           <StatCard
             label="Pending"
             value={counts.pending}
-            icon={<ClockIcon className="h-5 w-5" />}
+            icon={
+              <ClockIcon className="h-5 w-5" />
+            }
             iconBg="bg-amber-50"
             iconColor="text-amber-600"
             numberColor="text-amber-600"
@@ -728,7 +904,11 @@ export default function SchedulePage() {
           <StatCard
             label="Rejected"
             value={counts.rejected}
-            icon={<span className="text-lg font-bold">×</span>}
+            icon={
+              <span className="text-lg font-bold">
+                ×
+              </span>
+            }
             iconBg="bg-rose-50"
             iconColor="text-rose-600"
             numberColor="text-rose-600"
@@ -737,116 +917,166 @@ export default function SchedulePage() {
           <StatCard
             label="Cancelled"
             value={counts.cancelled}
-            icon={<span className="text-lg font-bold">−</span>}
+            icon={
+              <span className="text-lg font-bold">
+                −
+              </span>
+            }
             iconBg="bg-slate-100"
             iconColor="text-slate-600"
             numberColor="text-slate-600"
           />
+
         </div>
 
-        {/* ==================================
-            APPOINTMENTS HEADER
-        ================================== */}
-
+        {/* APPOINTMENTS HEADER */}
         <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
           <div>
+
             <h2 className="text-lg font-bold text-gray-900">
               Appointments
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
               {selectedDate
-                ? `Schedules for ${formatDate(selectedDate)}`
+                ? `Schedules for ${formatDate(
+                    selectedDate
+                  )}`
                 : "Showing schedules for all dates"}
             </p>
+
           </div>
 
           {/* STATUS FILTER */}
           <div className="relative">
+
             <button
-              onClick={() => setShowFilter((prev) => !prev)}
+              onClick={() =>
+                setShowFilter(
+                  (prev) => !prev
+                )
+              }
               className="inline-flex min-w-[190px] items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
             >
-              <span>{activeFilter.label}</span>
+              <span>
+                {activeFilter.label}
+              </span>
 
               <ChevronDownIcon
                 className={`h-4 w-4 text-gray-400 transition-transform ${
-                  showFilter ? "rotate-180" : ""
+                  showFilter
+                    ? "rotate-180"
+                    : ""
                 }`}
               />
             </button>
 
             {showFilter && (
               <div className="absolute right-0 top-full z-20 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl">
-                {filterOptions.map((option) => {
-                  const selected =
-                    option.value === statusFilter;
 
-                  return (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setStatusFilter(option.value);
-                        setShowFilter(false);
-                      }}
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${
-                        selected
-                          ? "bg-indigo-50 font-semibold text-indigo-700"
-                          : "text-gray-600 hover:bg-gray-50"
-                      }`}
-                    >
-                      <span>{option.label}</span>
+                {filterOptions.map(
+                  (option) => {
 
-                      <span
-                        className={`rounded-md px-2 py-0.5 text-xs ${
+                    const selected =
+                      option.value ===
+                      statusFilter;
+
+                    return (
+                      <button
+                        key={
+                          option.value
+                        }
+                        onClick={() => {
+                          setStatusFilter(
+                            option.value
+                          );
+                          setShowFilter(
+                            false
+                          );
+                        }}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${
                           selected
-                            ? "bg-indigo-100 text-indigo-700"
-                            : "bg-gray-100 text-gray-500"
+                            ? "bg-indigo-50 font-semibold text-indigo-700"
+                            : "text-gray-600 hover:bg-gray-50"
                         }`}
                       >
-                        {option.count}
-                      </span>
-                    </button>
-                  );
-                })}
+
+                        <span>
+                          {option.label}
+                        </span>
+
+                        <span
+                          className={`rounded-md px-2 py-0.5 text-xs ${
+                            selected
+                              ? "bg-indigo-100 text-indigo-700"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {option.count}
+                        </span>
+
+                      </button>
+                    );
+                  }
+                )}
+
               </div>
             )}
+
           </div>
         </div>
 
-        {/* ==================================
-            SCHEDULE LIST
-        ================================== */}
-
+        {/* SCHEDULE LIST */}
         {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="animate-pulse rounded-2xl border border-gray-200 bg-white p-5"
-              >
-                <div className="flex gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-gray-200" />
 
-                  <div className="flex-1">
-                    <div className="h-5 w-48 rounded bg-gray-200" />
-                    <div className="mt-2 h-4 w-32 rounded bg-gray-100" />
-                    <div className="mt-3 h-3 w-64 rounded bg-gray-100" />
+          <div className="space-y-3">
+
+            {[1, 2, 3].map(
+              (item) => (
+
+                <div
+                  key={item}
+                  className="animate-pulse rounded-2xl border border-gray-200 bg-white p-5"
+                >
+
+                  <div className="flex gap-4">
+
+                    <div className="h-12 w-12 rounded-xl bg-gray-200" />
+
+                    <div className="flex-1">
+
+                      <div className="h-5 w-48 rounded bg-gray-200" />
+
+                      <div className="mt-2 h-4 w-32 rounded bg-gray-100" />
+
+                      <div className="mt-3 h-3 w-64 rounded bg-gray-100" />
+
+                    </div>
+
+                    <div className="hidden h-9 w-28 rounded-lg bg-gray-100 sm:block" />
+
                   </div>
 
-                  <div className="hidden h-9 w-28 rounded-lg bg-gray-100 sm:block" />
-                </div>
+                  <div className="mt-5 grid grid-cols-2 gap-3 border-t border-gray-100 pt-4">
 
-                <div className="mt-5 grid grid-cols-2 gap-3 border-t border-gray-100 pt-4">
-                  <div className="h-14 rounded-xl bg-gray-100" />
-                  <div className="h-14 rounded-xl bg-gray-100" />
+                    <div className="h-14 rounded-xl bg-gray-100" />
+
+                    <div className="h-14 rounded-xl bg-gray-100" />
+
+                  </div>
+
                 </div>
-              </div>
-            ))}
+              )
+            )}
+
           </div>
+
         ) : filteredSchedules.length === 0 ? (
+
           /* EMPTY STATE */
           <div className="rounded-3xl border border-gray-200 bg-white px-6 py-16 text-center shadow-sm">
+
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-50 text-gray-300">
               <EmptyCalendarIcon />
             </div>
@@ -856,17 +1086,25 @@ export default function SchedulePage() {
             </h3>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
+
               {statusFilter !== "ALL"
                 ? `There are no ${activeFilter.label.toLowerCase()} schedules for the selected date.`
                 : selectedDate
                 ? "There are no schedules available for the selected date."
                 : "There are no schedules available at the moment."}
+
             </p>
 
             <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
-              {statusFilter !== "ALL" && (
+
+              {statusFilter !==
+                "ALL" && (
                 <button
-                  onClick={() => setStatusFilter("ALL")}
+                  onClick={() =>
+                    setStatusFilter(
+                      "ALL"
+                    )
+                  }
                   className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50"
                 >
                   Clear Filter
@@ -874,74 +1112,103 @@ export default function SchedulePage() {
               )}
 
               <button
-                onClick={() => navigate("/hospital/schedule/add")}
+                onClick={() =>
+                  navigate(
+                    "/hospital/schedule/add"
+                  )
+                }
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
               >
                 <PlusIcon className="h-4 w-4" />
                 Add Schedule
               </button>
+
             </div>
+
           </div>
+
         ) : (
+
           <div className="space-y-3">
-            {filteredSchedules.map((schedule, index) => (
-              <ScheduleCard
-                key={schedule.id || schedule._id || index}
-                schedule={schedule}
-              />
-            ))}
+
+            {filteredSchedules.map(
+              (schedule, index) => (
+
+                <ScheduleCard
+                  key={
+                    schedule.id ||
+                    schedule._id ||
+                    index
+                  }
+                  schedule={schedule}
+                />
+
+              )
+            )}
+
           </div>
         )}
 
-        {/* ==================================
-            FOOTER SUMMARY
-        ================================== */}
+        {/* FOOTER SUMMARY */}
+        {!loading &&
+          filteredSchedules.length >
+            0 && (
 
-        {!loading && filteredSchedules.length > 0 && (
-          <div className="mt-5 flex flex-col gap-2 border-t border-gray-200 pt-5 text-xs text-gray-400 sm:flex-row sm:items-center sm:justify-between">
-            <p>
-              Showing{" "}
-              <span className="font-semibold text-gray-600">
-                {filteredSchedules.length}
-              </span>{" "}
-              of{" "}
-              <span className="font-semibold text-gray-600">
-                {schedules.length}
-              </span>{" "}
-              schedules
-            </p>
+            <div className="mt-5 flex flex-col gap-2 border-t border-gray-200 pt-5 text-xs text-gray-400 sm:flex-row sm:items-center sm:justify-between">
 
-            <p>
-              Last updated automatically when the selected date changes
-            </p>
-          </div>
-        )}
+              <p>
+                Showing{" "}
+                <span className="font-semibold text-gray-600">
+                  {
+                    filteredSchedules.length
+                  }
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-gray-600">
+                  {schedules.length}
+                </span>{" "}
+                schedules
+              </p>
 
-        {/* ==================================
-            INFORMATION PANEL
-        ================================== */}
+              <p>
+                Last updated automatically
+                when the selected date changes
+              </p>
 
+            </div>
+          )}
+
+        {/* INFORMATION PANEL */}
         <div className="mt-8 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5">
+
           <div className="flex items-start gap-3">
+
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-indigo-600 shadow-sm">
               <CalendarIcon className="h-4 w-4" />
             </div>
 
             <div>
+
               <h3 className="text-sm font-semibold text-gray-800">
                 Schedule information
               </h3>
 
               <p className="mt-1 text-xs leading-5 text-gray-500">
-                Use the date selector to view schedules for a
-                specific day, or choose "All Dates" to see all
-                available schedules. Physical and video consultations
-                are clearly identified for easy management.
+                Use the date selector to view
+                schedules for a specific day, or
+                choose "All Dates" to see all
+                available schedules. Physical and
+                video consultations are clearly
+                identified for easy management.
               </p>
+
             </div>
           </div>
+
         </div>
+
       </div>
     </div>
   );
 }
+
