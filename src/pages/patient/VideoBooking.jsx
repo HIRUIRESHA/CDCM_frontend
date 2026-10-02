@@ -344,9 +344,9 @@ export default function VideoConference() {
 
         merchant_id: paymentData.merchantId,
 
-        return_url: "http://localhost:5173/payment-success",
+        return_url: "https://cdcm-frontend.vercel.app/payment-success",
 
-        cancel_url: "http://localhost:5173/payment-failed",
+        cancel_url: "https://cdcm-frontend.vercel.app/payment-failed",
 
         notify_url:
           "https://cdcm-backend.onrender.com/api/payments/notify",

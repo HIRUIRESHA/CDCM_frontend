@@ -184,8 +184,8 @@ function FindDoctor() {
         const payment = {
           sandbox: true, 
           merchant_id: hashData.merchantId, 
-          return_url: "http://localhost:5173/payment-success",
-          cancel_url: "http://localhost:5173/payment-failed",
+          return_url: "https://cdcm-frontend.vercel.app/payment-success",
+          cancel_url: "https://cdcm-frontend.vercel.app/payment-failed",
           notify_url: "https://cdcm-backend.onrender.com/api/payments/notify", 
           order_id: orderId, 
           items: `Booking with Dr. ${bookingDoc.firstName}`,

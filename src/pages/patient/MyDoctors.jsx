@@ -279,8 +279,8 @@ export default function MyDoctors() {
         const payment = {
           sandbox: true,
           merchant_id: hashData.merchantId,
-          return_url: "https://cdcm-backend.onrender.com/payment-success",
-          cancel_url: "https://cdcm-backend.onrender.com/payment-failed",
+          return_url: "https://cdcm-frontend.vercel.app/payment-success",
+          cancel_url: "https://cdcm-frontend.vercel.app/payment-failed",
           notify_url: "https://cdcm-backend.onrender.com/api/payments/notify",
           order_id: orderId,
           items: `Booking with Dr. ${bookingDoc.firstName || bookingDoc.name}`,
