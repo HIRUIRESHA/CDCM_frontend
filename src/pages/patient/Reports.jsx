@@ -230,12 +230,7 @@ await axios.post(
                           Report not uploaded yet
                         </p>
 
-                        <button
-                          onClick={() => goToUploadReport(test.id)}
-                          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
-                        >
-                          📤 Upload Report
-                        </button>
+                        
                       </div>
                     )}
                   </div>
