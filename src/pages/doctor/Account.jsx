@@ -79,10 +79,10 @@ const DoctorAccountPage = () => {
       try {
         setLoading(true);
         const [accountRes, profileRes, hospListRes, feedbackRes] = await Promise.all([
-          fetch(`http://localhost:8082/api/auth/doctors/${doctorId}/account`),
-          fetch(`http://localhost:8082/api/auth/doctors/${doctorId}`),
-          fetch(`http://localhost:8082/api/hospital/doctors/all-hospitals`),
-          fetch(`http://localhost:8082/api/feedback/doctor/${doctorId}`),
+          fetch(`https://cdcm-backend.onrender.com/api/auth/doctors/${doctorId}/account`),
+          fetch(`https://cdcm-backend.onrender.com/api/auth/doctors/${doctorId}`),
+          fetch(`https://cdcm-backend.onrender.com/api/hospital/doctors/all-hospitals`),
+          fetch(`https://cdcm-backend.onrender.com/api/feedback/doctor/${doctorId}`),
         ]);
 
         if (!accountRes.ok || !profileRes.ok || !hospListRes.ok) throw new Error("Failed to fetch data");
@@ -135,7 +135,7 @@ const DoctorAccountPage = () => {
 
     try {
       setSaving(true);
-      const res = await fetch(`http://localhost:8082/api/auth/doctors/${doctorId}/account`, {
+      const res = await fetch(`https://cdcm-backend.onrender.com/api/auth/doctors/${doctorId}/account`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

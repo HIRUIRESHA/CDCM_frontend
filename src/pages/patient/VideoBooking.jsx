@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
 
-const API_URL = "http://localhost:8082/api";
+const API_URL = "https://cdcm-backend.onrender.com/api";
 
 export default function VideoConference() {
   const [searchParams] = useSearchParams();
@@ -349,7 +349,7 @@ export default function VideoConference() {
         cancel_url: "http://localhost:5173/payment-failed",
 
         notify_url:
-          "http://localhost:8082/api/payments/notify",
+          "https://cdcm-backend.onrender.com/api/payments/notify",
 
         order_id: String(appointmentId),
 

@@ -20,8 +20,8 @@ const AppointmentManagement = () => {
     if (!user) return;
     const headers = { Authorization: `Bearer ${token}` };
     Promise.all([
-      fetch(`http://localhost:8082/api/appointments/hospital/${user.id}`, { headers }),
-      fetch(`http://localhost:8082/api/hospital/doctors/hospital/${user.id}`, { headers }),
+      fetch(`https://cdcm-backend.onrender.com/api/appointments/hospital/${user.id}`, { headers }),
+      fetch(`https://cdcm-backend.onrender.com/api/hospital/doctors/hospital/${user.id}`, { headers }),
     ])
       .then(([apptRes, docRes]) => Promise.all([apptRes.json(), docRes.json()]))
       .then(([apptData, docData]) => {
@@ -207,7 +207,7 @@ const AppointmentManagement = () => {
   const handleAutoAssign = async () => {
   try {
     const res = await fetch(
-      `http://localhost:8082/api/appointments/auto-assign/${user.id}?date=${todayISO}`,
+      `https://cdcm-backend.onrender.com/api/appointments/auto-assign/${user.id}?date=${todayISO}`,
       {
         method: "POST",
         headers: {

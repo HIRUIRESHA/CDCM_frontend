@@ -29,7 +29,7 @@ const AddHospital = () => {
     try {
       const token = localStorage.getItem("token"); 
 
-      const response = await fetch('http://localhost:8082/api/admin/register-hospital', {
+      const response = await fetch('https://cdcm-backend.onrender.com/api/admin/register-hospital', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

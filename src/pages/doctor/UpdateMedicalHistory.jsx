@@ -219,7 +219,7 @@ const UpdateMedicalHistory = () => {
 
         // 2. Check access status with backend
         const statusRes = await axios.get(
-          `http://localhost:8082/api/medical-records/access-status?appointmentId=${appointmentId}&doctorId=${doctorId}`,
+          `https://cdcm-backend.onrender.com/api/medical-records/access-status?appointmentId=${appointmentId}&doctorId=${doctorId}`,
           { headers }
         );
 
@@ -247,7 +247,7 @@ const UpdateMedicalHistory = () => {
         setLoadingHistory(true);
         try {
           const historyRes = await axios.get(
-            `http://localhost:8082/api/medical-records/doctor/patient/${patientId}?appointmentId=${appointmentId}&doctorId=${doctorId}`,
+            `https://cdcm-backend.onrender.com/api/medical-records/doctor/patient/${patientId}?appointmentId=${appointmentId}&doctorId=${doctorId}`,
             { headers }
           );
           setPreviousHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
@@ -306,7 +306,7 @@ const UpdateMedicalHistory = () => {
     try {
       setSubmitting(true);
       await axios.post(
-        "http://localhost:8082/api/medical-records/add",
+        "https://cdcm-backend.onrender.com/api/medical-records/add",
         record,
         {
           headers: {

@@ -68,7 +68,7 @@ export default function VideoConference() {
 
     try {
       const res = await axios.get(
-        `http://localhost:8082/api/schedules/doctor/${doctorId}`
+        `https://cdcm-backend.onrender.com/api/schedules/doctor/${doctorId}`
       );
 
       const videoSchedules = (res.data || []).filter(
@@ -127,7 +127,7 @@ export default function VideoConference() {
 
     try {
       await axios.put(
-        `http://localhost:8082/api/schedules/accept/${id}`
+        `https://cdcm-backend.onrender.com/api/schedules/accept/${id}`
       );
 
       showToast(
@@ -156,7 +156,7 @@ export default function VideoConference() {
 
     try {
       await axios.put(
-        `http://localhost:8082/api/schedules/reject/${id}`
+        `https://cdcm-backend.onrender.com/api/schedules/reject/${id}`
       );
 
       showToast(
@@ -195,7 +195,7 @@ export default function VideoConference() {
 
     try {
       await axios.put(
-        `http://localhost:8082/api/schedules/cancel/${cancelTargetId}`
+        `https://cdcm-backend.onrender.com/api/schedules/cancel/${cancelTargetId}`
       );
 
       showToast(
