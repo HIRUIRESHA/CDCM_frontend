@@ -301,25 +301,28 @@ const DoctorAccountPage = () => {
         </CollapsibleSection>
 
         <CollapsibleSection title="Working Hospitals" isOpen={hospitalsOpen} setIsOpen={setHospitalsOpen}>
-          {doctorInfo.hospitals?.length ? (
-            <ul className="space-y-2">
-              {doctorInfo.hospitals.map((hospitalId, i) => {
-                const hospitalObj = allHospitals.find((h) => h.id === hospitalId);
-                return (
-                  <li key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+          {(() => {
+            const validWorkingHospitals = (doctorInfo.hospitals || [])
+              .map((hospitalId) => allHospitals.find((h) => h.id === hospitalId || h._id === hospitalId))
+              .filter(Boolean);
+
+            return validWorkingHospitals.length > 0 ? (
+              <ul className="space-y-2">
+                {validWorkingHospitals.map((hospitalObj, i) => (
+                  <li key={hospitalObj.id || hospitalObj._id || i} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
                     <div className="bg-[#eef1fb] rounded-lg p-1.5">
                       <Building2 size={13} className="text-[#2d3e7a]" />
                     </div>
                     <span className="text-slate-700 text-sm font-medium">
-                      {hospitalObj ? hospitalObj.name : hospitalId}
+                      {hospitalObj.name}
                     </span>
                   </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-slate-400 text-sm italic">No hospitals added yet.</p>
-          )}
+                ))}
+              </ul>
+            ) : (
+              <p className="text-slate-400 text-sm italic">No hospitals added yet.</p>
+            );
+          })()}
         </CollapsibleSection>
 
         <CollapsibleSection title="Patient Feedback" isOpen={feedbackOpen} setIsOpen={setFeedbackOpen}>
