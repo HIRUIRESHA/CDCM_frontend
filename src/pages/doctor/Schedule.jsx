@@ -6,13 +6,30 @@ import {
   showConfirm,
 } from "../../utils/alert";
 
-const API_URL = "https://cdcm-backend.onrender.com/api/schedules";
+const API_URL =
+  "https://cdcm-backend.onrender.com/api/schedules";
 
 /* =========================
    CACHE
 ========================= */
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+const normalizeSchedule = (schedule) => ({
+  ...schedule,
+
+  // Normalize values coming from backend
+  type: String(schedule?.type || "").toUpperCase(),
+  status: String(schedule?.status || "").toUpperCase(),
+});
+
+const normalizeSchedules = (schedules) => {
+  if (!Array.isArray(schedules)) {
+    return [];
+  }
+
+  return schedules.map(normalizeSchedule);
+};
 
 const readValidCache = (doctorId) => {
   try {
@@ -34,6 +51,7 @@ const readValidCache = (doctorId) => {
       sessionStorage.removeItem(
         `doctorScheduleCache_${doctorId}`
       );
+
       return null;
     }
 
@@ -44,10 +62,22 @@ const readValidCache = (doctorId) => {
       sessionStorage.removeItem(
         `doctorScheduleCache_${doctorId}`
       );
+
       return null;
     }
 
-    return parsed;
+    /*
+     * Normalize cached schedules as well.
+     * This prevents old cached values such as
+     * "physical" or "accepted" from causing problems.
+     */
+    const normalizedSchedules =
+      normalizeSchedules(parsed.schedules);
+
+    return {
+      ...parsed,
+      schedules: normalizedSchedules,
+    };
   } catch (error) {
     console.warn(
       "Error reading doctor schedule cache:",
@@ -112,7 +142,7 @@ const statCards = [
     label: "Rejected",
     key: "rejected",
     icon: "✕",
-    iconClass: "bg-rose-50 text-rose-600",
+    iconClass: "bg-rose-50 text-rose-700",
     valueClass: "text-rose-700",
     description: "Declined shifts",
   },
@@ -338,6 +368,7 @@ export default function SchedulePage() {
         "Unable to read user from localStorage:",
         error
       );
+
       return null;
     }
   })();
@@ -417,11 +448,43 @@ export default function SchedulePage() {
         res.data
       );
 
+      /*
+       * Normalize all schedules first.
+       *
+       * Example:
+       * "physical" -> "PHYSICAL"
+       * "Physical" -> "PHYSICAL"
+       * "accepted" -> "ACCEPTED"
+       */
+      const normalizedSchedules =
+        normalizeSchedules(res.data);
+
+      console.log(
+        "Normalized schedules:",
+        normalizedSchedules
+      );
+
+      /*
+       * IMPORTANT FIX:
+       *
+       * Previously:
+       * schedule.type === "PHYSICAL"
+       *
+       * If backend returned "physical" or "Physical",
+       * the schedule was removed.
+       *
+       * Now everything is normalized to uppercase.
+       */
       const physicalSchedules =
-        (res.data || []).filter(
+        normalizedSchedules.filter(
           (schedule) =>
             schedule.type === "PHYSICAL"
         );
+
+      console.log(
+        "Physical schedules:",
+        physicalSchedules
+      );
 
       setSchedules(
         physicalSchedules
@@ -511,13 +574,27 @@ export default function SchedulePage() {
         cachedData.schedules
       );
 
+      /*
+       * Only keep PHYSICAL schedules from cache.
+       */
+      const cachedPhysicalSchedules =
+        cachedData.schedules.filter(
+          (schedule) =>
+            String(
+              schedule?.type || ""
+            ).toUpperCase() ===
+            "PHYSICAL"
+        );
+
       setSchedules(
-        cachedData.schedules
+        cachedPhysicalSchedules
       );
 
       setLoading(false);
 
-      /* Refresh from backend in background */
+      /*
+       * Refresh from backend in background.
+       */
       loadSchedules({
         showLoading: false,
       });
@@ -742,22 +819,34 @@ export default function SchedulePage() {
 
     accepted: schedules.filter(
       (s) =>
-        s.status === "ACCEPTED"
+        String(
+          s.status || ""
+        ).toUpperCase() ===
+        "ACCEPTED"
     ).length,
 
     pending: schedules.filter(
       (s) =>
-        s.status === "PENDING"
+        String(
+          s.status || ""
+        ).toUpperCase() ===
+        "PENDING"
     ).length,
 
     rejected: schedules.filter(
       (s) =>
-        s.status === "REJECTED"
+        String(
+          s.status || ""
+        ).toUpperCase() ===
+        "REJECTED"
     ).length,
 
     cancelled: schedules.filter(
       (s) =>
-        s.status === "CANCELLED"
+        String(
+          s.status || ""
+        ).toUpperCase() ===
+        "CANCELLED"
     ).length,
   };
 
@@ -770,7 +859,10 @@ export default function SchedulePage() {
       ? schedules
       : schedules.filter(
           (s) =>
-            s.status === filter
+            String(
+              s.status || ""
+            ).toUpperCase() ===
+            filter
         );
 
   const filterOptions = [
