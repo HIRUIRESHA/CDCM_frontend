@@ -20,7 +20,7 @@ const Navbar = () => {
           {/* Navigation Buttons */}
           <div className="flex items-center space-x-4">
             <Link to="/find-doctor">
-  <button className="px-6 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition">
+  <button className="px-6 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 transition">
     Channel Your Doctor
   </button>
 </Link>

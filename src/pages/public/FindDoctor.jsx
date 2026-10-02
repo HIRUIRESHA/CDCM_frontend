@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import defaultDocImg from "../../assets/doc1.png";
 import axios from "axios";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 function FindDoctor() {
   const [search, setSearch] = useState("");
@@ -18,6 +19,14 @@ function FindDoctor() {
   const [hospitals, setHospitals] = useState([]);
   const [schedules, setSchedules] = useState({});
   const [loading, setLoading] = useState(true);
+  const [expandedDoctors, setExpandedDoctors] = useState({});
+
+  const toggleDoctorExpand = (docId) => {
+    setExpandedDoctors((prev) => ({
+      ...prev,
+      [docId]: !prev[docId],
+    }));
+  };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bookingDoc, setBookingDoc] = useState(null);
@@ -434,17 +443,6 @@ function FindDoctor() {
 
             {/* Legend + Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-center border-t border-slate-100 pt-5 gap-4">
-              <div className="flex gap-5 text-xs text-slate-500 font-medium">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-blue-50 border-2 border-blue-200 inline-block"></span>Available
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-red-100 border-2 border-red-200 inline-block"></span>Taken
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-blue-700 inline-block"></span>Selected
-                </span>
-              </div>
               <div className="flex gap-3 w-full sm:w-auto">
                 <button
                   onClick={() => setIsModalOpen(false)}
@@ -455,7 +453,7 @@ function FindDoctor() {
                 <button
                   onClick={confirmBooking}
                   disabled={!selectedNumber}
-                  className="flex-1 sm:flex-none px-8 py-3 bg-blue-700 hover:bg-blue-600 text-white rounded-xl font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg"
+                  className="flex-1 sm:flex-none mx-10 px-6 py-3 bg-blue-700 hover:bg-blue-600 text-white rounded-xl font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg"
                 >
                   {selectedNumber ? "Proceed to Payment (LKR 1,000.00)" : "Fully Booked"}
                 </button>
@@ -648,24 +646,57 @@ function FindDoctor() {
                   {/* Schedule Rows */}
                   <div className="flex-1 space-y-2 mb-4">
                     {schedules[doc.id] && schedules[doc.id].length > 0 ? (
-                      schedules[doc.id].map((schedule) => (
-                        <div
-                          key={schedule.id}
-                          className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 hover:border-blue-300 hover:bg-blue-100/60 transition-colors"
-                        >
-                          <div className="flex flex-col gap-0.5 min-w-0 mr-2">
-                            <span className="text-xs font-bold text-blue-950">{schedule.date}</span>
-                            <span className="text-xs text-slate-500">{schedule.startTime} – {schedule.endTime}</span>
-                            <span className="text-xs text-blue-600 font-semibold">{schedule.hospitalName || "Hospital"}</span>
-                          </div>
-                          <button
-                            onClick={() => openBookingModal(doc, schedule)}
-                            className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex-shrink-0 shadow-sm whitespace-nowrap"
-                          >
-                            Book Now
-                          </button>
-                        </div>
-                      ))
+                      (() => {
+                        const docSchedules = schedules[doc.id];
+                        const isExpanded = !!expandedDoctors[doc.id];
+                        const hasMoreThanTwo = docSchedules.length > 2;
+                        const displayedSchedules = hasMoreThanTwo && !isExpanded
+                          ? docSchedules.slice(0, 2)
+                          : docSchedules;
+
+                        return (
+                          <>
+                            {displayedSchedules.map((schedule) => (
+                              <div
+                                key={schedule.id}
+                                className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 hover:border-blue-300 hover:bg-blue-100/60 transition-colors"
+                              >
+                                <div className="flex flex-col gap-0.5 min-w-0 mr-2">
+                                  <span className="text-xs font-bold text-blue-950">{schedule.date}</span>
+                                  <span className="text-xs text-slate-500">{schedule.startTime} – {schedule.endTime}</span>
+                                  <span className="text-xs text-blue-600 font-semibold">{schedule.hospitalName || "Hospital"}</span>
+                                </div>
+                                <button
+                                  onClick={() => openBookingModal(doc, schedule)}
+                                  className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex-shrink-0 shadow-sm whitespace-nowrap"
+                                >
+                                  Book Now
+                                </button>
+                              </div>
+                            ))}
+
+                            {hasMoreThanTwo && (
+                              <button
+                                type="button"
+                                onClick={() => toggleDoctorExpand(doc.id)}
+                                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                              >
+                                {isExpanded ? (
+                                  <>
+                                    <span>Show less</span>
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>Show more ({docSchedules.length - 2} more)</span>
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()
                     ) : (
                       <p className="text-xs text-slate-400 italic py-2">No available schedules at the moment.</p>
                     )}
