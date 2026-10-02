@@ -137,24 +137,24 @@ const HomePage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div>
-              <h1 className="text-5xl font-bold text-blue-600 mb-4">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-600 mb-4">
                 FINDING HEALTHCARE
               </h1>
-              <p className="text-gray-700 mb-8 leading-relaxed">
+              <p className="text-gray-700 mb-8 leading-relaxed text-sm sm:text-base">
                 Discover best doctors and clinics worldwide for immediate care. With just a few clicks, connect 
                 with qualified healthcare professionals, ensuring you receive the treatment you need when you need it most. 
                 Our platform streamlines the process, offering a seamless experience for all your health needs.
               </p>
-              <div className="flex space-x-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <button
                   onClick={() => navigate('/find-doctor')}
-                  className="px-8 py-3 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition font-medium cursor-pointer"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition font-medium cursor-pointer text-center"
                 >
                   Explore by Nearby
                 </button>
                 <button
                   onClick={() => navigate('/find-doctor')}
-                  className="px-8 py-3 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition font-medium cursor-pointer"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition font-medium cursor-pointer text-center"
                 >
                   More Than 50.000+
                 </button>
