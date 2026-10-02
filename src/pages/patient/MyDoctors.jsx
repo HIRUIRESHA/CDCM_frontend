@@ -113,7 +113,7 @@ export default function MyDoctors() {
               const matched = allHospitals.find(
                 (h) => h.id === hId || h._id === hId
               );
-              return matched ? matched.name : hId;
+              return matched ? matched.name : null;
             })
             .filter(Boolean);
 
@@ -185,7 +185,8 @@ export default function MyDoctors() {
               (s) =>
                 s.status === "ACCEPTED" &&
                 s.date >= today &&
-                s.type === "PHYSICAL"
+                s.type === "PHYSICAL" &&
+                (!s.hospitalId || hospitals.some((h) => h.id === s.hospitalId || h._id === s.hospitalId))
             )
             : [];
           setDoctorSchedules((prev) => ({ ...prev, [doctorId]: validSlots }));
@@ -817,14 +818,15 @@ export default function MyDoctors() {
 
                           <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                             {slots.map((schedule) => {
+                              const hospObj = hospitals.find(
+                                (h) =>
+                                  h.id === schedule.hospitalId ||
+                                  h._id === schedule.hospitalId
+                              );
                               const hospName =
                                 schedule.hospitalName ||
-                                hospitals.find(
-                                  (h) =>
-                                    h.id === schedule.hospitalId ||
-                                    h._id === schedule.hospitalId
-                                )?.name ||
-                                "Hospital";
+                                hospObj?.name ||
+                                "";
 
                               return (
                                 <div

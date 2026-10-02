@@ -72,12 +72,13 @@ function FindDoctor() {
               if (schedRes.ok) {
                 const schedData = await schedRes.json();
                 
-               schedulesMap[doc.id] = schedData.filter(
-  (s) =>
-    s.status === "ACCEPTED" &&
-    s.date >= today &&
-    s.type === "PHYSICAL"
-);
+                schedulesMap[doc.id] = (Array.isArray(schedData) ? schedData : []).filter(
+                  (s) =>
+                    s.status === "ACCEPTED" &&
+                    s.date >= today &&
+                    s.type === "PHYSICAL" &&
+                    (!s.hospitalId || hosps.some((h) => h.id === s.hospitalId || h._id === s.hospitalId))
+                );
               } else {
                 schedulesMap[doc.id] = [];
               }
@@ -620,23 +621,26 @@ function FindDoctor() {
                 <div className="px-5 pt-4 pb-5 flex flex-col flex-1">
 
                   {/* Hospital Tags */}
-                  {doc.hospitals && doc.hospitals.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 mb-4">
-                      {doc.hospitals.map((hospitalId) => {
-                        const hospitalObj = hospitals.find((h) => h.id === hospitalId);
-                        return (
+                  {(() => {
+                    const validHospitals = (doc.hospitals || [])
+                      .map((hospitalId) => hospitals.find((h) => h.id === hospitalId || h._id === hospitalId))
+                      .filter(Boolean);
+
+                    return validHospitals.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 mb-4">
+                        {validHospitals.map((hospitalObj) => (
                           <span
-                            key={hospitalId}
+                            key={hospitalObj.id || hospitalObj._id}
                             className="bg-blue-50 text-blue-700 border border-blue-100 text-xs font-semibold px-2.5 py-1 rounded-full"
                           >
-                            🏥 {hospitalObj ? hospitalObj.name : "Unknown Hospital"}
+                            🏥 {hospitalObj.name}
                           </span>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-slate-400 text-xs italic mb-4">Independent Practice</p>
-                  )}
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-400 text-xs italic mb-4">Independent Practice</p>
+                    );
+                  })()}
 
                   {/* Schedule Slots Label */}
                   <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
