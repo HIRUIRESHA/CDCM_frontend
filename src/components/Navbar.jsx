@@ -1,8 +1,20 @@
 import React from 'react';
 import { Link } from "react-router-dom";
-
+import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
+  const { user } = useAuth();
+  const hospital = JSON.parse(localStorage.getItem("hospital") || "null");
+  const isAuthenticated = Boolean(user || hospital);
+
+  const getDashboardPath = () => {
+    const role = user?.role?.toUpperCase();
+    if (role === "ADMIN") return "/admin/dashboard";
+    if (role === "HOSPITAL" || hospital) return "/hospital/dashboard";
+    if (role === "DOCTOR") return "/doctor/dashboard";
+    return "/patient/dashboard";
+  };
+
   return (
     <nav className="bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-6 py-4">
@@ -19,22 +31,35 @@ const Navbar = () => {
 </Link>
           {/* Navigation Buttons */}
           <div className="flex items-center space-x-4">
-            <Link to="/find-doctor">
-  <button className="px-6 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 transition">
-    Channel Your Doctor
-  </button>
-</Link>
-            <Link to="/register">
-  <button className="px-6 py-2 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition">
-    Sign Up
-  </button>
-</Link>
+            {isAuthenticated ? (
+              <Link to={getDashboardPath()}>
+                <button className="px-6 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 transition">
+                  Go to Dashboard
+                </button>
+              </Link>
+            ) : (
+              <Link to="/find-doctor">
+                <button className="px-6 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 transition">
+                  Channel Your Doctor
+                </button>
+              </Link>
+            )}
 
-<Link to="/login">
-  <button className="px-6 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition">
-    Log In
-  </button>
-</Link>
+            {!isAuthenticated && (
+              <>
+                <Link to="/register">
+                  <button className="px-6 py-2 bg-blue-900 text-white rounded-md hover:bg-blue-800 transition">
+                    Sign Up
+                  </button>
+                </Link>
+
+                <Link to="/login">
+                  <button className="px-6 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition">
+                    Log In
+                  </button>
+                </Link>
+              </>
+            )}
 
           </div>
         </div>
