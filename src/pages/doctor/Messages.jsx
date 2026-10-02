@@ -1,6 +1,13 @@
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { getDoctorConversations } from "../../services/chatService";
+import {
+  getDoctorConversations,
+} from "../../services/chatService";
+
 import ConversationList from "../../components/chat/ConversationList";
 import ChatWindow from "../../components/chat/ChatWindow";
 import { useAuth } from "../../context/AuthContext";
@@ -11,9 +18,14 @@ const Messages = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversationId, setSelectedConversationId] =
     useState(null);
+
   const [loading, setLoading] = useState(true);
 
-  // Load conversations
+
+  // =========================================================
+  // LOAD CONVERSATIONS
+  // =========================================================
+
   const loadConversations = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
@@ -23,280 +35,723 @@ const Messages = () => {
     try {
       setLoading(true);
 
-      const data = await getDoctorConversations(user.id);
-      setConversations(Array.isArray(data) ? data : []);
+      const data =
+        await getDoctorConversations(user.id);
+
+      setConversations(
+        Array.isArray(data)
+          ? data
+          : []
+      );
+
     } catch (error) {
-      console.error("Failed to load conversations:", error);
+
+      console.error(
+        "Failed to load conversations:",
+        error
+      );
+
       setConversations([]);
+
     } finally {
+
       setLoading(false);
+
     }
+
   }, [user?.id]);
+
+
+  // =========================================================
+  // LOAD WHEN USER IS AVAILABLE
+  // =========================================================
 
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
 
-  // Handle real-time messages
-  const handleConversationMessage = useCallback((newMessage) => {
-    if (!newMessage?.conversationId) return;
 
-    const conversationId = String(newMessage.conversationId);
+  // =========================================================
+  // HANDLE REAL-TIME MESSAGES
+  // =========================================================
 
-    setConversations((previous) =>
-      previous.map((conversation) => {
-        if (String(conversation.id) !== conversationId) {
-          return conversation;
-        }
+  const handleConversationMessage =
+    useCallback((newMessage) => {
 
-        return {
-          ...conversation,
-          lastMessage:
-            newMessage.content || conversation.lastMessage || "",
-          lastMessageAt:
-            newMessage.sentAt ||
-            conversation.lastMessageAt ||
-            new Date().toISOString(),
-        };
-      })
-    );
-  }, []);
+      if (!newMessage?.conversationId) {
+        return;
+      }
 
-  // Keep selected conversation valid
+      const conversationId =
+        String(newMessage.conversationId);
+
+
+      setConversations((previous) => {
+
+        return previous.map(
+          (conversation) => {
+
+            if (
+              String(conversation.id) !==
+              conversationId
+            ) {
+              return conversation;
+            }
+
+
+            return {
+              ...conversation,
+
+              lastMessage:
+                newMessage.content ||
+                conversation.lastMessage ||
+                "",
+
+              lastMessageAt:
+                newMessage.sentAt ||
+                conversation.lastMessageAt ||
+                new Date().toISOString(),
+            };
+
+          }
+        );
+
+      });
+
+    }, []);
+
+
+  // =========================================================
+  // KEEP SELECTED CONVERSATION VALID
+  // =========================================================
+
   useEffect(() => {
-    if (selectedConversationId === null && conversations.length > 0) {
-      const firstConversation = conversations[0];
+
+    // -------------------------------------------------------
+    // Automatically select first conversation
+    // -------------------------------------------------------
+
+    if (
+      selectedConversationId === null &&
+      conversations.length > 0
+    ) {
+
+      const firstConversation =
+        conversations[0];
 
       if (firstConversation?.id) {
-        setSelectedConversationId(String(firstConversation.id));
+
+        setSelectedConversationId(
+          String(firstConversation.id)
+        );
+
       }
+
       return;
     }
 
-    if (selectedConversationId !== null) {
-      const stillExists = conversations.some(
-        (conversation) =>
-          String(conversation.id) === String(selectedConversationId)
-      );
+
+    // -------------------------------------------------------
+    // Check whether selected conversation still exists
+    // -------------------------------------------------------
+
+    if (
+      selectedConversationId !== null
+    ) {
+
+      const stillExists =
+        conversations.some(
+          (conversation) =>
+            String(conversation.id) ===
+            String(selectedConversationId)
+        );
+
 
       if (!stillExists) {
+
         setSelectedConversationId(null);
+
       }
+
     }
-  }, [conversations, selectedConversationId]);
 
-  // Select conversation
-  const handleSelectConversation = (conversation) => {
-    if (!conversation?.id) return;
+  }, [
+    conversations,
+    selectedConversationId,
+  ]);
 
-    const conversationId = String(conversation.id);
 
-    if (String(selectedConversationId) === conversationId) return;
+  // =========================================================
+  // SELECT CONVERSATION
+  // =========================================================
 
-    setSelectedConversationId(conversationId);
-  };
+  const handleSelectConversation =
+    (conversation) => {
 
-  // Get selected conversation
+      if (!conversation?.id) {
+        return;
+      }
+
+      const conversationId =
+        String(conversation.id);
+
+
+      if (
+        String(selectedConversationId) ===
+        conversationId
+      ) {
+        return;
+      }
+
+
+      setSelectedConversationId(
+        conversationId
+      );
+
+    };
+
+
+  // =========================================================
+  // SELECTED CONVERSATION
+  // =========================================================
+
   const selectedConversation =
     conversations.find(
       (conversation) =>
-        String(conversation.id) === String(selectedConversationId)
+        String(conversation.id) ===
+        String(selectedConversationId)
     ) || null;
 
-  // Login required
+
+  // =========================================================
+  // LOGIN REQUIRED
+  // =========================================================
+
   if (!user) {
+
     return (
-      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-[#f2f4fc] p-6">
-        <div className="rounded-2xl border border-indigo-100 bg-white p-10 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-3xl text-indigo-600">
+
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+
+        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-xl">
+
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-3xl text-indigo-600">
             ✉
           </div>
+
+
           <h2 className="text-xl font-bold text-slate-800">
             Login Required
           </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Please login to view your messages.
+
+
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">
+            Please login to access your patient
+            conversations.
           </p>
+
         </div>
+
       </div>
+
     );
+
   }
 
+
+  // =========================================================
+  // MAIN UI
+  // =========================================================
+
   return (
-    <div className="flex min-h-[calc(100vh-80px)] flex-col bg-[#f2f4fc] p-4 font-inter sm:p-6 lg:p-8">
 
-      {/* Gradient Header */}
-      <div className="relative mb-6 overflow-hidden rounded-[24px] bg-gradient-to-r from-[#17265e] via-[#4f46e5] to-[#0f766e] px-5 py-6 text-white shadow-lg sm:px-8 sm:py-7">
+    <div className="min-h-screen bg-[#f5f7fb] font-inter">
 
-        {/* Decorative background circles */}
-        <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full border-[45px] border-white/[0.06]" />
-        <div className="pointer-events-none absolute -bottom-32 left-[35%] h-64 w-64 rounded-full bg-white/[0.04]" />
 
-        <div className="relative z-10 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+      {/* ===================================================== */}
+      {/* HEADER */}
+      {/* ===================================================== */}
 
-          {/* Page title */}
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-3xl shadow-md backdrop-blur-sm">
-              ✉
-            </div>
+      <header className="border-b border-slate-200 bg-white">
 
-            <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-100">
-                Doctor Portal
-              </p>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Messages
-              </h1>
-              <p className="mt-1 text-sm text-indigo-100">
-                Communicate with your patients and manage conversations
-              </p>
-            </div>
-          </div>
+        <div className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 lg:px-8">
 
-          {/* Conversation count and refresh */}
-          <div className="flex items-center gap-3 self-start sm:self-center">
-            <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-100">
-                Conversations
-              </p>
-              <p className="mt-1 text-2xl font-bold">
-                {conversations.length}
-              </p>
-            </div>
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
-            <button
-              onClick={loadConversations}
-              disabled={loading}
-              className="flex h-12 items-center gap-2 rounded-xl border border-white/20 bg-white/15 px-4 text-sm font-semibold text-white transition hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Refresh conversations"
-            >
-              <span className={loading ? "animate-spin" : ""}>↻</span>
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {/* Chat content */}
-      <main className="flex min-h-[500px] flex-1 flex-col overflow-hidden rounded-[24px] border border-indigo-100/80 bg-white shadow-[0_8px_35px_rgba(40,50,100,0.07)]">
+            {/* ================================================= */}
+            {/* LEFT HEADER */}
+            {/* ================================================= */}
 
-        {/* Chat panel heading */}
-        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-7">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-xl text-indigo-600">
-              ☏
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-800">
-                Patient Conversations
-              </h2>
-              <p className="mt-0.5 text-xs text-slate-400">
-                Select a conversation to start messaging
-              </p>
-            </div>
-          </div>
+            <div className="flex items-center gap-4">
 
-          <div className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 sm:flex">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Messaging
-          </div>
-        </div>
-
-        {/* Conversation list and chat window */}
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-
-          {loading ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-white">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600" />
-              <p className="text-sm font-medium text-slate-500">
-                Loading conversations...
-              </p>
-            </div>
-          ) : conversations.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
-              <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-50 to-teal-50 text-4xl text-indigo-500">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-2xl text-white shadow-lg shadow-indigo-200">
                 ✉
               </div>
-              <h3 className="text-lg font-bold text-slate-800">
-                No conversations yet
-              </h3>
-              <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-400">
-                Your patient conversations will appear here when available.
-              </p>
+
+
+              <div>
+
+                <div className="flex items-center gap-2">
+
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">
+                    Doctor Portal
+                  </p>
+
+                  <span className="h-1 w-1 rounded-full bg-slate-300" />
+
+                  <span className="text-xs font-medium text-slate-400">
+                    Messaging
+                  </span>
+
+                </div>
+
+
+                <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                  Patient Messages
+                </h1>
+
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Communicate securely with your patients
+                </p>
+
+              </div>
+
+            </div>
+
+
+            {/* ================================================= */}
+            {/* RIGHT HEADER */}
+            {/* ================================================= */}
+
+            <div className="flex items-center gap-3">
+
+
+              {/* =============================================== */}
+              {/* CONVERSATION COUNT */}
+              {/* =============================================== */}
+
+              <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-sm font-bold text-indigo-600">
+
+                  {conversations.length}
+
+                </div>
+
+
+                <div>
+
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Conversations
+                  </p>
+
+                  <p className="text-sm font-semibold text-slate-700">
+                    Active chats
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              {/* =============================================== */}
+              {/* REFRESH */}
+              {/* =============================================== */}
+
               <button
                 onClick={loadConversations}
-                className="mt-5 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700"
+                disabled={loading}
+                className="flex h-12 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Refresh conversations"
               >
-                Refresh conversations
+
+                <span
+                  className={`text-lg ${
+                    loading
+                      ? "animate-spin"
+                      : ""
+                  }`}
+                >
+                  ↻
+                </span>
+
+
+                <span className="hidden sm:inline">
+                  Refresh
+                </span>
+
               </button>
+
             </div>
-          ) : (
-            <>
-              {/* Conversation sidebar */}
-              <div className="flex min-h-0 w-full shrink-0 flex-col overflow-hidden border-r border-slate-100 bg-white md:w-[320px] lg:w-[350px] xl:w-[380px]">
-                <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Recent Chats
-                  </p>
-                </div>
 
-                <div className="min-h-0 flex-1 overflow-y-auto">
-                  <ConversationList
-                    conversations={conversations}
-                    selectedConversationId={selectedConversationId}
-                    onSelectConversation={handleSelectConversation}
-                    currentUser={user}
-                  />
-                </div>
-              </div>
+          </div>
 
-              {/* Chat window */}
-              <div
-                className={`min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#f8faff] ${
-                  selectedConversation
-                    ? "flex"
-                    : "hidden md:flex"
-                }`}
-              >
-                {selectedConversation ? (
-                  <ChatWindow
-                    conversation={selectedConversation}
-                    conversations={conversations}
-                    currentUser={user}
-                    onConversationMessage={handleConversationMessage}
-                  />
-                ) : (
-                  <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-                    <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-100 to-teal-50 text-4xl text-indigo-600">
-                      ✉
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-800">
-                      Your messages
-                    </h3>
-                    <p className="mt-2 max-w-xs text-sm leading-relaxed text-slate-400">
-                      Choose a patient from the conversation list to view
-                      messages and continue your conversation.
-                    </p>
-                    <div className="mt-5 flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-medium text-slate-500 shadow-sm">
-                      <span className="h-2 w-2 rounded-full bg-teal-500" />
-                      {conversations.length} conversations available
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
         </div>
+
+      </header>
+
+
+      {/* ===================================================== */}
+      {/* MAIN */}
+      {/* ===================================================== */}
+
+      <main className="mx-auto max-w-[1600px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+
+
+        {/* =================================================== */}
+        {/* MESSAGING CARD */}
+        {/* =================================================== */}
+
+        <section
+          className="
+            flex
+            h-[calc(100vh-230px)]
+            min-h-[600px]
+            flex-col
+            overflow-hidden
+            rounded-3xl
+            border
+            border-slate-200
+            bg-white
+            shadow-[0_8px_30px_rgba(15,23,42,0.06)]
+          "
+        >
+
+
+          {/* ================================================= */}
+          {/* PANEL HEADER */}
+          {/* ================================================= */}
+
+          <div className="flex shrink-0 flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+
+
+            {/* =============================================== */}
+            {/* PANEL TITLE */}
+            {/* =============================================== */}
+
+            <div className="flex items-center gap-3">
+
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-lg text-indigo-600">
+                ☏
+              </div>
+
+
+              <div>
+
+                <h2 className="text-sm font-bold text-slate-800 sm:text-base">
+                  Patient Conversations
+                </h2>
+
+
+                <p className="text-xs text-slate-400">
+                  Select a conversation to view messages
+                </p>
+
+              </div>
+
+            </div>
+
+
+            {/* =============================================== */}
+            {/* ONLINE INDICATOR */}
+            {/* =============================================== */}
+
+            <div className="flex w-fit items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+
+              <span className="relative flex h-2.5 w-2.5">
+
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50" />
+
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+
+              </span>
+
+              Messaging active
+
+            </div>
+
+          </div>
+
+
+          {/* ================================================= */}
+          {/* CHAT AREA */}
+          {/* ================================================= */}
+
+          <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+
+
+            {/* ================================================= */}
+            {/* LOADING */}
+            {/* ================================================= */}
+
+            {loading ? (
+
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+
+                <div className="h-11 w-11 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600" />
+
+                <p className="mt-4 text-sm font-semibold text-slate-600">
+                  Loading conversations
+                </p>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  Please wait...
+                </p>
+
+              </div>
+
+
+            ) : conversations.length === 0 ? (
+
+
+              /* ================================================= */
+              /* EMPTY STATE */
+              /* ================================================= */
+
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+
+                <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-indigo-50 text-4xl text-indigo-500">
+                  ✉
+                </div>
+
+
+                <h3 className="text-xl font-bold text-slate-800">
+                  No conversations yet
+                </h3>
+
+
+                <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
+                  Patient conversations will appear
+                  here when a conversation becomes
+                  available.
+                </p>
+
+
+                <button
+                  onClick={loadConversations}
+                  className="mt-6 flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700"
+                >
+
+                  <span>
+                    ↻
+                  </span>
+
+                  Refresh conversations
+
+                </button>
+
+              </div>
+
+
+            ) : (
+
+
+              /* ================================================= */
+              /* CONVERSATIONS + CHAT */
+              /* ================================================= */
+
+              <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+
+
+                {/* ================================================= */}
+                {/* SIDEBAR */}
+                {/* ================================================= */}
+
+                <aside
+                  className="
+                    flex
+                    h-full
+                    min-h-0
+                    w-full
+                    shrink-0
+                    flex-col
+                    border-b
+                    border-slate-200
+                    bg-white
+                    md:w-[320px]
+                    md:border-b-0
+                    md:border-r
+                    lg:w-[360px]
+                    xl:w-[390px]
+                  "
+                >
+
+
+                  {/* ============================================= */}
+                  {/* SIDEBAR HEADER */}
+                  {/* ============================================= */}
+
+                  <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+
+                    <div>
+
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Recent Chats
+                      </p>
+
+
+                      <p className="mt-0.5 text-xs text-slate-400">
+
+                        {conversations.length}
+
+                        {" "}
+
+                        conversation
+                        {conversations.length !== 1
+                          ? "s"
+                          : ""}
+
+                      </p>
+
+                    </div>
+
+
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-xs font-bold text-indigo-600 shadow-sm">
+
+                      {conversations.length}
+
+                    </div>
+
+                  </div>
+
+
+                  {/* ============================================= */}
+                  {/* CONVERSATION LIST */}
+                  {/* ============================================= */}
+
+                  <div className="min-h-0 flex-1 overflow-hidden">
+
+                    <ConversationList
+                      conversations={
+                        conversations
+                      }
+
+                      selectedConversationId={
+                        selectedConversationId
+                      }
+
+                      onSelectConversation={
+                        handleSelectConversation
+                      }
+
+                      currentUser={user}
+                    />
+
+                  </div>
+
+                </aside>
+
+
+                {/* ================================================= */}
+                {/* CHAT WINDOW */}
+                {/* ================================================= */}
+
+                <div className="min-h-0 min-w-0 flex-1 bg-[#f8fafc]">
+
+
+                  {selectedConversation ? (
+
+                    <ChatWindow
+                      conversation={
+                        selectedConversation
+                      }
+
+                      conversations={
+                        conversations
+                      }
+
+                      currentUser={user}
+
+                      onConversationMessage={
+                        handleConversationMessage
+                      }
+                    />
+
+                  ) : (
+
+
+                    /* ============================================= */
+                    /* SELECT CONVERSATION */
+                    /* ============================================= */
+
+                    <div className="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
+
+                      <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-white text-4xl text-indigo-400 shadow-sm ring-1 ring-slate-100">
+                        💬
+                      </div>
+
+
+                      <h3 className="text-xl font-bold text-slate-800">
+                        Select a conversation
+                      </h3>
+
+
+                      <p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">
+                        Choose a patient from the
+                        conversation list to view
+                        messages and continue your
+                        conversation.
+                      </p>
+
+
+                      <div className="mt-6 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-500 shadow-sm">
+
+                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+
+                        {conversations.length}
+
+                        {" "}
+
+                        conversations available
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                </div>
+
+              </div>
+
+            )}
+
+          </div>
+
+        </section>
+
+
+        {/* ===================================================== */}
+        {/* FOOTER INFO */}
+        {/* ===================================================== */}
+
+        <div className="mt-5 flex flex-col gap-2 px-1 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+
+          <p>
+            Doctor Portal · Patient Messaging
+          </p>
+
+
+          <div className="flex items-center gap-2">
+
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+
+            <span>
+              Keep patient conversations professional
+              and confidential.
+            </span>
+
+          </div>
+
+        </div>
+
       </main>
 
-      {/* Footer */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 px-2 text-xs text-slate-400">
-        <p>Doctor Portal · Patient Messaging</p>
-        <p>Keep patient conversations professional and confidential.</p>
-      </div>
     </div>
+
   );
 };
 
 export default Messages;
-

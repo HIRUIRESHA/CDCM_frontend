@@ -306,7 +306,7 @@ export default function AddSchedulePage() {
         date: form.date,
         startTime: form.startTime,
         endTime: form.endTime,
-        type: "IN_PERSON",
+        type: "PHYSICAL",
         meetingLink: "",
       });
 
