@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -238,6 +237,7 @@ export default function AddVideoConsultingSchedule() {
     startTime: "",
     endTime: "",
     meetingLink: "",
+    maximumPatients: "1",
   });
 
   const [doctors, setDoctors] = useState([]);
@@ -311,7 +311,8 @@ export default function AddVideoConsultingSchedule() {
   const selectedDoctor = useMemo(() => {
     return doctors.find(
       (doctor) =>
-        String(doctor.id || doctor._id) === String(form.doctorId)
+        String(doctor.id || doctor._id) ===
+        String(form.doctorId)
     );
   }, [doctors, form.doctorId]);
 
@@ -350,7 +351,8 @@ export default function AddVideoConsultingSchedule() {
       !form.date ||
       !form.startTime ||
       !form.endTime ||
-      !form.meetingLink.trim()
+      !form.meetingLink.trim() ||
+      !form.maximumPatients
     ) {
       await showWarning(
         "Please fill in all required fields."
@@ -375,6 +377,18 @@ export default function AddVideoConsultingSchedule() {
     if (form.startTime >= form.endTime) {
       await showWarning(
         "End time must be later than start time."
+      );
+      return false;
+    }
+
+    const maximumPatients = Number(form.maximumPatients);
+
+    if (
+      !Number.isInteger(maximumPatients) ||
+      maximumPatients <= 0
+    ) {
+      await showWarning(
+        "Maximum patients must be a whole number greater than 0."
       );
       return false;
     }
@@ -426,6 +440,10 @@ export default function AddVideoConsultingSchedule() {
         endTime: form.endTime,
         type: "VIDEO",
         meetingLink: form.meetingLink.trim(),
+
+        // IMPORTANT:
+        // Backend ScheduleRequest requires this value.
+        maximumPatients: Number(form.maximumPatients),
       });
 
       await showSuccess(
@@ -434,7 +452,15 @@ export default function AddVideoConsultingSchedule() {
 
       navigate("/hospital/schedule");
     } catch (err) {
-      console.error("Video schedule creation error:", err);
+      console.error(
+        "Video schedule creation error:",
+        err
+      );
+
+      console.error(
+        "Backend response:",
+        err?.response?.data
+      );
 
       const backendMessage =
         err?.response?.data?.message ||
@@ -470,8 +496,9 @@ export default function AddVideoConsultingSchedule() {
             </h2>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-              We could not find the logged-in hospital information.
-              Please sign in again to create a video schedule.
+              We could not find the logged-in hospital
+              information. Please sign in again to create a
+              video schedule.
             </p>
 
             <button
@@ -516,8 +543,9 @@ export default function AddVideoConsultingSchedule() {
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-              Create a virtual consultation schedule and send the
-              meeting details directly to an assigned doctor.
+              Create a virtual consultation schedule and send
+              the meeting details directly to an assigned
+              doctor.
             </p>
           </div>
         </div>
@@ -589,7 +617,9 @@ export default function AddVideoConsultingSchedule() {
                     name="doctorId"
                     value={form.doctorId}
                     onChange={handleChange}
-                    disabled={loadingDoctors || submitting}
+                    disabled={
+                      loadingDoctors || submitting
+                    }
                     className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-10 text-sm text-gray-700 outline-none transition focus:border-purple-400 focus:bg-white focus:ring-2 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <option value="">
@@ -601,7 +631,8 @@ export default function AddVideoConsultingSchedule() {
                     </option>
 
                     {doctors.map((doctor) => {
-                      const doctorId = doctor.id || doctor._id;
+                      const doctorId =
+                        doctor.id || doctor._id;
 
                       return (
                         <option
@@ -612,7 +643,8 @@ export default function AddVideoConsultingSchedule() {
                           {doctor.firstName || ""}{" "}
                           {doctor.lastName || ""}
                           {" · "}
-                          {doctor.specialization || "General"}
+                          {doctor.specialization ||
+                            "General"}
                         </option>
                       );
                     })}
@@ -631,12 +663,13 @@ export default function AddVideoConsultingSchedule() {
                   </div>
                 </div>
 
-                {!loadingDoctors && doctors.length === 0 && (
-                  <p className="mt-2 text-xs text-amber-600">
-                    No doctors are currently assigned to this
-                    hospital.
-                  </p>
-                )}
+                {!loadingDoctors &&
+                  doctors.length === 0 && (
+                    <p className="mt-2 text-xs text-amber-600">
+                      No doctors are currently assigned to this
+                      hospital.
+                    </p>
+                  )}
               </div>
 
               {/* SELECTED DOCTOR */}
@@ -660,7 +693,8 @@ export default function AddVideoConsultingSchedule() {
                       </p>
 
                       <p className="mt-0.5 text-xs text-gray-500">
-                        {selectedDoctor.specialization || "General"}
+                        {selectedDoctor.specialization ||
+                          "General"}
                       </p>
                     </div>
                   </div>
@@ -784,6 +818,36 @@ export default function AddVideoConsultingSchedule() {
                   )}
               </div>
 
+              {/* MAXIMUM PATIENTS */}
+
+              <div>
+                <label
+                  htmlFor="maximumPatients"
+                  className="mb-2 block text-sm font-semibold text-gray-700"
+                >
+                  Maximum Patients
+                  <span className="ml-1 text-rose-500">*</span>
+                </label>
+
+                <input
+                  id="maximumPatients"
+                  type="number"
+                  name="maximumPatients"
+                  min="1"
+                  step="1"
+                  value={form.maximumPatients}
+                  onChange={handleChange}
+                  disabled={submitting}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-gray-700 outline-none transition focus:border-purple-400 focus:bg-white focus:ring-2 focus:ring-purple-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  placeholder="Enter maximum number of patients"
+                />
+
+                <p className="mt-2 text-xs text-gray-400">
+                  Set the maximum number of patients who can book
+                  this video consultation.
+                </p>
+              </div>
+
               {/* MEETING LINK */}
 
               <div>
@@ -816,9 +880,9 @@ export default function AddVideoConsultingSchedule() {
                   <InfoIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" />
 
                   <p className="text-xs leading-5 text-gray-400">
-                    Add the Zoom, Google Meet, Microsoft Teams, or
-                    other valid online meeting URL that the doctor
-                    will use for the consultation.
+                    Add the Zoom, Google Meet, Microsoft Teams,
+                    or other valid online meeting URL that the
+                    doctor will use for the consultation.
                   </p>
                 </div>
               </div>
@@ -828,7 +892,9 @@ export default function AddVideoConsultingSchedule() {
               <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => navigate("/hospital/schedule")}
+                  onClick={() =>
+                    navigate("/hospital/schedule")
+                  }
                   disabled={submitting}
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -978,6 +1044,26 @@ export default function AddVideoConsultingSchedule() {
 
                 <div className="my-4 border-t border-gray-200" />
 
+                {/* MAXIMUM PATIENTS */}
+
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm">
+                    <DoctorIcon className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                      Maximum Patients
+                    </p>
+
+                    <p className="mt-0.5 text-sm font-semibold text-gray-700">
+                      {form.maximumPatients || "Not set"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="my-4 border-t border-gray-200" />
+
                 {/* MEETING LINK */}
 
                 <div className="flex items-start gap-3">
@@ -1050,8 +1136,14 @@ export default function AddVideoConsultingSchedule() {
 
                     <li className="flex gap-2">
                       <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-purple-400" />
-                      Make sure the end time is later than the start
-                      time.
+                      Make sure the end time is later than the
+                      start time.
+                    </li>
+
+                    <li className="flex gap-2">
+                      <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-purple-400" />
+                      Set the maximum number of patients allowed
+                      for the consultation.
                     </li>
 
                     <li className="flex gap-2">
@@ -1061,7 +1153,8 @@ export default function AddVideoConsultingSchedule() {
 
                     <li className="flex gap-2">
                       <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-purple-400" />
-                      The schedule will be sent to the selected doctor.
+                      The schedule will be sent to the selected
+                      doctor.
                     </li>
                   </ul>
                 </div>
