@@ -77,6 +77,23 @@ function ClockIcon({ className = "w-5 h-5" }) {
   );
 }
 
+function UsersIcon({ className = "w-5 h-5" }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20a6 6 0 0 1 12 0" />
+      <path d="M16 4.5a3 3 0 0 1 0 5.8" />
+      <path d="M18 14a5 5 0 0 1 3 4.5" />
+    </svg>
+  );
+}
+
 function ArrowLeftIcon({ className = "w-4 h-4" }) {
   return (
     <svg
@@ -153,6 +170,8 @@ export default function AddSchedulePage() {
     date: "",
     startTime: "",
     endTime: "",
+    roomNumber: "",
+    maximumPatients: "",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -193,9 +212,7 @@ export default function AddSchedulePage() {
         console.error("Doctor loading error:", err);
 
         setDoctors([]);
-        setError(
-          "Unable to load doctors assigned to this hospital."
-        );
+        setError("Unable to load doctors assigned to this hospital.");
       } finally {
         setLoadingDoctors(false);
       }
@@ -231,7 +248,7 @@ export default function AddSchedulePage() {
   }, [doctors, form.doctorId]);
 
   /* =========================
-     DATE
+     TODAY
   ========================= */
 
   const today = new Date().toLocaleDateString("en-CA");
@@ -245,10 +262,12 @@ export default function AddSchedulePage() {
       !form.doctorId ||
       !form.date ||
       !form.startTime ||
-      !form.endTime
+      !form.endTime ||
+      !form.roomNumber.trim() ||
+      !form.maximumPatients
     ) {
       await showWarning(
-        "Please fill in all fields before creating the schedule."
+        "Please fill in all required fields before creating the schedule."
       );
 
       return false;
@@ -262,9 +281,72 @@ export default function AddSchedulePage() {
       return false;
     }
 
+    /* =========================
+       DATE VALIDATION
+    ========================= */
+
+    if (form.date < today) {
+      await showWarning(
+        "Consultation date cannot be in the past."
+      );
+
+      return false;
+    }
+
+    /* =========================
+       TIME VALIDATION
+    ========================= */
+
     if (form.startTime >= form.endTime) {
       await showWarning(
         "End time must be later than start time."
+      );
+
+      return false;
+    }
+
+    /* =========================
+       ROOM VALIDATION
+    ========================= */
+
+    const roomNumber = form.roomNumber.trim();
+
+    if (roomNumber.length === 0) {
+      await showWarning(
+        "Please enter the room number for the physical consultation."
+      );
+
+      return false;
+    }
+
+    if (roomNumber.length > 50) {
+      await showWarning(
+        "Room number cannot be longer than 50 characters."
+      );
+
+      return false;
+    }
+
+    /* =========================
+       MAXIMUM PATIENT VALIDATION
+    ========================= */
+
+    const maximumPatients = Number(form.maximumPatients);
+
+    if (
+      !Number.isInteger(maximumPatients) ||
+      maximumPatients <= 0
+    ) {
+      await showWarning(
+        "Maximum patients must be a whole number greater than 0."
+      );
+
+      return false;
+    }
+
+    if (maximumPatients > 1000) {
+      await showWarning(
+        "Maximum patients cannot be greater than 1000."
       );
 
       return false;
@@ -289,7 +371,7 @@ export default function AddSchedulePage() {
       : "the selected doctor";
 
     const confirmed = await showConfirm(
-      `Do you want to create and send this schedule to ${doctorName}?`,
+      `Do you want to create and send this physical schedule to ${doctorName}?`,
       "Create and Send Schedule?",
       "Yes, Send"
     );
@@ -300,27 +382,50 @@ export default function AddSchedulePage() {
     setError("");
 
     try {
+      const maximumPatients = Number(form.maximumPatients);
+      const roomNumber = form.roomNumber.trim();
+
+      /* =========================
+         CREATE PHYSICAL SCHEDULE
+      ========================= */
+
       await axios.post(`${API_URL}/schedules`, {
         doctorId: form.doctorId,
         hospitalId: hospitalId,
         date: form.date,
         startTime: form.startTime,
         endTime: form.endTime,
+
+        // Backend expects PHYSICAL or VIDEO
         type: "PHYSICAL",
-        meetingLink: "",
+
+        // Physical schedules do not use a meeting link
+        meetingLink: null,
+
+        // Required for physical schedules
+        roomNumber: roomNumber,
+
+        // Required by ScheduleService
+        maximumPatients: maximumPatients,
       });
 
       await showSuccess(
-        "Schedule created and sent to the doctor successfully!"
+        "Physical schedule created and sent to the doctor successfully!"
       );
 
       navigate("/hospital/schedule");
     } catch (err) {
       console.error("Schedule creation error:", err);
 
+      /* =========================
+         BACKEND ERROR MESSAGE
+      ========================= */
+
       const backendMessage =
-        err?.response?.data?.message ||
-        err?.response?.data?.error;
+        typeof err?.response?.data === "string"
+          ? err.response.data
+          : err?.response?.data?.message ||
+            err?.response?.data?.error;
 
       const message =
         backendMessage ||
@@ -370,7 +475,7 @@ export default function AddSchedulePage() {
 
   /* =========================
      PAGE
-  ========================= */
+========================= */
 
   return (
     <div className="min-h-screen bg-[#F7F8FC] font-sans text-gray-900">
@@ -523,8 +628,7 @@ export default function AddSchedulePage() {
 
                 {!loadingDoctors && doctors.length === 0 && (
                   <p className="mt-2 text-xs text-amber-600">
-                    No doctors are currently assigned to this
-                    hospital.
+                    No doctors are currently assigned to this hospital.
                   </p>
                 )}
               </div>
@@ -680,6 +784,111 @@ export default function AddSchedulePage() {
               </div>
 
               {/* ==================================
+                  ROOM NUMBER
+              ================================== */}
+
+              <div>
+                <label
+                  htmlFor="roomNumber"
+                  className="mb-2 block text-sm font-semibold text-gray-700"
+                >
+                  Room Number
+                  <span className="ml-1 text-rose-500">*</span>
+                </label>
+
+                <div className="relative">
+                  <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <HospitalIcon className="h-5 w-5" />
+                  </div>
+
+                  <input
+                    id="roomNumber"
+                    type="text"
+                    name="roomNumber"
+                    value={form.roomNumber}
+                    onChange={handleChange}
+                    maxLength={50}
+                    placeholder="e.g. Room 204"
+                    disabled={submitting}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 pl-11 text-sm text-gray-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                </div>
+
+                <p className="mt-2 text-xs text-gray-400">
+                  Enter the physical room where the doctor will
+                  conduct the consultation.
+                </p>
+              </div>
+
+              {/* ==================================
+                  MAXIMUM PATIENTS
+              ================================== */}
+
+              <div>
+                <label
+                  htmlFor="maximumPatients"
+                  className="mb-2 block text-sm font-semibold text-gray-700"
+                >
+                  Maximum Patients
+                  <span className="ml-1 text-rose-500">*</span>
+                </label>
+
+                <div className="relative">
+                  <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <UsersIcon className="h-5 w-5" />
+                  </div>
+
+                  <input
+                    id="maximumPatients"
+                    type="number"
+                    name="maximumPatients"
+                    value={form.maximumPatients}
+                    onChange={handleChange}
+                    min="1"
+                    max="1000"
+                    step="1"
+                    placeholder="e.g. 10"
+                    disabled={submitting}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 pl-11 text-sm text-gray-700 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                </div>
+
+                <p className="mt-2 text-xs text-gray-400">
+                  Set the maximum number of patients who can book
+                  this physical consultation schedule.
+                </p>
+              </div>
+
+              {/* ==================================
+                  SCHEDULE TYPE
+              ================================== */}
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  Consultation Type
+                </label>
+
+                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+                      <HospitalIcon className="h-4 w-4" />
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-semibold text-blue-800">
+                        Physical Consultation
+                      </p>
+
+                      <p className="mt-0.5 text-xs text-blue-600">
+                        Patients will visit the hospital for the
+                        consultation.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ==================================
                   ACTIONS
               ================================== */}
 
@@ -782,6 +991,12 @@ export default function AddSchedulePage() {
                           }`
                         : "No doctor selected"}
                     </p>
+
+                    {selectedDoctor && (
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        {selectedDoctor.specialization || "General"}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -827,6 +1042,48 @@ export default function AddSchedulePage() {
                   </div>
                 </div>
 
+                <div className="my-4 border-t border-gray-200" />
+
+                {/* ROOM */}
+
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm">
+                    <HospitalIcon className="h-5 w-5" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                      Room
+                    </p>
+
+                    <p className="mt-0.5 truncate text-sm font-semibold text-gray-700">
+                      {form.roomNumber.trim() || "Not selected"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="my-4 border-t border-gray-200" />
+
+                {/* CAPACITY */}
+
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-gray-500 shadow-sm">
+                    <UsersIcon className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                      Patient Capacity
+                    </p>
+
+                    <p className="mt-0.5 text-sm font-semibold text-gray-700">
+                      {form.maximumPatients
+                        ? `${form.maximumPatients} patients`
+                        : "Not selected"}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5">
                   <div className="flex items-center gap-2">
                     <HospitalIcon className="h-4 w-4 text-blue-600" />
@@ -865,7 +1122,20 @@ export default function AddSchedulePage() {
 
                     <li className="flex gap-2">
                       <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-400" />
-                      Make sure the end time is later than the start time.
+                      Make sure the end time is later than the start
+                      time.
+                    </li>
+
+                    <li className="flex gap-2">
+                      <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-400" />
+                      Enter the correct physical consultation room
+                      number.
+                    </li>
+
+                    <li className="flex gap-2">
+                      <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-indigo-400" />
+                      Set the maximum number of patients for this
+                      schedule.
                     </li>
 
                     <li className="flex gap-2">

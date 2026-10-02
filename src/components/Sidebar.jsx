@@ -46,13 +46,21 @@ const SidebarLink = ({ to, icon, label, badge, tag, exact = false }) => {
     const { onClose } = React.useContext(SidebarNavContext);
     
     // Precise active detection
-    const isActive = exact 
-        ? location.pathname === to 
-        : location.pathname === to || (
-            to !== '/' && 
-            !['/patient/dashboard', '/doctor/dashboard', '/hospital/dashboard', '/admin/dashboard'].includes(to) && 
-            location.pathname.startsWith(to)
-        );
+   const isActive = exact
+    ? location.pathname === to
+    : location.pathname === to ||
+      (
+          to !== '/' &&
+          ![
+              '/patient/dashboard',
+              '/doctor/dashboard',
+              '/hospital/dashboard',
+              '/admin/dashboard'
+          ].includes(to) &&
+          (
+              location.pathname.startsWith(`${to}/`)
+          )
+      );
 
     const handleClick = () => {
         if (typeof window !== 'undefined' && window.innerWidth < 1024) {
@@ -380,7 +388,8 @@ export const HospitalSidebar = (props) => {
             <SidebarSection title="Patient & Scheduling" />
             <SidebarLink to="/hospital/patients" icon={<Users size={18} />} label="Patient Directory" />
             <SidebarLink to="/hospital/appointment" icon={<Calendar size={18} />} label="Appointments" />
-            <SidebarLink to="/hospital/schedule" icon={<Calendar size={18} />} label="Doctor Schedules" />
+            <SidebarLink to="/hospital/schedule" icon={<Calendar size={18} />} label="Schedule Management" />
+            <SidebarLink to="/hospital/doctorschedules" icon={<Calendar size={18} />} label="Doctor Schedules" />
 
             <SidebarSection title="Medical & Clinical Services" />
             <SidebarLink to="/hospital/doctors" icon={<UserCog size={18} />} label="Doctor Management" />
