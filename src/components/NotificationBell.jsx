@@ -83,7 +83,7 @@ export default function NotificationBell() {
 
       {/* DROPDOWN POPOVER */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-200/80 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Header */}
           <div className="p-4 px-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white flex items-center justify-between">
             <div className="flex items-center gap-2.5">

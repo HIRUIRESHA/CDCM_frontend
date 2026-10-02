@@ -350,15 +350,15 @@ const DoctorAccountPage = () => {
           <div className="mt-5 flex gap-3">
             <button
               onClick={() => setIsEditing(true)}
-              className="flex-1 bg-gradient-to-r from-[#1e2d5e] to-[#2d3e7a] hover:from-[#1a2550] hover:to-[#253470] text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+              className="flex-1 bg-gradient-to-r from-[#1e2d5e] to-[#2d3e7a] hover:from-[#1a2550] hover:to-[#253470] text-white font-semibold mx-100 py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
             >
               <Edit size={16} />
               <span>Edit Profile</span>
             </button>
-            <button className="flex-1 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all border border-red-100 hover:border-red-200 shadow-sm">
+            {/* <button className="flex-1 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all border border-red-100 hover:border-red-200 shadow-sm">
               <Trash2 size={16} />
               <span>Delete Account</span>
-            </button>
+            </button> */}
           </div>
         )}
       </div>
