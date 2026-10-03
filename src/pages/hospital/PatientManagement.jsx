@@ -212,9 +212,7 @@ const hospitalName = hospitalData?.name || 'Hospital';
                       >
                         {patient.patientName}
                       </h3>
-                      <span className="text-sm text-gray-500">
-                        {patient.gender === 'Female' ? '👩' : '👨'} {patient.gender}
-                      </span>
+                      
                     </div>
                     <div className="text-sm text-gray-600 mb-2">
                       <span className="font-medium">Patient ID:</span> {patient.patientId || patient.id?.slice(-5)}
