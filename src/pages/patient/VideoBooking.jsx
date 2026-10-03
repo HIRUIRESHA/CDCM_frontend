@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useSearchParams } from "react-router-dom";
+import { useNotifications } from "../../context/NotificationContext";
 
 const API_URL = "https://cdcm-backend.onrender.com/api";
 
 export default function VideoConference() {
   const [searchParams] = useSearchParams();
+  const { fetchAll, fetchUnread } = useNotifications();
 
   const doctorId = searchParams.get("doctorId");
 
@@ -344,9 +346,9 @@ export default function VideoConference() {
 
         merchant_id: paymentData.merchantId,
 
-        return_url: "https://cdcm-frontend.vercel.app/payment-success",
+        return_url: `${window.location.origin}/payment-success`,
 
-        cancel_url: "https://cdcm-frontend.vercel.app/payment-failed",
+        cancel_url: `${window.location.origin}/payment-failed`,
 
         notify_url:
           "https://cdcm-backend.onrender.com/api/payments/notify",
@@ -397,6 +399,9 @@ export default function VideoConference() {
             }
           );
 
+          if (fetchAll) fetchAll();
+          if (fetchUnread) fetchUnread();
+
           showToast(
             "Payment successful! Your video consultation has been booked.",
             "success"
@@ -421,6 +426,9 @@ export default function VideoConference() {
             "Payment success update error:",
             error.response?.data || error.message
           );
+
+          if (fetchAll) fetchAll();
+          if (fetchUnread) fetchUnread();
 
           showToast(
             "Payment was completed, but appointment status could not be updated. Please contact the administrator.",

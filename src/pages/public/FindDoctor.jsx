@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import defaultDocImg from "../../assets/doc1.png";
 import axios from "axios";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -9,6 +10,7 @@ function FindDoctor() {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { fetchAll, fetchUnread } = useNotifications();
 
   const [selectedSpec, setSelectedSpec] = useState("");
   const [selectedHosp, setSelectedHosp] = useState("");
@@ -185,8 +187,8 @@ function FindDoctor() {
         const payment = {
           sandbox: true, 
           merchant_id: hashData.merchantId, 
-          return_url: "https://cdcm-frontend.vercel.app/payment-success",
-          cancel_url: "https://cdcm-frontend.vercel.app/payment-failed",
+          return_url: `${window.location.origin}/payment-success`,
+          cancel_url: `${window.location.origin}/payment-failed`,
           notify_url: "https://cdcm-backend.onrender.com/api/payments/notify", 
           order_id: orderId, 
           items: `Booking with Dr. ${bookingDoc.firstName}`,
@@ -220,13 +222,17 @@ function FindDoctor() {
               }
             );
 
+            // Immediately refresh notification count and list
+            if (fetchAll) fetchAll();
+            if (fetchUnread) fetchUnread();
+
             if (confirmRes.data && confirmRes.data.success !== false) {
               setIsModalOpen(false);
               setNotification({
                 type: "success",
                 title: "Payment Successful!",
                 message: "Your appointment has been confirmed and paid.",
-                apptNumber: appointmentData.appointmentNumber,
+                apptNumber: confirmRes.data.appointment?.appointmentNumber || appointmentData.appointmentNumber,
               });
             } else {
               setIsModalOpen(false);
@@ -238,6 +244,8 @@ function FindDoctor() {
             }
           } catch (err) {
             console.error("Backend payment confirmation error:", err);
+            if (fetchAll) fetchAll();
+            if (fetchUnread) fetchUnread();
             setIsModalOpen(false);
             setNotification({
               type: "error",

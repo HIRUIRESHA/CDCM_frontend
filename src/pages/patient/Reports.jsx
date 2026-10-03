@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { getPatientTests } from "../../api/labApi";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +8,7 @@ import { showSuccess, showError, showWarning } from "../../utils/alert";
 
 const Reports = () => {
   const { user } = useAuth();
+  const { fetchAll, fetchUnread } = useNotifications();
   const navigate = useNavigate();
 
   const [tests, setTests] = useState([]);
@@ -53,8 +55,8 @@ const Reports = () => {
         currency: data.currency,
         hash: data.hash,
 
-        return_url: "https://cdcm-frontend.vercel.app/payment-success",
-        cancel_url: "https://cdcm-frontend.vercel.app/payment-failed",
+        return_url: `${window.location.origin}/payment-success`,
+        cancel_url: `${window.location.origin}/payment-failed`,
         notify_url: "https://cdcm-backend.onrender.com/api/payments/notify",
 
         items: `Lab Test - ${test.testType}`,
@@ -83,12 +85,18 @@ await axios.post(
   }
 );
 
+      // Immediately refresh notifications
+      if (fetchAll) fetchAll();
+      if (fetchUnread) fetchUnread();
+
       // refresh UI after updating DB
       await fetchTests();
 
       await showSuccess("Payment completed successfully!");
     } catch (err) {
       console.error("Payment update failed:", err);
+      if (fetchAll) fetchAll();
+      if (fetchUnread) fetchUnread();
       alert("Payment completed but backend update failed ❌");
     }
   };

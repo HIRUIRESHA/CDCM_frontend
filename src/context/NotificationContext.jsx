@@ -18,7 +18,7 @@ export const NotificationProvider = ({ children }) => {
     const userRole = (localStorage.getItem("userRole") || "").toUpperCase();
     return list.filter((n) => {
       // 1. Strict recipient check: if userId is populated, it must match effectiveUserId
-      if (n.userId && n.userId !== effectiveUserId) {
+      if (effectiveUserId && n.userId && String(n.userId) !== String(effectiveUserId)) {
         return false;
       }
       // 2. Role-based exclusions

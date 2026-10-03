@@ -28,6 +28,8 @@ import Reports from './pages/patient/Reports';
 import Settings from './pages/public/Settings';
 import ForgotPassword from "./pages/public/ForgotPassword";
 import ResetPassword from "./pages/public/ResetPassword";
+import PaymentSuccess from "./pages/public/PaymentSuccess";
+import PaymentFailed from "./pages/public/PaymentFailed";
 import VideoBooking from "./pages/patient/VideoBooking";
 
 
@@ -91,6 +93,8 @@ function App() {
             <Route path="/find-doctor" element={<FindDoctor />} />
              <Route path="/forgot-password" element={<ForgotPassword />} />
              <Route path="/reset-password/:token" element={<ResetPassword />} />
+             <Route path="/payment-success" element={<PaymentSuccess />} />
+             <Route path="/payment-failed" element={<PaymentFailed />} />
              <Route path="/doctor/account/:id" element={<DoctorAccountPage />} />
              
 
