@@ -22,7 +22,11 @@ function Toast({ id, type, title, message, onClose }) {
       </span>
       <div className="flex-1">
         <p className="text-sm font-semibold text-gray-800">{title}</p>
-        {message && <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{message}</p>}
+        {message && (
+          <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+            {typeof message === "object" ? (message.message || JSON.stringify(message)) : String(message)}
+          </p>
+        )}
       </div>
       <button onClick={() => onClose(id)} className="text-gray-300 hover:text-gray-500 text-lg leading-none flex-shrink-0">×</button>
     </div>
@@ -54,7 +58,12 @@ export default function ForgotPassword() {
       addToast("success", "Reset link sent!", `Check ${email} for your password reset link.`);
     } catch (error) {
       console.error(error);
-      addToast("error", "Something went wrong", error.response?.data || "Unable to send reset email. Please try again.");
+      const errorMsg =
+        error.response?.data?.message ||
+        (typeof error.response?.data === "string" ? error.response.data : null) ||
+        error.message ||
+        "Unable to send reset email. Please try again.";
+      addToast("error", "Something went wrong", errorMsg);
     } finally {
       setLoading(false);
     }

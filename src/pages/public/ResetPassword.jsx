@@ -35,7 +35,11 @@ function Toast({ id, type, title, message, onClose }) {
       </span>
       <div className="flex-1">
         <p className="text-sm font-semibold text-gray-800">{title}</p>
-        {message && <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{message}</p>}
+        {message && (
+          <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+            {typeof message === "object" ? (message.message || JSON.stringify(message)) : String(message)}
+          </p>
+        )}
       </div>
       <button onClick={() => onClose(id)} className="text-gray-300 hover:text-gray-500 text-lg leading-none flex-shrink-0">×</button>
     </div>
@@ -83,7 +87,12 @@ export default function ResetPassword() {
 
     } catch (error) {
       console.error(error);
-      addToast("error", "Reset failed", error.response?.data || "Invalid or expired token");
+      const errorMsg =
+        error.response?.data?.message ||
+        (typeof error.response?.data === "string" ? error.response.data : null) ||
+        error.message ||
+        "Invalid or expired token";
+      addToast("error", "Reset failed", errorMsg);
     } finally {
       setLoading(false);
     }
