@@ -1,9 +1,2 @@
-import React from 'react'
-
-const Emergency = () => {
-  return (
-    <div>Emergency</div>
-  )
-}
-
-export default Emergency
+// File removed: Emergency Unit feature decommissioned
+export default function Emergency() { return null; }

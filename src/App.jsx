@@ -38,7 +38,6 @@ import AssignedDoctors from './pages/hospital/AssignedDoctors';
 import AssignDoctor from './pages/hospital/AssignDoctor';
 import Appointment from './pages/hospital/Appointment';
 import Analytics from './pages/hospital/Analytics';
-import Emergency from './pages/hospital/Emergency';
 import Laboratory from './pages/hospital/Laboratory';
 import Notifications from './pages/hospital/Notifications';
 import PatientManagement from './pages/hospital/PatientManagement';
@@ -162,7 +161,6 @@ function App() {
               <Route path="staff" element={<Placeholder title="Manage Staff" />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="appointment" element={<Appointment />} />
-              <Route path="emergency" element={<Emergency />} />
               <Route path="laboratory" element={<Laboratory />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="patients" element={<PatientManagement />} />
