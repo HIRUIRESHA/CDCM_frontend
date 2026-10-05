@@ -10,7 +10,6 @@ import {
     Settings, 
     UserCog, 
     Microscope, 
-    AlertCircle, 
     BarChart3, 
     Bell, 
     FileBarChart, 
@@ -394,7 +393,6 @@ export const HospitalSidebar = (props) => {
             <SidebarSection title="Medical & Clinical Services" />
             <SidebarLink to="/hospital/doctors" icon={<UserCog size={18} />} label="Doctor Management" />
             <SidebarLink to="/hospital/laboratory" icon={<Microscope size={18} />} label="Laboratory Tests" />
-            <SidebarLink to="/hospital/emergency" icon={<AlertCircle size={18} />} label="Emergency Unit" tag="24/7" />
 
             <SidebarSection title="System & Updates" />
             <SidebarLink to="/hospital/notifications" icon={<Bell size={18} />} label="Notifications" badge={unreadCount} />
