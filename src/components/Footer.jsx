@@ -1,161 +1,175 @@
 import React from 'react';
-import { Facebook, Twitter, Instagram, Linkedin, Youtube } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { 
+  ShieldCheck, 
+  Stethoscope, 
+  Calendar, 
+  Video, 
+  CreditCard, 
+  FileText, 
+  Pill, 
+  Activity, 
+  MessageSquare, 
+  Bell, 
+  Lock,
+  ArrowRight,
+  HeartPulse
+} from 'lucide-react';
 
 const Footer = () => {
   return (
-    <footer className="bg-[#0A0A4D] text-white">
+    <footer className="bg-gradient-to-b from-slate-900 via-blue-950 to-[#0A0A4D] text-white border-t border-blue-900/60">
+      {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
-          {/* Logo Section */}
-          <div className="md:col-span-1">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-[#0A0A4D]" fill="currentColor" viewBox="0 0 24 24">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+          
+          {/* Column 1: CDCM Introduction */}
+          <div className="space-y-4">
+            <Link to="/" className="inline-flex items-center space-x-2.5 group">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-600/30 group-hover:bg-blue-500 transition-colors">
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
                   <path d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
                 </svg>
               </div>
-              <span className="text-xl font-semibold">HealthRoute</span>
+              <span className="text-2xl font-black tracking-tight text-white">
+                CDCM<span className="text-cyan-400">.</span>
+              </span>
+            </Link>
+            
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-sm">
+              Connecting patients, doctors, and healthcare services through one centralized platform.
+            </p>
+
+            <div className="pt-2 flex items-center gap-2 text-xs text-cyan-300 font-medium">
+              <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>Centralized Doctor & Channeling Management</span>
             </div>
           </div>
 
-          {/* Product Section */}
+          {/* Column 2: Our Services */}
           <div>
-            <h3 className="font-semibold text-lg mb-4">Product</h3>
-            <ul className="space-y-3">
+            <h3 className="font-bold text-sm uppercase tracking-wider text-cyan-400 mb-4 flex items-center gap-2">
+              <HeartPulse className="w-4 h-4" />
+              Our Services
+            </h3>
+            <ul className="space-y-2.5 text-xs sm:text-sm">
               <li>
-                <a href="#features" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Features
-                </a>
+                <Link to="/find-doctor" className="text-slate-300 hover:text-cyan-300 transition-colors flex items-center gap-2">
+                  <Stethoscope className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span>Find Doctors</span>
+                </Link>
               </li>
               <li>
-                <a href="#pricing" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Pricing
-                </a>
+                <Link to="/find-doctor" className="text-slate-300 hover:text-cyan-300 transition-colors flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span>Appointment Booking</span>
+                </Link>
               </li>
               <li>
-                <a href="#case-studies" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Case studies
-                </a>
+                <Link to="/find-doctor" className="text-slate-300 hover:text-cyan-300 transition-colors flex items-center gap-2">
+                  <Video className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                  <span>Video Consultation</span>
+                </Link>
               </li>
               <li>
-                <a href="#reviews" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Reviews
-                </a>
+                <span className="text-slate-300 flex items-center gap-2">
+                  <CreditCard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>Secure Payments</span>
+                </span>
               </li>
               <li>
-                <a href="#updates" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Updates
-                </a>
+                <span className="text-slate-300 flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                  <span>Medical Records</span>
+                </span>
+              </li>
+              <li>
+                <span className="text-slate-300 flex items-center gap-2">
+                  <Pill className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                  <span>Prescriptions</span>
+                </span>
+              </li>
+              <li>
+                <span className="text-slate-300 flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span>Lab Reports</span>
+                </span>
+              </li>
+              <li>
+                <span className="text-slate-300 flex items-center gap-2">
+                  <MessageSquare className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span>Messaging & Notifications</span>
+                </span>
               </li>
             </ul>
           </div>
 
-          {/* Company Section */}
+          {/* Column 3: Quick Links */}
           <div>
-            <h3 className="font-semibold text-lg mb-4">Company</h3>
-            <ul className="space-y-3">
+            <h3 className="font-bold text-sm uppercase tracking-wider text-cyan-400 mb-4 flex items-center gap-2">
+              <ArrowRight className="w-4 h-4" />
+              Quick Links
+            </h3>
+            <ul className="space-y-2.5 text-xs sm:text-sm">
               <li>
-                <a href="#about" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  About
-                </a>
+                <Link to="/" className="text-slate-300 hover:text-white transition-colors">
+                  Home
+                </Link>
               </li>
               <li>
-                <a href="#contact" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Contact us
-                </a>
+                <Link to="/find-doctor" className="text-slate-300 hover:text-white transition-colors">
+                  Find Doctor
+                </Link>
               </li>
               <li>
-                <a href="#careers" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Careers
-                </a>
+                <Link to="/login" className="text-slate-300 hover:text-white transition-colors">
+                  Login
+                </Link>
               </li>
               <li>
-                <a href="#culture" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Culture
-                </a>
+                <Link to="/register" className="text-slate-300 hover:text-white transition-colors">
+                  Register as Patient
+                </Link>
               </li>
               <li>
-                <a href="#blog" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Blog
-                </a>
+                <Link to="/forgot-password" className="text-slate-300 hover:text-white transition-colors">
+                  Forgot Password
+                </Link>
               </li>
             </ul>
           </div>
 
-          {/* Support Section */}
-          <div>
-            <h3 className="font-semibold text-lg mb-4">Support</h3>
-            <ul className="space-y-3">
-              <li>
-                <a href="#getting-started" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Getting started
-                </a>
-              </li>
-              <li>
-                <a href="#help-center" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Help center
-                </a>
-              </li>
-              <li>
-                <a href="#server-status" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Server status
-                </a>
-              </li>
-              <li>
-                <a href="#report-bug" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Report a bug
-                </a>
-              </li>
-              <li>
-                <a href="#chat-support" className="text-gray-300 hover:text-white transition-colors duration-200">
-                  Chat support
-                </a>
-              </li>
-            </ul>
+          {/* Column 4: Platform Security & Access */}
+          <div className="space-y-4">
+            <h3 className="font-bold text-sm uppercase tracking-wider text-cyan-400 mb-4 flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              Platform Overview
+            </h3>
+            
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              24/7 centralized digital healthcare access with encrypted patient records and verified channeling schedules.
+            </p>
+
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-semibold text-white">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Integrated Healthcare Portal</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                PayHere checkout & real-time doctor appointment sync.
+              </p>
+            </div>
           </div>
 
-          {/* Follow Us Section */}
-          <div>
-            <h3 className="font-semibold text-lg mb-4">Follow us</h3>
-            <ul className="space-y-3">
-              <li>
-                <a href="#facebook" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200">
-                  <Facebook className="w-5 h-5" />
-                  <span>Facebook</span>
-                </a>
-              </li>
-              <li>
-                <a href="#twitter" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200">
-                  <Twitter className="w-5 h-5" />
-                  <span>Twitter</span>
-                </a>
-              </li>
-              <li>
-                <a href="#instagram" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200">
-                  <Instagram className="w-5 h-5" />
-                  <span>Instagram</span>
-                </a>
-              </li>
-              <li>
-                <a href="#linkedin" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200">
-                  <Linkedin className="w-5 h-5" />
-                  <span>LinkedIn</span>
-                </a>
-              </li>
-              <li>
-                <a href="#youtube" className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200">
-                  <Youtube className="w-5 h-5" />
-                  <span>YouTube</span>
-                </a>
-              </li>
-            </ul>
-          </div>
         </div>
 
-        {/* Copyright Section */}
-        <div className="border-t border-gray-700 mt-12 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 HealthRoute. All rights reserved.</p>
+        {/* Bottom Copyright Bar */}
+        <div className="border-t border-slate-800/80 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+          <p>© 2026 CDCM. All rights reserved.</p>
+          <p className="text-slate-500 text-[11px]">
+            Centralized Doctor & Channeling Management System
+          </p>
         </div>
       </div>
     </footer>

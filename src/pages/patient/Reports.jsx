@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { getPatientTests } from "../../api/labApi";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +8,7 @@ import { showSuccess, showError, showWarning } from "../../utils/alert";
 
 const Reports = () => {
   const { user } = useAuth();
+  const { fetchAll, fetchUnread } = useNotifications();
   const navigate = useNavigate();
 
   const [tests, setTests] = useState([]);
@@ -39,7 +41,7 @@ const Reports = () => {
 
       // 1. Get hash from backend
       const res = await axios.get(
-        `http://localhost:8082/api/payments/generate-hash/${test.id}/${test.price}`
+        `https://cdcm-backend.onrender.com/api/payments/generate-hash/${test.id}/${test.price}`
       );
 
       const data = res.data;
@@ -53,9 +55,9 @@ const Reports = () => {
         currency: data.currency,
         hash: data.hash,
 
-        return_url: "http://localhost:5173/payment-success",
-        cancel_url: "http://localhost:5173/payment-failed",
-        notify_url: "http://localhost:8082/api/payments/notify",
+        return_url: `${window.location.origin}/payment-success`,
+        cancel_url: `${window.location.origin}/payment-failed`,
+        notify_url: "https://cdcm-backend.onrender.com/api/payments/notify",
 
         items: `Lab Test - ${test.testType}`,
         first_name: user.firstName,
@@ -74,7 +76,7 @@ const Reports = () => {
       const token = localStorage.getItem("token");
 
 await axios.post(
-  `http://localhost:8082/api/lab/pay/${test.id}`,
+  `https://cdcm-backend.onrender.com/api/lab/pay/${test.id}`,
   {},
   {
     headers: {
@@ -83,12 +85,18 @@ await axios.post(
   }
 );
 
+      // Immediately refresh notifications
+      if (fetchAll) fetchAll();
+      if (fetchUnread) fetchUnread();
+
       // refresh UI after updating DB
       await fetchTests();
 
       await showSuccess("Payment completed successfully!");
     } catch (err) {
       console.error("Payment update failed:", err);
+      if (fetchAll) fetchAll();
+      if (fetchUnread) fetchUnread();
       alert("Payment completed but backend update failed ❌");
     }
   };
@@ -230,12 +238,7 @@ await axios.post(
                           Report not uploaded yet
                         </p>
 
-                        <button
-                          onClick={() => goToUploadReport(test.id)}
-                          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
-                        >
-                          📤 Upload Report
-                        </button>
+                        
                       </div>
                     )}
                   </div>

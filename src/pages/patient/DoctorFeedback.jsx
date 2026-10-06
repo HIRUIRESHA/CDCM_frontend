@@ -109,10 +109,10 @@ export default function DoctorFeedback() {
         };
 
         const [apptRes, docsRes] = await Promise.all([
-          fetch(`http://localhost:8082/api/appointments/patient/${user.id}`, {
+          fetch(`https://cdcm-backend.onrender.com/api/appointments/patient/${user.id}`, {
             headers: authHeaders
           }),
-          fetch("http://localhost:8082/api/hospital/doctors/assigned-all")
+          fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/assigned-all")
         ]);
 
         if (apptRes.ok && docsRes.ok) {
@@ -188,7 +188,7 @@ export default function DoctorFeedback() {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch("http://localhost:8082/api/feedback", {
+      const response = await fetch("https://cdcm-backend.onrender.com/api/feedback", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

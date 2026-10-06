@@ -28,6 +28,8 @@ import Reports from './pages/patient/Reports';
 import Settings from './pages/public/Settings';
 import ForgotPassword from "./pages/public/ForgotPassword";
 import ResetPassword from "./pages/public/ResetPassword";
+import PaymentSuccess from "./pages/public/PaymentSuccess";
+import PaymentFailed from "./pages/public/PaymentFailed";
 import VideoBooking from "./pages/patient/VideoBooking";
 
 
@@ -36,7 +38,6 @@ import AssignedDoctors from './pages/hospital/AssignedDoctors';
 import AssignDoctor from './pages/hospital/AssignDoctor';
 import Appointment from './pages/hospital/Appointment';
 import Analytics from './pages/hospital/Analytics';
-import Emergency from './pages/hospital/Emergency';
 import Laboratory from './pages/hospital/Laboratory';
 import Notifications from './pages/hospital/Notifications';
 import PatientManagement from './pages/hospital/PatientManagement';
@@ -46,6 +47,7 @@ import UploadReport from './pages/hospital/UploadReport';
 import AddLabTest from './pages/hospital/AddLabTest';
 import AddVideoConsultingSchedule from './pages/hospital/AddVideoConsultingSchedule';
 import HospitalVerifyEmail from "./pages/hospital/HospitalVerifyEmail";
+import DoctorSchedules from './pages/hospital/DoctorSchedules';
 
 import HospitalChangePassword from "./pages/hospital/HospitalChangePassword";
 
@@ -90,6 +92,8 @@ function App() {
             <Route path="/find-doctor" element={<FindDoctor />} />
              <Route path="/forgot-password" element={<ForgotPassword />} />
              <Route path="/reset-password/:token" element={<ResetPassword />} />
+             <Route path="/payment-success" element={<PaymentSuccess />} />
+             <Route path="/payment-failed" element={<PaymentFailed />} />
              <Route path="/doctor/account/:id" element={<DoctorAccountPage />} />
              
 
@@ -157,7 +161,6 @@ function App() {
               <Route path="staff" element={<Placeholder title="Manage Staff" />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="appointment" element={<Appointment />} />
-              <Route path="emergency" element={<Emergency />} />
               <Route path="laboratory" element={<Laboratory />} />
               <Route path="notifications" element={<Notifications />} />
               <Route path="patients" element={<PatientManagement />} />
@@ -166,6 +169,7 @@ function App() {
               <Route path="schedule/video/add" element={<AddVideoConsultingSchedule />} />
               <Route path="addLabTest" element={<AddLabTest />} />
               <Route path="upload-report/:id" element={<UploadReport />} />
+              <Route path="doctorschedules" element={<DoctorSchedules />} />
               
             </Route>
             </Route>

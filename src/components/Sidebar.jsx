@@ -10,7 +10,6 @@ import {
     Settings, 
     UserCog, 
     Microscope, 
-    AlertCircle, 
     BarChart3, 
     Bell, 
     FileBarChart, 
@@ -46,13 +45,21 @@ const SidebarLink = ({ to, icon, label, badge, tag, exact = false }) => {
     const { onClose } = React.useContext(SidebarNavContext);
     
     // Precise active detection
-    const isActive = exact 
-        ? location.pathname === to 
-        : location.pathname === to || (
-            to !== '/' && 
-            !['/patient/dashboard', '/doctor/dashboard', '/hospital/dashboard', '/admin/dashboard'].includes(to) && 
-            location.pathname.startsWith(to)
-        );
+   const isActive = exact
+    ? location.pathname === to
+    : location.pathname === to ||
+      (
+          to !== '/' &&
+          ![
+              '/patient/dashboard',
+              '/doctor/dashboard',
+              '/hospital/dashboard',
+              '/admin/dashboard'
+          ].includes(to) &&
+          (
+              location.pathname.startsWith(`${to}/`)
+          )
+      );
 
     const handleClick = () => {
         if (typeof window !== 'undefined' && window.innerWidth < 1024) {
@@ -206,7 +213,7 @@ const SidebarContainer = ({
                                 {title}
                             </span>
                             <div className="flex items-center gap-1.5 mt-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                {/* <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> */}
                                 <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase truncate">
                                     {portalTag}
                                 </span>
@@ -380,12 +387,12 @@ export const HospitalSidebar = (props) => {
             <SidebarSection title="Patient & Scheduling" />
             <SidebarLink to="/hospital/patients" icon={<Users size={18} />} label="Patient Directory" />
             <SidebarLink to="/hospital/appointment" icon={<Calendar size={18} />} label="Appointments" />
-            <SidebarLink to="/hospital/schedule" icon={<Calendar size={18} />} label="Doctor Schedules" />
+            <SidebarLink to="/hospital/schedule" icon={<Calendar size={18} />} label="Schedule Management" />
+            <SidebarLink to="/hospital/doctorschedules" icon={<Calendar size={18} />} label="Doctor Schedules" />
 
             <SidebarSection title="Medical & Clinical Services" />
             <SidebarLink to="/hospital/doctors" icon={<UserCog size={18} />} label="Doctor Management" />
             <SidebarLink to="/hospital/laboratory" icon={<Microscope size={18} />} label="Laboratory Tests" />
-            <SidebarLink to="/hospital/emergency" icon={<AlertCircle size={18} />} label="Emergency Unit" tag="24/7" />
 
             <SidebarSection title="System & Updates" />
             <SidebarLink to="/hospital/notifications" icon={<Bell size={18} />} label="Notifications" badge={unreadCount} />

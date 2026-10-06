@@ -6,7 +6,7 @@ import SockJS from "sockjs-client";
 // WEBSOCKET CONFIGURATION
 
 
-const WS_URL = "http://localhost:8082/ws";
+const WS_URL = "https://cdcm-backend.onrender.com/ws";
 
 
 

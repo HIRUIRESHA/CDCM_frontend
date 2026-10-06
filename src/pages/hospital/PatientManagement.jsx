@@ -33,7 +33,7 @@ const hospitalName = hospitalData?.name || 'Hospital';
       setLoading(true);
       setError('');
       
-      const response = await fetch(`http://localhost:8082/api/hospital/patients/hospital/${hospitalId}`, {
+      const response = await fetch(`https://cdcm-backend.onrender.com/api/hospital/patients/hospital/${hospitalId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -72,7 +72,7 @@ const hospitalName = hospitalData?.name || 'Hospital';
     setLabLoading(true);
 
     const res = await fetch(
-      `http://localhost:8082/api/lab/patient/${patientId}`,
+      `https://cdcm-backend.onrender.com/api/lab/patient/${patientId}`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -212,9 +212,7 @@ const hospitalName = hospitalData?.name || 'Hospital';
                       >
                         {patient.patientName}
                       </h3>
-                      <span className="text-sm text-gray-500">
-                        {patient.gender === 'Female' ? '👩' : '👨'} {patient.gender}
-                      </span>
+                      
                     </div>
                     <div className="text-sm text-gray-600 mb-2">
                       <span className="font-medium">Patient ID:</span> {patient.patientId || patient.id?.slice(-5)}

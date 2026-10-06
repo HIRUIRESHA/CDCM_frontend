@@ -78,12 +78,12 @@ export default function PatientDashboard() {
     (async () => {
       try {
         const [apptR, docR, hospR, medR, labR, notifR] = await Promise.allSettled([
-          fetch(`http://localhost:8082/api/appointments/patient/${patientId}`, { headers: auth }),
-          fetch("http://localhost:8082/api/hospital/doctors/assigned-all"),
-          fetch("http://localhost:8082/api/hospital/doctors/all-hospitals"),
-          axios.get(`http://localhost:8082/api/medical-records/patient/${patientId}`),
-          axios.get(`http://localhost:8082/api/lab/patient/${patientId}`),
-          axios.get(`http://localhost:8082/api/notifications/patient/${patientId}`),
+          fetch(`https://cdcm-backend.onrender.com/api/appointments/patient/${patientId}`, { headers: auth }),
+          fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/assigned-all"),
+          fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/all-hospitals"),
+          axios.get(`https://cdcm-backend.onrender.com/api/medical-records/patient/${patientId}`),
+          axios.get(`https://cdcm-backend.onrender.com/api/lab/patient/${patientId}`),
+          axios.get(`https://cdcm-backend.onrender.com/api/notifications/patient/${patientId}`),
         ]);
 
         if (apptR.status === "fulfilled" && apptR.value.ok) setAppointments(await apptR.value.json());

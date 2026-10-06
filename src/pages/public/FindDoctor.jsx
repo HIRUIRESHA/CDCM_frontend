@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import defaultDocImg from "../../assets/doc1.png";
 import axios from "axios";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 function FindDoctor() {
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { fetchAll, fetchUnread } = useNotifications();
 
   const [selectedSpec, setSelectedSpec] = useState("");
   const [selectedHosp, setSelectedHosp] = useState("");
@@ -18,6 +21,14 @@ function FindDoctor() {
   const [hospitals, setHospitals] = useState([]);
   const [schedules, setSchedules] = useState({});
   const [loading, setLoading] = useState(true);
+  const [expandedDoctors, setExpandedDoctors] = useState({});
+
+  const toggleDoctorExpand = (docId) => {
+    setExpandedDoctors((prev) => ({
+      ...prev,
+      [docId]: !prev[docId],
+    }));
+  };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bookingDoc, setBookingDoc] = useState(null);
@@ -35,9 +46,9 @@ function FindDoctor() {
   const fetchData = async () => {
     try {
       const [docRes, specRes, hospRes] = await Promise.all([
-        fetch("http://localhost:8082/api/hospital/doctors/assigned-all"),
-        fetch("http://localhost:8082/api/hospital/doctors/specializations"),
-        fetch("http://localhost:8082/api/hospital/doctors/all-hospitals"),
+        fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/assigned-all"),
+        fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/specializations"),
+        fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/all-hospitals"),
       ]);
 
       const docs = await docRes.json();
@@ -58,17 +69,18 @@ function FindDoctor() {
           doctorsList.map(async (doc) => {
             try {
               const schedRes = await fetch(
-                `http://localhost:8082/api/schedules/doctor/${doc.id}`
+                `https://cdcm-backend.onrender.com/api/schedules/doctor/${doc.id}`
               );
               if (schedRes.ok) {
                 const schedData = await schedRes.json();
                 
-               schedulesMap[doc.id] = schedData.filter(
-  (s) =>
-    s.status === "ACCEPTED" &&
-    s.date >= today &&
-    s.type === "PHYSICAL"
-);
+                schedulesMap[doc.id] = (Array.isArray(schedData) ? schedData : []).filter(
+                  (s) =>
+                    s.status === "ACCEPTED" &&
+                    s.date >= today &&
+                    s.type === "PHYSICAL" &&
+                    (!s.hospitalId || hosps.some((h) => h.id === s.hospitalId || h._id === s.hospitalId))
+                );
               } else {
                 schedulesMap[doc.id] = [];
               }
@@ -115,7 +127,7 @@ function FindDoctor() {
 
   try {
     const response = await fetch(
-      `http://localhost:8082/api/appointments/schedule/${schedule.id}`
+      `https://cdcm-backend.onrender.com/api/appointments/schedule/${schedule.id}`
     );
     if (response.ok) {
       const data = await response.json();
@@ -145,7 +157,7 @@ function FindDoctor() {
       const token = localStorage.getItem("token");
       
       // 1. Create Appointment Record
-      const response = await fetch("http://localhost:8082/api/appointments/book", {
+      const response = await fetch("https://cdcm-backend.onrender.com/api/appointments/book", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -168,16 +180,16 @@ function FindDoctor() {
         const amount = appointmentData.amount || 1000.00;
 
         // Fetch Secure Hash from Backend
-        const hashRes = await axios.get(`http://localhost:8082/api/payments/generate-hash/${orderId}/${amount}`);
+        const hashRes = await axios.get(`https://cdcm-backend.onrender.com/api/payments/generate-hash/${orderId}/${amount}`);
         const hashData = hashRes.data;
 
         // Prepare PayHere Payment Object
         const payment = {
           sandbox: true, 
           merchant_id: hashData.merchantId, 
-          return_url: "http://localhost:5173/payment-success",
-          cancel_url: "http://localhost:5173/payment-failed",
-          notify_url: "http://localhost:8082/api/payments/notify", 
+          return_url: `${window.location.origin}/payment-success`,
+          cancel_url: `${window.location.origin}/payment-failed`,
+          notify_url: "https://cdcm-backend.onrender.com/api/payments/notify", 
           order_id: orderId, 
           items: `Booking with Dr. ${bookingDoc.firstName}`,
           amount: hashData.amount, 
@@ -198,7 +210,7 @@ function FindDoctor() {
           try {
             // Confirm payment with backend
             const confirmRes = await axios.post(
-              `http://localhost:8082/api/payments/payment-success/${orderId}`,
+              `https://cdcm-backend.onrender.com/api/payments/payment-success/${orderId}`,
               {
                 payhereId: orderId,
                 amount: amount,
@@ -210,13 +222,17 @@ function FindDoctor() {
               }
             );
 
+            // Immediately refresh notification count and list
+            if (fetchAll) fetchAll();
+            if (fetchUnread) fetchUnread();
+
             if (confirmRes.data && confirmRes.data.success !== false) {
               setIsModalOpen(false);
               setNotification({
                 type: "success",
                 title: "Payment Successful!",
                 message: "Your appointment has been confirmed and paid.",
-                apptNumber: appointmentData.appointmentNumber,
+                apptNumber: confirmRes.data.appointment?.appointmentNumber || appointmentData.appointmentNumber,
               });
             } else {
               setIsModalOpen(false);
@@ -228,6 +244,8 @@ function FindDoctor() {
             }
           } catch (err) {
             console.error("Backend payment confirmation error:", err);
+            if (fetchAll) fetchAll();
+            if (fetchUnread) fetchUnread();
             setIsModalOpen(false);
             setNotification({
               type: "error",
@@ -237,22 +255,48 @@ function FindDoctor() {
           }
         };
 
-        window.payhere.onDismissed = function onDismissed() {
+        window.payhere.onDismissed = async function onDismissed() {
+          try {
+            await axios.put(
+              `https://cdcm-backend.onrender.com/api/appointments/cancel-pending/${orderId}`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+          } catch (err) {
+            console.warn("Failed to release pending appointment:", err);
+          }
           setIsModalOpen(false);
           setNotification({
             type: "error",
             title: "Payment Incomplete",
-            message: "You closed the payment window. Your appointment remains pending until payment is completed.",
+            message: "You closed the payment window. The appointment number was released.",
           });
         };
 
-        window.payhere.onError = function onError(error) {
+        window.payhere.onError = async function onError(error) {
           console.error("Payment Error:", error);
+          try {
+            await axios.put(
+              `https://cdcm-backend.onrender.com/api/appointments/cancel-pending/${orderId}`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+          } catch (err) {
+            console.warn("Failed to release pending appointment:", err);
+          }
           setIsModalOpen(false);
           setNotification({
             type: "error",
             title: "Payment Failed",
-            message: "An error occurred during payment processing. Appointment is not confirmed.",
+            message: "An error occurred during payment processing. The appointment number was released.",
           });
         };
 
@@ -408,17 +452,6 @@ function FindDoctor() {
 
             {/* Legend + Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-center border-t border-slate-100 pt-5 gap-4">
-              <div className="flex gap-5 text-xs text-slate-500 font-medium">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-blue-50 border-2 border-blue-200 inline-block"></span>Available
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-red-100 border-2 border-red-200 inline-block"></span>Taken
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full bg-blue-700 inline-block"></span>Selected
-                </span>
-              </div>
               <div className="flex gap-3 w-full sm:w-auto">
                 <button
                   onClick={() => setIsModalOpen(false)}
@@ -429,7 +462,7 @@ function FindDoctor() {
                 <button
                   onClick={confirmBooking}
                   disabled={!selectedNumber}
-                  className="flex-1 sm:flex-none px-8 py-3 bg-blue-700 hover:bg-blue-600 text-white rounded-xl font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg"
+                  className="flex-1 sm:flex-none mx-10 px-6 py-3 bg-blue-700 hover:bg-blue-600 text-white rounded-xl font-bold text-base disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-lg"
                 >
                   {selectedNumber ? "Proceed to Payment (LKR 1,000.00)" : "Fully Booked"}
                 </button>
@@ -596,23 +629,26 @@ function FindDoctor() {
                 <div className="px-5 pt-4 pb-5 flex flex-col flex-1">
 
                   {/* Hospital Tags */}
-                  {doc.hospitals && doc.hospitals.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 mb-4">
-                      {doc.hospitals.map((hospitalId) => {
-                        const hospitalObj = hospitals.find((h) => h.id === hospitalId);
-                        return (
+                  {(() => {
+                    const validHospitals = (doc.hospitals || [])
+                      .map((hospitalId) => hospitals.find((h) => h.id === hospitalId || h._id === hospitalId))
+                      .filter(Boolean);
+
+                    return validHospitals.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5 mb-4">
+                        {validHospitals.map((hospitalObj) => (
                           <span
-                            key={hospitalId}
+                            key={hospitalObj.id || hospitalObj._id}
                             className="bg-blue-50 text-blue-700 border border-blue-100 text-xs font-semibold px-2.5 py-1 rounded-full"
                           >
-                            🏥 {hospitalObj ? hospitalObj.name : "Unknown Hospital"}
+                            🏥 {hospitalObj.name}
                           </span>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-slate-400 text-xs italic mb-4">Independent Practice</p>
-                  )}
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-400 text-xs italic mb-4">Independent Practice</p>
+                    );
+                  })()}
 
                   {/* Schedule Slots Label */}
                   <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
@@ -622,24 +658,57 @@ function FindDoctor() {
                   {/* Schedule Rows */}
                   <div className="flex-1 space-y-2 mb-4">
                     {schedules[doc.id] && schedules[doc.id].length > 0 ? (
-                      schedules[doc.id].map((schedule) => (
-                        <div
-                          key={schedule.id}
-                          className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 hover:border-blue-300 hover:bg-blue-100/60 transition-colors"
-                        >
-                          <div className="flex flex-col gap-0.5 min-w-0 mr-2">
-                            <span className="text-xs font-bold text-blue-950">{schedule.date}</span>
-                            <span className="text-xs text-slate-500">{schedule.startTime} – {schedule.endTime}</span>
-                            <span className="text-xs text-blue-600 font-semibold">{schedule.hospitalName || "Hospital"}</span>
-                          </div>
-                          <button
-                            onClick={() => openBookingModal(doc, schedule)}
-                            className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex-shrink-0 shadow-sm whitespace-nowrap"
-                          >
-                            Book Now
-                          </button>
-                        </div>
-                      ))
+                      (() => {
+                        const docSchedules = schedules[doc.id];
+                        const isExpanded = !!expandedDoctors[doc.id];
+                        const hasMoreThanTwo = docSchedules.length > 2;
+                        const displayedSchedules = hasMoreThanTwo && !isExpanded
+                          ? docSchedules.slice(0, 2)
+                          : docSchedules;
+
+                        return (
+                          <>
+                            {displayedSchedules.map((schedule) => (
+                              <div
+                                key={schedule.id}
+                                className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5 hover:border-blue-300 hover:bg-blue-100/60 transition-colors"
+                              >
+                                <div className="flex flex-col gap-0.5 min-w-0 mr-2">
+                                  <span className="text-xs font-bold text-blue-950">{schedule.date}</span>
+                                  <span className="text-xs text-slate-500">{schedule.startTime} – {schedule.endTime}</span>
+                                  <span className="text-xs text-blue-600 font-semibold">{schedule.hospitalName || "Hospital"}</span>
+                                </div>
+                                <button
+                                  onClick={() => openBookingModal(doc, schedule)}
+                                  className="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex-shrink-0 shadow-sm whitespace-nowrap"
+                                >
+                                  Book Now
+                                </button>
+                              </div>
+                            ))}
+
+                            {hasMoreThanTwo && (
+                              <button
+                                type="button"
+                                onClick={() => toggleDoctorExpand(doc.id)}
+                                className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                              >
+                                {isExpanded ? (
+                                  <>
+                                    <span>Show less</span>
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>Show more ({docSchedules.length - 2} more)</span>
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()
                     ) : (
                       <p className="text-xs text-slate-400 italic py-2">No available schedules at the moment.</p>
                     )}

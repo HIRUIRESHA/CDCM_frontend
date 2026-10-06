@@ -24,13 +24,13 @@ const Profile = () => {
   // Role-based profile endpoints
   const getProfileUrl = useCallback(() => {
     if (user?.role === 'PATIENT') {
-      return `http://localhost:8082/api/auth/patients/${user?.id}`;
+      return `https://cdcm-backend.onrender.com/api/auth/patients/${user?.id}`;
     }
     if (user?.role === 'DOCTOR') {
-      return `http://localhost:8082/api/auth/doctors/${user?.id}`;
+      return `https://cdcm-backend.onrender.com/api/auth/doctors/${user?.id}`;
     }
     if (user?.role === 'HOSPITAL') {
-      return 'http://localhost:8082/api/hospitals/me';
+      return 'https://cdcm-backend.onrender.com/api/hospitals/me';
     }
     return null;
   }, [user]);
@@ -86,7 +86,7 @@ const Profile = () => {
     const token = localStorage.getItem('token');
 
     try {
-      const res = await fetch('http://localhost:8082/api/upload', {
+      const res = await fetch('https://cdcm-backend.onrender.com/api/upload', {
         method: 'POST',
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {})

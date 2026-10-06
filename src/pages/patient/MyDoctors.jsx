@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { useNavigate, Link } from "react-router-dom";
 import defaultDocImg from "../../assets/doc1.png";
 import axios from "axios";
@@ -25,6 +26,7 @@ import {
 
 export default function MyDoctors() {
   const { user } = useAuth();
+  const { fetchAll, fetchUnread } = useNotifications();
   const navigate = useNavigate();
 
   // Data states
@@ -62,11 +64,11 @@ export default function MyDoctors() {
 
         // Fetch appointments, doctors, and hospitals simultaneously
         const [apptRes, docsRes, hospsRes] = await Promise.all([
-          fetch(`http://localhost:8082/api/appointments/patient/${user.id}`, {
+          fetch(`https://cdcm-backend.onrender.com/api/appointments/patient/${user.id}`, {
             headers: authHeaders
           }),
-          fetch("http://localhost:8082/api/hospital/doctors/assigned-all"),
-          fetch("http://localhost:8082/api/hospital/doctors/all-hospitals")
+          fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/assigned-all"),
+          fetch("https://cdcm-backend.onrender.com/api/hospital/doctors/all-hospitals")
         ]);
 
         if (!apptRes.ok) throw new Error("Failed to fetch your appointments");
@@ -113,7 +115,7 @@ export default function MyDoctors() {
               const matched = allHospitals.find(
                 (h) => h.id === hId || h._id === hId
               );
-              return matched ? matched.name : hId;
+              return matched ? matched.name : null;
             })
             .filter(Boolean);
 
@@ -175,7 +177,7 @@ export default function MyDoctors() {
       try {
         const today = new Date().toISOString().split("T")[0];
         const res = await fetch(
-          `http://localhost:8082/api/schedules/doctor/${doctorId}`
+          `https://cdcm-backend.onrender.com/api/schedules/doctor/${doctorId}`
         );
 
         if (res.ok) {
@@ -185,7 +187,8 @@ export default function MyDoctors() {
               (s) =>
                 s.status === "ACCEPTED" &&
                 s.date >= today &&
-                s.type === "PHYSICAL"
+                s.type === "PHYSICAL" &&
+                (!s.hospitalId || hospitals.some((h) => h.id === s.hospitalId || h._id === s.hospitalId))
             )
             : [];
           setDoctorSchedules((prev) => ({ ...prev, [doctorId]: validSlots }));
@@ -216,7 +219,7 @@ export default function MyDoctors() {
 
     try {
       const response = await fetch(
-        `http://localhost:8082/api/appointments/schedule/${schedule.id}`
+        `https://cdcm-backend.onrender.com/api/appointments/schedule/${schedule.id}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -247,7 +250,7 @@ export default function MyDoctors() {
       const token = localStorage.getItem("token");
 
       // 1. Create Appointment Record
-      const response = await fetch("http://localhost:8082/api/appointments/book", {
+      const response = await fetch("https://cdcm-backend.onrender.com/api/appointments/book", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -271,7 +274,7 @@ export default function MyDoctors() {
 
         // Fetch Secure Hash from Backend
         const hashRes = await axios.get(
-          `http://localhost:8082/api/payments/generate-hash/${orderId}/${amount}`
+          `https://cdcm-backend.onrender.com/api/payments/generate-hash/${orderId}/${amount}`
         );
         const hashData = hashRes.data;
 
@@ -279,9 +282,9 @@ export default function MyDoctors() {
         const payment = {
           sandbox: true,
           merchant_id: hashData.merchantId,
-          return_url: "http://localhost:5173/payment-success",
-          cancel_url: "http://localhost:5173/payment-failed",
-          notify_url: "http://localhost:8082/api/payments/notify",
+          return_url: `${window.location.origin}/payment-success`,
+          cancel_url: `${window.location.origin}/payment-failed`,
+          notify_url: "https://cdcm-backend.onrender.com/api/payments/notify",
           order_id: orderId,
           items: `Booking with Dr. ${bookingDoc.firstName || bookingDoc.name}`,
           amount: hashData.amount,
@@ -301,7 +304,7 @@ export default function MyDoctors() {
         window.payhere.onCompleted = async function onCompleted(completedOrderId) {
           try {
             const confirmRes = await axios.post(
-              `http://localhost:8082/api/payments/payment-success/${completedOrderId}`,
+              `https://cdcm-backend.onrender.com/api/payments/payment-success/${completedOrderId}`,
               {
                 payhereId: completedOrderId,
                 amount: amount
@@ -313,13 +316,17 @@ export default function MyDoctors() {
               }
             );
 
+            // Immediately refresh notification count and list
+            if (fetchAll) fetchAll();
+            if (fetchUnread) fetchUnread();
+
             if (confirmRes.data && confirmRes.data.success !== false) {
               setIsModalOpen(false);
               setNotification({
                 type: "success",
                 title: "Payment Successful!",
                 message: "Your appointment has been confirmed and paid.",
-                apptNumber: appointmentData.appointmentNumber
+                apptNumber: confirmRes.data.appointment?.appointmentNumber || appointmentData.appointmentNumber
               });
             } else {
               setIsModalOpen(false);
@@ -332,6 +339,8 @@ export default function MyDoctors() {
             }
           } catch (err) {
             console.error("Backend payment confirmation error:", err);
+            if (fetchAll) fetchAll();
+            if (fetchUnread) fetchUnread();
             setIsModalOpen(false);
             setNotification({
               type: "error",
@@ -342,24 +351,50 @@ export default function MyDoctors() {
           }
         };
 
-        window.payhere.onDismissed = function onDismissed() {
+        window.payhere.onDismissed = async function onDismissed() {
+          try {
+            await axios.put(
+              `https://cdcm-backend.onrender.com/api/appointments/cancel-pending/${orderId}`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`
+                }
+              }
+            );
+          } catch (err) {
+            console.warn("Failed to release pending appointment:", err);
+          }
           setIsModalOpen(false);
           setNotification({
             type: "error",
             title: "Payment Incomplete",
             message:
-              "You closed the payment window. Your appointment remains pending until payment is completed."
+              "You closed the payment window. The appointment number was released."
           });
         };
 
-        window.payhere.onError = function onError(payErr) {
+        window.payhere.onError = async function onError(payErr) {
           console.error("Payment Error:", payErr);
+          try {
+            await axios.put(
+              `https://cdcm-backend.onrender.com/api/appointments/cancel-pending/${orderId}`,
+              {},
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`
+                }
+              }
+            );
+          } catch (err) {
+            console.warn("Failed to release pending appointment:", err);
+          }
           setIsModalOpen(false);
           setNotification({
             type: "error",
             title: "Payment Failed",
             message:
-              "An error occurred during payment processing. Appointment is not confirmed."
+              "An error occurred during payment processing. The appointment number was released."
           });
         };
 
@@ -791,14 +826,15 @@ export default function MyDoctors() {
 
                           <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                             {slots.map((schedule) => {
+                              const hospObj = hospitals.find(
+                                (h) =>
+                                  h.id === schedule.hospitalId ||
+                                  h._id === schedule.hospitalId
+                              );
                               const hospName =
                                 schedule.hospitalName ||
-                                hospitals.find(
-                                  (h) =>
-                                    h.id === schedule.hospitalId ||
-                                    h._id === schedule.hospitalId
-                                )?.name ||
-                                "Hospital";
+                                hospObj?.name ||
+                                "";
 
                               return (
                                 <div

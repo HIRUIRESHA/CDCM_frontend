@@ -1,4 +1,3 @@
-
 // ConversationList.jsx
 // Unread messages tracked using localStorage + React state
 
@@ -48,7 +47,7 @@ export const markConversationSeen = (
 // =========================================================
 
 const ConversationList = ({
-    conversations,
+    conversations = [],
     selectedConversationId,
     onSelectConversation,
     currentUser
@@ -70,18 +69,116 @@ const ConversationList = ({
         conversation
     ) => {
 
+        if (!conversation) {
+            return "User";
+        }
+
+        // -------------------------------------------------
+        // DOCTOR LOGGED IN
+        // -------------------------------------------------
+
         if (
             currentUser?.role === "DOCTOR"
         ) {
             return (
                 conversation.patientName ||
+                conversation.patientFullName ||
+                conversation.patient?.name ||
+                conversation.patient?.fullName ||
+                conversation.patient?.full_name ||
+                conversation.patient?.patientName ||
                 "Patient"
             );
         }
 
+        // -------------------------------------------------
+        // PATIENT LOGGED IN
+        // -------------------------------------------------
+
         return (
             conversation.doctorName ||
+            conversation.doctorFullName ||
+            conversation.doctor?.name ||
+            conversation.doctor?.fullName ||
+            conversation.doctor?.full_name ||
+            conversation.doctor?.doctorName ||
             "Doctor"
+        );
+    };
+
+
+    // =====================================================
+    // GET APPOINTMENT NUMBER
+    // =====================================================
+
+    const getAppointmentNumber = (
+        conversation
+    ) => {
+
+        if (!conversation) {
+            return "N/A";
+        }
+
+        return (
+            conversation.appointmentNumber ||
+            conversation.appointmentNo ||
+            conversation.appointmentNumberText ||
+            conversation.appointmentId ||
+            conversation.appointment?.appointmentNumber ||
+            conversation.appointment?.appointmentNo ||
+            conversation.appointment?.appointmentNumberText ||
+            conversation.appointment?.appointmentId ||
+            conversation.appointment?.id ||
+            "N/A"
+        );
+    };
+
+
+    // =====================================================
+    // GET APPOINTMENT DATE
+    // =====================================================
+
+    const getAppointmentDate = (
+        conversation
+    ) => {
+
+        if (!conversation) {
+            return null;
+        }
+
+        return (
+            conversation.appointmentDate ||
+            conversation.appointment?.appointmentDate ||
+            conversation.appointment?.date ||
+            conversation.appointment?.appointment_date ||
+            conversation.date ||
+            null
+        );
+    };
+
+
+    // =====================================================
+    // GET HOSPITAL NAME
+    // =====================================================
+
+    const getHospitalName = (
+        conversation
+    ) => {
+
+        if (!conversation) {
+            return "N/A";
+        }
+
+        return (
+            conversation.hospitalName ||
+            conversation.hospital?.name ||
+            conversation.hospital?.hospitalName ||
+            conversation.hospital?.fullName ||
+            conversation.appointment?.hospitalName ||
+            conversation.appointment?.hospital?.name ||
+            conversation.appointment?.hospital?.hospitalName ||
+            conversation.appointment?.hospital?.fullName ||
+            "N/A"
         );
     };
 
@@ -94,7 +191,12 @@ const ConversationList = ({
         conversation
     ) => {
 
+        if (!conversation?.id) {
+            return false;
+        }
+
         // Selected/open conversation is NEVER unread
+
         if (
             String(selectedConversationId) ===
             String(conversation.id)
@@ -153,6 +255,11 @@ const ConversationList = ({
             conversationId
         );
 
+        console.log(
+            "Selected conversation data:",
+            conversation
+        );
+
 
         // ---------------------------------------------
         // Mark conversation as seen immediately
@@ -167,8 +274,6 @@ const ConversationList = ({
 
         // ---------------------------------------------
         // Update React state immediately
-        // This removes the unread indicator
-        // without waiting for another render
         // ---------------------------------------------
 
         setSeenMap(updatedSeenMap);
@@ -201,8 +306,12 @@ const ConversationList = ({
             const parsedDate =
                 new Date(date);
 
-            if (isNaN(parsedDate.getTime())) {
-                return date;
+            if (
+                Number.isNaN(
+                    parsedDate.getTime()
+                )
+            ) {
+                return String(date);
             }
 
             return parsedDate.toLocaleDateString(
@@ -216,7 +325,7 @@ const ConversationList = ({
 
         } catch {
 
-            return date;
+            return String(date);
 
         }
     };
@@ -228,20 +337,19 @@ const ConversationList = ({
 
     return (
 
-        <div className="w-full md:w-80 border-r border-[#E7E5E0] bg-white flex flex-col">
-
+        <div className="flex h-full min-h-0 w-full flex-col border-r border-[#E7E5E0] bg-white md:w-80">
 
             {/* ================================================= */}
             {/* HEADER */}
             {/* ================================================= */}
 
-            <div className="p-5 border-b border-[#E7E5E0]">
+            <div className="flex-shrink-0 border-b border-[#E7E5E0] p-5">
 
                 <h2 className="text-[19px] font-semibold text-[#1C2027]">
                     Messages
                 </h2>
 
-                <p className="text-[13px] text-[#8A8D93] mt-1">
+                <p className="mt-1 text-[13px] text-[#8A8D93]">
                     Your conversations
                 </p>
 
@@ -252,7 +360,7 @@ const ConversationList = ({
             {/* CONVERSATIONS */}
             {/* ================================================= */}
 
-            <div className="overflow-y-auto flex-1">
+            <div className="min-h-0 flex-1 overflow-y-auto">
 
                 {conversations.length === 0 ? (
 
@@ -298,6 +406,37 @@ const ConversationList = ({
                                 );
 
 
+                            // ---------------------------------
+                            // APPOINTMENT DATA
+                            // ---------------------------------
+
+                            const appointmentNumber =
+                                getAppointmentNumber(
+                                    conversation
+                                );
+
+                            const appointmentDate =
+                                getAppointmentDate(
+                                    conversation
+                                );
+
+                            const hospitalName =
+                                getHospitalName(
+                                    conversation
+                                );
+
+
+                            // ---------------------------------
+                            // AVATAR INITIAL
+                            // ---------------------------------
+
+                            const avatarInitial =
+                                personName
+                                    ?.charAt(0)
+                                    ?.toUpperCase() ||
+                                "U";
+
+
                             return (
 
                                 <button
@@ -312,7 +451,7 @@ const ConversationList = ({
                                         )
                                     }
 
-                                    className={`relative w-full text-left p-4 border-b border-[#F0EEE9] transition-colors focus:outline-none focus-visible:bg-[#EFF4FF] ${
+                                    className={`relative w-full border-b border-[#F0EEE9] p-4 text-left transition-colors focus:outline-none focus-visible:bg-[#EFF4FF] ${
                                         isSelected
                                             ? "bg-[#EFF4FF]"
                                             : isUnread
@@ -320,7 +459,6 @@ const ConversationList = ({
                                                 : "bg-white hover:bg-[#FAFAF8]"
                                     }`}
                                 >
-
 
                                     {/* ================================================= */}
                                     {/* SELECTED / UNREAD INDICATOR */}
@@ -341,7 +479,7 @@ const ConversationList = ({
                                         {/* ================================================= */}
 
                                         <div
-                                            className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                            className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full ${
                                                 isUnread
                                                     ? "bg-[#2563EB]"
                                                     : "bg-[#EEECE6]"
@@ -349,16 +487,14 @@ const ConversationList = ({
                                         >
 
                                             <span
-                                                className={`font-semibold text-[15px] ${
+                                                className={`text-[15px] font-semibold ${
                                                     isUnread
                                                         ? "text-white"
                                                         : "text-[#5B5F66]"
                                                 }`}
                                             >
 
-                                                {personName
-                                                    .charAt(0)
-                                                    .toUpperCase()}
+                                                {avatarInitial}
 
                                             </span>
 
@@ -369,7 +505,7 @@ const ConversationList = ({
                                         {/* DETAILS */}
                                         {/* ================================================= */}
 
-                                        <div className="flex-1 min-w-0">
+                                        <div className="min-w-0 flex-1">
 
 
                                             {/* ============================================= */}
@@ -393,7 +529,7 @@ const ConversationList = ({
 
                                                 {isUnread && (
 
-                                                    <span className="w-2.5 h-2.5 rounded-full bg-[#2563EB] flex-shrink-0" />
+                                                    <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full bg-[#2563EB]" />
 
                                                 )}
 
@@ -404,14 +540,11 @@ const ConversationList = ({
                                             {/* APPOINTMENT NUMBER */}
                                             {/* ============================================= */}
 
-                                            <p className="text-[12.5px] text-[#8A8D93] mt-0.5">
+                                            <p className="mt-0.5 truncate text-[12.5px] text-[#8A8D93]">
 
                                                 Appointment #
-                                                {
-                                                    conversation.appointmentNumber ||
-                                                    conversation.appointmentId ||
-                                                    "N/A"
-                                                }
+
+                                                {appointmentNumber}
 
                                             </p>
 
@@ -425,10 +558,27 @@ const ConversationList = ({
                                                 Date:{" "}
 
                                                 {formatAppointmentDate(
-                                                    conversation.appointmentDate
+                                                    appointmentDate
                                                 )}
 
                                             </p>
+
+
+                                            {/* ============================================= */}
+                                            {/* HOSPITAL */}
+                                            {/* ============================================= */}
+
+                                            {hospitalName !== "N/A" && (
+
+                                                <p className="truncate text-[12.5px] text-[#8A8D93]">
+
+                                                    Hospital:{" "}
+
+                                                    {hospitalName}
+
+                                                </p>
+
+                                            )}
 
 
                                             {/* ============================================= */}
@@ -438,9 +588,9 @@ const ConversationList = ({
                                             {conversation.lastMessage && (
 
                                                 <p
-                                                    className={`text-[12.5px] mt-1 truncate ${
+                                                    className={`mt-1 truncate text-[12.5px] ${
                                                         isUnread
-                                                            ? "text-[#1C2027] font-medium"
+                                                            ? "font-medium text-[#1C2027]"
                                                             : "text-[#A3A6AB]"
                                                     }`}
                                                 >
@@ -474,4 +624,3 @@ const ConversationList = ({
 };
 
 export default ConversationList;
-

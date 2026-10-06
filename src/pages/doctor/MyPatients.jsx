@@ -67,7 +67,7 @@ const MyPatients = () => {
 
     (async () => {
       try {
-        const res = await axios.get(`http://localhost:8082/api/appointments/doctor/${doctorId}`);
+        const res = await axios.get(`https://cdcm-backend.onrender.com/api/appointments/doctor/${doctorId}`);
         const rawAppointments = Array.isArray(res.data) ? res.data : [];
         const grouped = groupAppointmentsByDate(rawAppointments);
         setGroupedAppointments(grouped);
@@ -116,7 +116,7 @@ const MyPatients = () => {
 
       // 2. Check current access status from backend
       const res = await axios.get(
-        `http://localhost:8082/api/medical-records/access-status?appointmentId=${appt.id}&doctorId=${doctorId}`,
+        `https://cdcm-backend.onrender.com/api/medical-records/access-status?appointmentId=${appt.id}&doctorId=${doctorId}`,
         { headers }
       );
 
@@ -231,7 +231,7 @@ const MyPatients = () => {
     try {
       Swal.showLoading();
       const verifyRes = await axios.post(
-        "http://localhost:8082/api/medical-records/verify-access",
+        "https://cdcm-backend.onrender.com/api/medical-records/verify-access",
         {
           appointmentId: appt.id,
           doctorId: doctorId,
@@ -285,7 +285,7 @@ const MyPatients = () => {
   if (loading) return <div className="p-10 text-center text-gray-500 font-medium">Loading Patients...</div>;
 
   return (
-    <div className="p-10 bg-gray-50 min-h-screen">
+    <div className="p-8 bg-gray-50 min-h-screen">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-black mb-8 text-gray-800 tracking-tight">My Booked Patients</h1>
 
@@ -297,13 +297,13 @@ const MyPatients = () => {
           Object.keys(groupedAppointments).sort().reverse().map((date) => (
             <div key={date} className="mb-12">
               <div className="flex items-center gap-4 mb-6">
-                <h2 className="text-sm font-black text-white bg-blue-600 px-5 py-2 rounded-full shadow-md uppercase tracking-widest">
+                <h2 className="text-sm font-black text-white bg-blue-600 px-5 py-2 shadow-md uppercase tracking-widest">
                   📅 {date}
                 </h2>
                 <div className="flex-grow h-px bg-gray-200"></div>
               </div>
 
-              <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-1xl shadow-xl border border-gray-100 overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50/50 border-b border-gray-100">

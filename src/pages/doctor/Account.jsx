@@ -79,10 +79,10 @@ const DoctorAccountPage = () => {
       try {
         setLoading(true);
         const [accountRes, profileRes, hospListRes, feedbackRes] = await Promise.all([
-          fetch(`http://localhost:8082/api/auth/doctors/${doctorId}/account`),
-          fetch(`http://localhost:8082/api/auth/doctors/${doctorId}`),
-          fetch(`http://localhost:8082/api/hospital/doctors/all-hospitals`),
-          fetch(`http://localhost:8082/api/feedback/doctor/${doctorId}`),
+          fetch(`https://cdcm-backend.onrender.com/api/auth/doctors/${doctorId}/account`),
+          fetch(`https://cdcm-backend.onrender.com/api/auth/doctors/${doctorId}`),
+          fetch(`https://cdcm-backend.onrender.com/api/hospital/doctors/all-hospitals`),
+          fetch(`https://cdcm-backend.onrender.com/api/feedback/doctor/${doctorId}`),
         ]);
 
         if (!accountRes.ok || !profileRes.ok || !hospListRes.ok) throw new Error("Failed to fetch data");
@@ -135,7 +135,7 @@ const DoctorAccountPage = () => {
 
     try {
       setSaving(true);
-      const res = await fetch(`http://localhost:8082/api/auth/doctors/${doctorId}/account`, {
+      const res = await fetch(`https://cdcm-backend.onrender.com/api/auth/doctors/${doctorId}/account`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -301,25 +301,28 @@ const DoctorAccountPage = () => {
         </CollapsibleSection>
 
         <CollapsibleSection title="Working Hospitals" isOpen={hospitalsOpen} setIsOpen={setHospitalsOpen}>
-          {doctorInfo.hospitals?.length ? (
-            <ul className="space-y-2">
-              {doctorInfo.hospitals.map((hospitalId, i) => {
-                const hospitalObj = allHospitals.find((h) => h.id === hospitalId);
-                return (
-                  <li key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+          {(() => {
+            const validWorkingHospitals = (doctorInfo.hospitals || [])
+              .map((hospitalId) => allHospitals.find((h) => h.id === hospitalId || h._id === hospitalId))
+              .filter(Boolean);
+
+            return validWorkingHospitals.length > 0 ? (
+              <ul className="space-y-2">
+                {validWorkingHospitals.map((hospitalObj, i) => (
+                  <li key={hospitalObj.id || hospitalObj._id || i} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
                     <div className="bg-[#eef1fb] rounded-lg p-1.5">
                       <Building2 size={13} className="text-[#2d3e7a]" />
                     </div>
                     <span className="text-slate-700 text-sm font-medium">
-                      {hospitalObj ? hospitalObj.name : hospitalId}
+                      {hospitalObj.name}
                     </span>
                   </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="text-slate-400 text-sm italic">No hospitals added yet.</p>
-          )}
+                ))}
+              </ul>
+            ) : (
+              <p className="text-slate-400 text-sm italic">No hospitals added yet.</p>
+            );
+          })()}
         </CollapsibleSection>
 
         <CollapsibleSection title="Patient Feedback" isOpen={feedbackOpen} setIsOpen={setFeedbackOpen}>
@@ -350,15 +353,15 @@ const DoctorAccountPage = () => {
           <div className="mt-5 flex gap-3">
             <button
               onClick={() => setIsEditing(true)}
-              className="flex-1 bg-gradient-to-r from-[#1e2d5e] to-[#2d3e7a] hover:from-[#1a2550] hover:to-[#253470] text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+              className="flex-1 bg-gradient-to-r from-[#1e2d5e] to-[#2d3e7a] hover:from-[#1a2550] hover:to-[#253470] text-white font-semibold mx-100 py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
             >
               <Edit size={16} />
               <span>Edit Profile</span>
             </button>
-            <button className="flex-1 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all border border-red-100 hover:border-red-200 shadow-sm">
+            {/* <button className="flex-1 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all border border-red-100 hover:border-red-200 shadow-sm">
               <Trash2 size={16} />
               <span>Delete Account</span>
-            </button>
+            </button> */}
           </div>
         )}
       </div>
