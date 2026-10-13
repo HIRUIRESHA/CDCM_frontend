@@ -188,6 +188,42 @@ const formatTime = (time) => {
   });
 };
 
+const isSchedulePast = (date, time) => {
+  if (!date) return false;
+
+  try {
+    const cleanDate = String(date).split("T")[0].trim();
+    const [year, month, day] = cleanDate.split("-").map(Number);
+
+    if (!year || !month || !day) return false;
+
+    let hours = 0;
+    let minutes = 0;
+
+    if (time) {
+      const trimmed = String(time).trim();
+      const isPM = /pm/i.test(trimmed);
+      const isAM = /am/i.test(trimmed);
+      const cleanTime = trimmed.replace(/\s*(am|pm)/i, "");
+      const [h = 0, m = 0] = cleanTime.split(":").map(Number);
+
+      hours = h;
+      minutes = m;
+
+      if (isPM && hours < 12) hours += 12;
+      if (isAM && hours === 12) hours = 0;
+    }
+
+    const scheduleDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
+
+    if (Number.isNaN(scheduleDateTime.getTime())) return false;
+
+    return scheduleDateTime.getTime() <= Date.now();
+  } catch {
+    return false;
+  }
+};
+
 /* =========================
    ICONS
 ========================= */
@@ -433,6 +469,15 @@ export default function SchedulePage() {
   ========================= */
 
   const acceptSchedule = async (id) => {
+    const targetSchedule = schedules.find((s) => (s.id || s._id) === id);
+    if (
+      targetSchedule &&
+      isSchedulePast(targetSchedule.date, targetSchedule.endTime)
+    ) {
+      await showError("Cannot accept an expired schedule.");
+      return;
+    }
+
     const confirmed = await showConfirm(
       "Do you want to accept this schedule?",
       "Accept Schedule?"
@@ -466,6 +511,15 @@ export default function SchedulePage() {
   ========================= */
 
   const rejectSchedule = async (id) => {
+    const targetSchedule = schedules.find((s) => (s.id || s._id) === id);
+    if (
+      targetSchedule &&
+      isSchedulePast(targetSchedule.date, targetSchedule.endTime)
+    ) {
+      await showError("Cannot reject an expired schedule.");
+      return;
+    }
+
     const confirmed = await showConfirm(
       "Do you want to reject this schedule?",
       "Reject Schedule?"
@@ -500,6 +554,22 @@ export default function SchedulePage() {
 
   const confirmCancel = async () => {
     if (!cancelTargetId) return;
+
+    const targetSchedule = schedules.find(
+      (s) => (s.id || s._id) === cancelTargetId
+    );
+
+    if (
+      targetSchedule &&
+      isSchedulePast(targetSchedule.date, targetSchedule.endTime)
+    ) {
+      showToast(
+        "error",
+        "Cannot cancel an expired schedule."
+      );
+      setCancelTargetId(null);
+      return;
+    }
 
     try {
       setProcessingId(cancelTargetId);
@@ -793,6 +863,7 @@ export default function SchedulePage() {
                     {filteredSchedules.map((s) => {
                       const id = s.id || s._id;
                       const isProcessing = processingId === id;
+                      const isPast = isSchedulePast(s.date, s.endTime);
                       const bookedPatientCount = Number(
                         s.bookedPatientCount || 0
                       );
@@ -912,8 +983,17 @@ export default function SchedulePage() {
                                   <button
                                     type="button"
                                     onClick={() => acceptSchedule(id)}
-                                    disabled={isProcessing}
-                                    className="rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    disabled={isProcessing || isPast}
+                                    title={
+                                      isPast
+                                        ? "Cannot accept an expired schedule"
+                                        : undefined
+                                    }
+                                    className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+                                      isPast
+                                        ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400 opacity-60"
+                                        : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                    }`}
                                   >
                                     {isProcessing ? "..." : "✓ Accept"}
                                   </button>
@@ -921,8 +1001,17 @@ export default function SchedulePage() {
                                   <button
                                     type="button"
                                     onClick={() => rejectSchedule(id)}
-                                    disabled={isProcessing}
-                                    className="rounded-lg border border-rose-200 bg-white px-3.5 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                    disabled={isProcessing || isPast}
+                                    title={
+                                      isPast
+                                        ? "Cannot reject an expired schedule"
+                                        : undefined
+                                    }
+                                    className={`rounded-lg border px-3.5 py-2 text-xs font-semibold transition ${
+                                      isPast
+                                        ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 opacity-60"
+                                        : "border-rose-200 bg-white text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                    }`}
                                   >
                                     ✕ Reject
                                   </button>
@@ -933,8 +1022,17 @@ export default function SchedulePage() {
                                 <button
                                   type="button"
                                   onClick={() => setCancelTargetId(id)}
-                                  disabled={isProcessing}
-                                  className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                  disabled={isProcessing || isPast}
+                                  title={
+                                    isPast
+                                      ? "Cannot cancel an expired schedule"
+                                      : undefined
+                                  }
+                                  className={`rounded-lg border px-3.5 py-2 text-xs font-semibold transition ${
+                                    isPast
+                                      ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 opacity-60"
+                                      : "border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                  }`}
                                 >
                                   Cancel shift
                                 </button>
@@ -965,6 +1063,7 @@ export default function SchedulePage() {
                 {filteredSchedules.map((s) => {
                   const id = s.id || s._id;
                   const isProcessing = processingId === id;
+                  const isPast = isSchedulePast(s.date, s.endTime);
                   const bookedPatientCount = Number(
                     s.bookedPatientCount || 0
                   );
@@ -1073,8 +1172,17 @@ export default function SchedulePage() {
                           <button
                             type="button"
                             onClick={() => acceptSchedule(id)}
-                            disabled={isProcessing}
-                            className="flex-1 rounded-xl bg-emerald-600 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={isProcessing || isPast}
+                            title={
+                              isPast
+                                ? "Cannot accept an expired schedule"
+                                : undefined
+                            }
+                            className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-semibold transition ${
+                              isPast
+                                ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400 opacity-60"
+                                : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            }`}
                           >
                             {isProcessing ? "..." : "✓ Accept"}
                           </button>
@@ -1082,8 +1190,17 @@ export default function SchedulePage() {
                           <button
                             type="button"
                             onClick={() => rejectSchedule(id)}
-                            disabled={isProcessing}
-                            className="flex-1 rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={isProcessing || isPast}
+                            title={
+                              isPast
+                                ? "Cannot reject an expired schedule"
+                                : undefined
+                            }
+                            className={`flex-1 rounded-xl border px-3 py-2.5 text-xs font-semibold transition ${
+                              isPast
+                                ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 opacity-60"
+                                : "border-rose-200 bg-white text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            }`}
                           >
                             ✕ Reject
                           </button>
@@ -1094,8 +1211,17 @@ export default function SchedulePage() {
                         <button
                           type="button"
                           onClick={() => setCancelTargetId(id)}
-                          disabled={isProcessing}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={isProcessing || isPast}
+                          title={
+                            isPast
+                              ? "Cannot cancel an expired schedule"
+                              : undefined
+                          }
+                          className={`w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold transition ${
+                            isPast
+                              ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 opacity-60"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          }`}
                         >
                           Cancel shift
                         </button>
