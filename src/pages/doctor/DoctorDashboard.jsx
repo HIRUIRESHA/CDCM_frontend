@@ -671,7 +671,7 @@ export default function DoctorDashboard() {
                 {[
                   { icon: <Calendar size={15} />, label: "My Schedule", path: "/doctor/schedule", grad: "#6366f1,#818cf8" },
                   { icon: <Users size={15} />, label: "My Patients", path: "/doctor/mypatients", grad: "#ec4899,#f472b6" },
-                  { icon: <Video size={15} />, label: "Video Sessions", path: "/doctor/video", grad: "#0ea5e9,#38bdf8" },
+                  { icon: <Video size={15} />, label: "Video Sessions", path: "/doctor/video-conference", grad: "#0ea5e9,#38bdf8" },
                   { icon: <FileText size={15} />, label: "My Profile", path: "/doctor/account", grad: "#10b981,#34d399" },
                 ].map((a, i) => (
                   <button
