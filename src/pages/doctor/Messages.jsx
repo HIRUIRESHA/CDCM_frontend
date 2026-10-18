@@ -23,6 +23,96 @@ const Messages = () => {
 
 
   // =========================================================
+  // DEDUPLICATE / GROUP CONVERSATIONS BY PATIENT
+  // =========================================================
+
+  const groupConversationsByPatient = (rawConversations) => {
+    if (!Array.isArray(rawConversations)) return [];
+
+    const groups = new Map();
+
+    for (const conv of rawConversations) {
+      if (!conv) continue;
+
+      // Unique logical identity is (doctorId, patientId)
+      // For Doctor Messages, group by patientId or normalized patient name
+      const patientKey = conv.patientId && String(conv.patientId).trim()
+        ? String(conv.patientId).trim()
+        : (conv.patientName && String(conv.patientName).trim()
+            ? String(conv.patientName).trim().toLowerCase()
+            : (conv.id ? String(conv.id).trim() : ""));
+
+      if (!patientKey) continue;
+
+      if (!groups.has(patientKey)) {
+        groups.set(patientKey, []);
+      }
+      groups.get(patientKey).push(conv);
+    }
+
+    const unifiedList = [];
+
+    for (const [, group] of groups) {
+      if (group.length === 1) {
+        const single = group[0];
+        unifiedList.push({
+          ...single,
+          relatedConversationIds: [String(single.id)],
+        });
+        continue;
+      }
+
+      // Pick canonical conversation (deterministic: earliest createdAt or id)
+      const sortedByCreated = [...group].sort((a, b) => {
+        const t1 = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const t2 = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (t1 !== t2) return t1 - t2;
+        return String(a.id || "").localeCompare(String(b.id || ""));
+      });
+      const canonical = sortedByCreated[0];
+
+      // Find the latest message and lastMessageAt across the group
+      const latestMsgConv = [...group]
+        .filter((c) => c.lastMessageAt)
+        .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())[0];
+
+      // Find the latest appointment metadata
+      const latestApptConv = [...group].sort((a, b) => {
+        const d1 = a.appointmentDate ? new Date(a.appointmentDate).getTime() : 0;
+        const d2 = b.appointmentDate ? new Date(b.appointmentDate).getTime() : 0;
+        if (d1 !== d2) return d2 - d1;
+        const c1 = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const c2 = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return c2 - c1;
+      })[0];
+
+      const relatedIds = Array.from(new Set(group.map((c) => String(c.id)).filter(Boolean)));
+
+      const unified = {
+        ...canonical,
+        appointmentId: latestApptConv?.appointmentId || canonical.appointmentId,
+        appointmentNumber: latestApptConv?.appointmentNumber || canonical.appointmentNumber,
+        appointmentDate: latestApptConv?.appointmentDate || canonical.appointmentDate,
+        hospitalName: latestApptConv?.hospitalName || canonical.hospitalName,
+        lastMessage: latestMsgConv?.lastMessage || canonical.lastMessage || "",
+        lastMessageAt: latestMsgConv?.lastMessageAt || canonical.lastMessageAt,
+        relatedConversationIds: relatedIds,
+      };
+
+      unifiedList.push(unified);
+    }
+
+    unifiedList.sort((a, b) => {
+      const t1 = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const t2 = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      return t2 - t1;
+    });
+
+    return unifiedList;
+  };
+
+
+  // =========================================================
   // LOAD CONVERSATIONS
   // =========================================================
 
@@ -38,11 +128,10 @@ const Messages = () => {
       const data =
         await getDoctorConversations(user.id);
 
-      setConversations(
-        Array.isArray(data)
-          ? data
-          : []
-      );
+      const deduplicated =
+        groupConversationsByPatient(data);
+
+      setConversations(deduplicated);
 
     } catch (error) {
 
@@ -82,7 +171,7 @@ const Messages = () => {
         return;
       }
 
-      const conversationId =
+      const messageConvId =
         String(newMessage.conversationId);
 
 
@@ -90,11 +179,13 @@ const Messages = () => {
 
         return previous.map(
           (conversation) => {
+            const matchesId =
+              String(conversation.id) === messageConvId;
+            const matchesRelated =
+              Array.isArray(conversation.relatedConversationIds) &&
+              conversation.relatedConversationIds.includes(messageConvId);
 
-            if (
-              String(conversation.id) !==
-              conversationId
-            ) {
+            if (!matchesId && !matchesRelated) {
               return conversation;
             }
 
