@@ -169,17 +169,40 @@ const ChatWindow = ({
 
                 setLoading(true);
 
-                const data =
-                    await getMessages(
-                        conversationId
+                let databaseMessages = [];
+
+                if (Array.isArray(conversation.relatedConversationIds) && conversation.relatedConversationIds.length > 1) {
+                    const results = await Promise.all(
+                        conversation.relatedConversationIds.map((id) =>
+                            getMessages(id).catch(() => [])
+                        )
                     );
+                    const seenIds = new Set();
+                    for (const list of results) {
+                        if (Array.isArray(list)) {
+                            for (const m of list) {
+                                const mId = m?.id ? String(m.id) : null;
+                                if (mId && !seenIds.has(mId)) {
+                                    seenIds.add(mId);
+                                    databaseMessages.push(m);
+                                } else if (!mId && m) {
+                                    databaseMessages.push(m);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    const data =
+                        await getMessages(
+                            conversationId
+                        );
+                    databaseMessages =
+                        Array.isArray(data)
+                            ? data
+                            : [];
+                }
 
                 if (cancelled) return;
-
-                const databaseMessages =
-                    Array.isArray(data)
-                        ? data
-                        : [];
 
 
                 setMessages(
@@ -198,11 +221,14 @@ const ChatWindow = ({
                                 }
 
 
+                                const matchesThisConv =
+                                    String(currentMessage.conversationId) === conversationId ||
+                                    (Array.isArray(conversation.relatedConversationIds) &&
+                                     conversation.relatedConversationIds.includes(String(currentMessage.conversationId)));
+
                                 if (
                                     currentMessage.conversationId &&
-                                    String(
-                                        currentMessage.conversationId
-                                    ) !== conversationId
+                                    !matchesThisConv
                                 ) {
                                     return;
                                 }
@@ -319,11 +345,10 @@ const ChatWindow = ({
 
     const conversationIdsKey =
         conversations
-            .map(
-                (item) =>
-                    item?.id
-                        ? String(item.id)
-                        : null
+            .flatMap((item) =>
+                Array.isArray(item?.relatedConversationIds) && item.relatedConversationIds.length > 0
+                    ? item.relatedConversationIds
+                    : (item?.id ? [String(item.id)] : [])
             )
             .filter(Boolean)
             .join("|");
@@ -414,10 +439,13 @@ const ChatWindow = ({
                             }
 
 
-                            if (
-                                activeConversationRef.current !==
-                                messageConversationId
-                            ) {
+                            const isActive =
+                                activeConversationRef.current ===
+                                messageConversationId ||
+                                (Array.isArray(conversation?.relatedConversationIds) &&
+                                 conversation.relatedConversationIds.includes(messageConversationId));
+
+                            if (!isActive) {
                                 return;
                             }
 

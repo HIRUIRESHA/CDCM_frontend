@@ -571,6 +571,18 @@ export default function SchedulePage() {
       return;
     }
 
+    if (
+      targetSchedule &&
+      Number(targetSchedule.bookedPatientCount || 0) > 0
+    ) {
+      showToast(
+        "error",
+        "Cannot cancel a schedule with booked patients."
+      );
+      setCancelTargetId(null);
+      return;
+    }
+
     try {
       setProcessingId(cancelTargetId);
 
@@ -592,7 +604,13 @@ export default function SchedulePage() {
       console.error("Status:", err.response?.status);
       console.error("Response:", err.response?.data);
 
-      showToast("error", "Failed to cancel schedule.");
+      const errorMessage =
+        (typeof err.response?.data === "string"
+          ? err.response?.data
+          : err.response?.data?.message) ||
+        "Failed to cancel schedule.";
+
+      showToast("error", errorMessage);
     } finally {
       setProcessingId(null);
     }
@@ -867,6 +885,7 @@ export default function SchedulePage() {
                       const bookedPatientCount = Number(
                         s.bookedPatientCount || 0
                       );
+                      const hasBookings = bookedPatientCount > 0;
 
                       return (
                         <tr
@@ -1022,14 +1041,16 @@ export default function SchedulePage() {
                                 <button
                                   type="button"
                                   onClick={() => setCancelTargetId(id)}
-                                  disabled={isProcessing || isPast}
+                                  disabled={isProcessing || isPast || hasBookings}
                                   title={
                                     isPast
                                       ? "Cannot cancel an expired schedule"
+                                      : hasBookings
+                                      ? "Cannot cancel a schedule with booked patients"
                                       : undefined
                                   }
                                   className={`rounded-lg border px-3.5 py-2 text-xs font-semibold transition ${
-                                    isPast
+                                    isPast || hasBookings
                                       ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 opacity-60"
                                       : "border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
                                   }`}
@@ -1067,6 +1088,7 @@ export default function SchedulePage() {
                   const bookedPatientCount = Number(
                     s.bookedPatientCount || 0
                   );
+                  const hasBookings = bookedPatientCount > 0;
 
                   return (
                     <article
@@ -1211,14 +1233,16 @@ export default function SchedulePage() {
                         <button
                           type="button"
                           onClick={() => setCancelTargetId(id)}
-                          disabled={isProcessing || isPast}
+                          disabled={isProcessing || isPast || hasBookings}
                           title={
                             isPast
                               ? "Cannot cancel an expired schedule"
+                              : hasBookings
+                              ? "Cannot cancel a schedule with booked patients"
                               : undefined
                           }
                           className={`w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold transition ${
-                            isPast
+                            isPast || hasBookings
                               ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 opacity-60"
                               : "border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
                           }`}
