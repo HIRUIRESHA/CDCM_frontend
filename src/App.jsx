@@ -48,6 +48,7 @@ import AddLabTest from './pages/hospital/AddLabTest';
 import AddVideoConsultingSchedule from './pages/hospital/AddVideoConsultingSchedule';
 import HospitalVerifyEmail from "./pages/hospital/HospitalVerifyEmail";
 import DoctorSchedules from './pages/hospital/DoctorSchedules';
+import HospitalRefundPolicy from './pages/hospital/HospitalRefundPolicy';
 
 import HospitalChangePassword from "./pages/hospital/HospitalChangePassword";
 
@@ -170,6 +171,7 @@ function App() {
               <Route path="addLabTest" element={<AddLabTest />} />
               <Route path="upload-report/:id" element={<UploadReport />} />
               <Route path="doctorschedules" element={<DoctorSchedules />} />
+              <Route path="refund-policy" element={<HospitalRefundPolicy />} />
               
             </Route>
             </Route>

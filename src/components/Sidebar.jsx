@@ -395,6 +395,7 @@ export const HospitalSidebar = (props) => {
             <SidebarLink to="/hospital/laboratory" icon={<Microscope size={18} />} label="Laboratory Tests" />
 
             <SidebarSection title="System & Updates" />
+            <SidebarLink to="/hospital/refund-policy" icon={<CreditCard size={18} />} label="Refund Policy" />
             <SidebarLink to="/hospital/notifications" icon={<Bell size={18} />} label="Notifications" badge={unreadCount} />
         </SidebarContainer>
     );
