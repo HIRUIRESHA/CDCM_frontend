@@ -1,7 +1,78 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { ChevronDown, ChevronUp, Edit, Trash2, Star, Stethoscope, Award, Briefcase, Building2, MessageSquare } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Edit,
+  Trash2,
+  Star,
+  Stethoscope,
+  Award,
+  Briefcase,
+  Building2,
+  MessageSquare,
+  Search,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+
+const linesToArray = (text) =>
+  (text || "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+const getHospitalId = (h) => (h ? String(h.id || h._id || "").trim() : "");
+
+/**
+ * Resolves doctor's stored affiliations against the available hospital directory.
+ * - Matches by hospital identifier (id or _id).
+ * - Matches legacy hospital names if there is a unique, unambiguous match.
+ * - Identifies unresolved or deleted hospital records without modifying the DB.
+ */
+const resolveHospitalAffiliations = (rawAffiliations, hospitalsList) => {
+  if (!Array.isArray(rawAffiliations) || !Array.isArray(hospitalsList)) {
+    return { resolvedIds: [], resolvedHospitals: [], unresolvedCount: 0 };
+  }
+
+  const resolvedIds = [];
+  const resolvedHospitals = [];
+  let unresolvedCount = 0;
+
+  rawAffiliations.forEach((item) => {
+    if (item === null || item === undefined) return;
+    const str = String(item).trim();
+    if (!str) return;
+
+    // 1. Try matching by hospital identifier
+    const matchById = hospitalsList.find((h) => getHospitalId(h) === str);
+    if (matchById) {
+      const id = getHospitalId(matchById);
+      if (!resolvedIds.includes(id)) {
+        resolvedIds.push(id);
+        resolvedHospitals.push(matchById);
+      }
+      return;
+    }
+
+    // 2. Try unique legacy hospital name match (case-insensitive exact match)
+    const matchesByName = hospitalsList.filter(
+      (h) => h.name && h.name.trim().toLowerCase() === str.toLowerCase()
+    );
+    if (matchesByName.length === 1) {
+      const id = getHospitalId(matchesByName[0]);
+      if (!resolvedIds.includes(id)) {
+        resolvedIds.push(id);
+        resolvedHospitals.push(matchesByName[0]);
+      }
+      return;
+    }
+
+    // 3. Unresolved: either a deleted hospital ID/name, ambiguous name, or invalid code
+    unresolvedCount += 1;
+  });
+
+  return { resolvedIds, resolvedHospitals, unresolvedCount };
+};
 
 const DoctorAccountPage = () => {
   const { user } = useAuth();
@@ -34,19 +105,54 @@ const DoctorAccountPage = () => {
   const [formData, setFormData] = useState({
     qualificationsText: "",
     experience: "",
-    hospitalsText: "",
+    selectedHospitals: [],
   });
 
-  const linesToArray = (text) =>
-    text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const [hospitalSearch, setHospitalSearch] = useState("");
+
+  // Filter and deduplicate available hospitals from active directory
+  const availableHospitals = useMemo(() => {
+    if (!Array.isArray(allHospitals)) return [];
+    const seen = new Set();
+    const list = [];
+    for (const h of allHospitals) {
+      if (!h || typeof h !== "object") continue;
+      const hospId = getHospitalId(h);
+      if (!hospId || seen.has(hospId)) continue;
+      if (!h.name || typeof h.name !== "string" || !h.name.trim()) continue;
+      seen.add(hospId);
+      list.push(h);
+    }
+    return list;
+  }, [allHospitals]);
+
+  // Read-only resolved hospitals and unresolved count
+  const {
+    resolvedHospitals: validWorkingHospitals,
+    unresolvedCount: unresolvedAffiliationsCount,
+  } = useMemo(
+    () => resolveHospitalAffiliations(doctorInfo.hospitals, availableHospitals),
+    [doctorInfo.hospitals, availableHospitals]
+  );
+
+  // Filtered available hospitals for search in modal
+  const filteredHospitals = useMemo(() => {
+    if (!hospitalSearch.trim()) return availableHospitals;
+    const query = hospitalSearch.trim().toLowerCase();
+    return availableHospitals.filter(
+      (h) =>
+        (h.name && h.name.toLowerCase().includes(query)) ||
+        (h.location && h.location.toLowerCase().includes(query))
+    );
+  }, [availableHospitals, hospitalSearch]);
 
   const Modal = ({ isOpen, onClose, title, children }) => {
     if (!isOpen) return null;
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative z-10 w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden">
-          <div className="bg-gradient-to-r from-[#1e2d5e] to-[#2d3e7a] px-6 py-4">
+        <div className="relative z-10 w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-gradient-to-r from-[#1e2d5e] to-[#2d3e7a] px-6 py-4 shrink-0">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-white tracking-wide">{title}</h2>
               <button
@@ -57,19 +163,44 @@ const DoctorAccountPage = () => {
               </button>
             </div>
           </div>
-          <div className="p-6">{children}</div>
+          <div className="p-6 overflow-y-auto">{children}</div>
         </div>
       </div>
     );
   };
 
-  const resetFormAndClose = () => {
+  const handleOpenEditModal = () => {
+    const { resolvedIds } = resolveHospitalAffiliations(doctorInfo.hospitals, availableHospitals);
     setFormData({
-      qualificationsText: doctorInfo.qualifications.join("\n"),
-      experience: doctorInfo.experience,
-      hospitalsText: doctorInfo.hospitals.join("\n"),
+      qualificationsText: (doctorInfo.qualifications || []).join("\n"),
+      experience: doctorInfo.experience || "",
+      selectedHospitals: resolvedIds,
     });
+    setHospitalSearch("");
+    setIsEditing(true);
+  };
+
+  const resetFormAndClose = () => {
+    const { resolvedIds } = resolveHospitalAffiliations(doctorInfo.hospitals, availableHospitals);
+    setFormData({
+      qualificationsText: (doctorInfo.qualifications || []).join("\n"),
+      experience: doctorInfo.experience || "",
+      selectedHospitals: resolvedIds,
+    });
+    setHospitalSearch("");
     setIsEditing(false);
+  };
+
+  const handleToggleHospital = (hospitalId) => {
+    const normId = String(hospitalId);
+    setFormData((prev) => {
+      const current = prev.selectedHospitals || [];
+      const exists = current.includes(normId);
+      const updated = exists
+        ? current.filter((id) => id !== normId)
+        : [...current, normId];
+      return { ...prev, selectedHospitals: updated };
+    });
   };
 
   useEffect(() => {
@@ -81,26 +212,39 @@ const DoctorAccountPage = () => {
         const [accountRes, profileRes, hospListRes, feedbackRes] = await Promise.all([
           fetch(`https://cdcm-backend.onrender.com/api/auth/doctors/${doctorId}/account`),
           fetch(`https://cdcm-backend.onrender.com/api/auth/doctors/${doctorId}`),
-          fetch(`https://cdcm-backend.onrender.com/api/hospital/doctors/all-hospitals`),
-          fetch(`https://cdcm-backend.onrender.com/api/feedback/doctor/${doctorId}`),
+          fetch(`https://cdcm-backend.onrender.com/api/hospital/doctors/all-hospitals`).catch(() => null),
+          fetch(`https://cdcm-backend.onrender.com/api/feedback/doctor/${doctorId}`).catch(() => null),
         ]);
 
-        if (!accountRes.ok || !profileRes.ok || !hospListRes.ok) throw new Error("Failed to fetch data");
+        if (!accountRes.ok || !profileRes.ok) throw new Error("Failed to fetch doctor account data");
 
         const accountData = await accountRes.json();
         const profileData = await profileRes.json();
-        const hospListData = await hospListRes.json();
 
-        let feedbackData = [];
-        if (feedbackRes.ok) {
-          feedbackData = await feedbackRes.json();
+        let hospListData = [];
+        if (hospListRes && hospListRes.ok) {
+          try {
+            hospListData = await hospListRes.json();
+          } catch (e) {
+            console.error("Failed to parse hospital directory:", e);
+          }
         }
 
-        setAllHospitals(hospListData);
-        setFeedbacks(feedbackData);
+        let feedbackData = [];
+        if (feedbackRes && feedbackRes.ok) {
+          try {
+            feedbackData = await feedbackRes.json();
+          } catch (e) {
+            console.error("Failed to parse feedbacks:", e);
+          }
+        }
+
+        const validHospitalsArray = Array.isArray(hospListData) ? hospListData : [];
+        setAllHospitals(validHospitalsArray);
+        setFeedbacks(Array.isArray(feedbackData) ? feedbackData : []);
 
         const combinedData = {
-          name: `${profileData.title} ${profileData.firstName} ${profileData.lastName}`,
+          name: `${profileData.title || ""} ${profileData.firstName || ""} ${profileData.lastName || ""}`.trim(),
           profileImage: profileData.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png",
           specialty: profileData.specialization || "Specialty not assigned",
           qualifications: Array.isArray(accountData.qualifications) ? accountData.qualifications : [],
@@ -109,10 +253,14 @@ const DoctorAccountPage = () => {
         };
 
         setDoctorInfo(combinedData);
+
+        const available = validHospitalsArray.filter((h) => h && (h.id || h._id) && h.name);
+        const { resolvedIds } = resolveHospitalAffiliations(combinedData.hospitals, available);
+
         setFormData({
           qualificationsText: combinedData.qualifications.join("\n"),
           experience: combinedData.experience,
-          hospitalsText: combinedData.hospitals.join("\n"),
+          selectedHospitals: resolvedIds,
         });
       } catch (e) {
         console.error(e);
@@ -127,10 +275,16 @@ const DoctorAccountPage = () => {
   const handleSaveAccount = async () => {
     if (!isOwnProfile) return;
 
+    // Deduplicate and ensure every submitted ID belongs to availableHospitals
+    const availableIdSet = new Set(availableHospitals.map((h) => getHospitalId(h)));
+    const validHospitalIds = Array.from(new Set(formData.selectedHospitals || []))
+      .map(String)
+      .filter((id) => availableIdSet.has(id));
+
     const payload = {
       qualifications: linesToArray(formData.qualificationsText),
-      experience: formData.experience.trim(),
-      hospitals: linesToArray(formData.hospitalsText),
+      experience: (formData.experience || "").trim(),
+      hospitals: validHospitalIds,
     };
 
     try {
@@ -144,6 +298,11 @@ const DoctorAccountPage = () => {
       if (!res.ok) throw new Error("Failed to update account");
 
       setDoctorInfo((prev) => ({ ...prev, ...payload }));
+      setFormData({
+        qualificationsText: payload.qualifications.join("\n"),
+        experience: payload.experience,
+        selectedHospitals: payload.hospitals,
+      });
       setIsEditing(false);
       alert("Account details updated!");
     } catch (e) {
@@ -262,8 +421,8 @@ const DoctorAccountPage = () => {
         {/* Stats strip */}
         <div className="grid grid-cols-3 gap-3 mb-5">
           {[
-            { label: "Qualifications", value: doctorInfo.qualifications.length, icon: <Award size={18} className="text-[#2d3e7a]" /> },
-            { label: "Hospitals", value: doctorInfo.hospitals.length, icon: <Building2 size={18} className="text-[#2d3e7a]" /> },
+            { label: "Qualifications", value: (doctorInfo.qualifications || []).length, icon: <Award size={18} className="text-[#2d3e7a]" /> },
+            { label: "Hospitals", value: validWorkingHospitals.length, icon: <Building2 size={18} className="text-[#2d3e7a]" /> },
             { label: "Reviews", value: feedbacks.length, icon: <MessageSquare size={18} className="text-[#2d3e7a]" /> },
           ].map((stat) => (
             <div key={stat.label} className="bg-white rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm border border-slate-100">
@@ -301,28 +460,25 @@ const DoctorAccountPage = () => {
         </CollapsibleSection>
 
         <CollapsibleSection title="Working Hospitals" isOpen={hospitalsOpen} setIsOpen={setHospitalsOpen}>
-          {(() => {
-            const validWorkingHospitals = (doctorInfo.hospitals || [])
-              .map((hospitalId) => allHospitals.find((h) => h.id === hospitalId || h._id === hospitalId))
-              .filter(Boolean);
-
-            return validWorkingHospitals.length > 0 ? (
-              <ul className="space-y-2">
-                {validWorkingHospitals.map((hospitalObj, i) => (
-                  <li key={hospitalObj.id || hospitalObj._id || i} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                    <div className="bg-[#eef1fb] rounded-lg p-1.5">
-                      <Building2 size={13} className="text-[#2d3e7a]" />
-                    </div>
-                    <span className="text-slate-700 text-sm font-medium">
-                      {hospitalObj.name}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-slate-400 text-sm italic">No hospitals added yet.</p>
-            );
-          })()}
+          {validWorkingHospitals.length > 0 ? (
+            <ul className="space-y-2">
+              {validWorkingHospitals.map((hospitalObj, i) => (
+                <li
+                  key={getHospitalId(hospitalObj) || i}
+                  className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-50 border border-slate-100"
+                >
+                  <div className="bg-[#eef1fb] rounded-lg p-1.5">
+                    <Building2 size={13} className="text-[#2d3e7a]" />
+                  </div>
+                  <span className="text-slate-700 text-sm font-medium">
+                    {hospitalObj.name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-slate-400 text-sm italic">No active hospital affiliations.</p>
+          )}
         </CollapsibleSection>
 
         <CollapsibleSection title="Patient Feedback" isOpen={feedbackOpen} setIsOpen={setFeedbackOpen}>
@@ -352,16 +508,12 @@ const DoctorAccountPage = () => {
         {isOwnProfile && (
           <div className="mt-5 flex gap-3">
             <button
-              onClick={() => setIsEditing(true)}
+              onClick={handleOpenEditModal}
               className="flex-1 bg-gradient-to-r from-[#1e2d5e] to-[#2d3e7a] hover:from-[#1a2550] hover:to-[#253470] text-white font-semibold mx-100 py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
             >
               <Edit size={16} />
               <span>Edit Profile</span>
             </button>
-            {/* <button className="flex-1 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all border border-red-100 hover:border-red-200 shadow-sm">
-              <Trash2 size={16} />
-              <span>Delete Account</span>
-            </button> */}
           </div>
         )}
       </div>
@@ -392,15 +544,83 @@ const DoctorAccountPage = () => {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
-              Working Hospitals <span className="normal-case text-slate-400 font-normal">(one per line)</span>
-            </label>
-            <textarea
-              rows={4}
-              value={formData.hospitalsText}
-              onChange={(e) => setFormData((p) => ({ ...p, hospitalsText: e.target.value }))}
-              className="w-full border border-slate-200 rounded-xl p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#2d3e7a] focus:border-transparent resize-none transition"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest">
+                Working Hospitals
+              </label>
+              <span className="text-xs font-semibold text-[#2d3e7a] bg-[#eef1fb] px-2.5 py-0.5 rounded-full">
+                {(formData.selectedHospitals || []).length} selected
+              </span>
+            </div>
+
+            {/* Inactive / unresolved notice if doctor had affiliations to deleted or unknown hospitals */}
+            {unresolvedAffiliationsCount > 0 && (
+              <div className="mb-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
+                <span className="font-bold">Notice:</span>
+                <span>
+                  {unresolvedAffiliationsCount} hospital affiliation{unresolvedAffiliationsCount > 1 ? "s are" : " is"} no longer active in the directory. Saving will update your profile with only active hospitals selected below.
+                </span>
+              </div>
+            )}
+
+            {/* Search filter if directory contains several hospitals */}
+            {availableHospitals.length > 5 && (
+              <div className="relative mb-2">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search hospitals..."
+                  value={hospitalSearch}
+                  onChange={(e) => setHospitalSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#2d3e7a] text-slate-700 placeholder-slate-400"
+                />
+              </div>
+            )}
+
+            {/* Hospital Checkbox Selector Grid */}
+            <div className="border border-slate-200 rounded-xl p-2.5 bg-slate-50/50 max-h-52 overflow-y-auto">
+              {availableHospitals.length === 0 ? (
+                <p className="text-xs text-slate-400 italic p-3 text-center">
+                  No registered hospitals found in directory.
+                </p>
+              ) : filteredHospitals.length === 0 ? (
+                <p className="text-xs text-slate-400 italic p-3 text-center">
+                  No hospitals match "{hospitalSearch}".
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {filteredHospitals.map((hosp) => {
+                    const hospId = getHospitalId(hosp);
+                    const isSelected = (formData.selectedHospitals || []).includes(hospId);
+
+                    return (
+                      <label
+                        key={hospId}
+                        className={`flex items-center gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition select-none ${
+                          isSelected
+                            ? "bg-blue-50 border-[#2d3e7a] text-[#1e2d5e] font-semibold shadow-xs"
+                            : "bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleHospital(hospId)}
+                          className="accent-[#2d3e7a] w-4 h-4 rounded cursor-pointer shrink-0"
+                        />
+                        <Building2
+                          size={14}
+                          className={`shrink-0 ${isSelected ? "text-[#2d3e7a]" : "text-slate-400"}`}
+                        />
+                        <span className="truncate" title={hosp.name}>
+                          {hosp.name}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-3">
