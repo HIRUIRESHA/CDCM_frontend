@@ -42,6 +42,7 @@ const AppointmentManagement = () => {
   // Refund processing modal states
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [selectedRefund, setSelectedRefund] = useState(null);
+  const [loadingRefundModal, setLoadingRefundModal] = useState(false);
   const [transferForm, setTransferForm] = useState({
     transactionRef: "",
     notes: "",
@@ -51,6 +52,13 @@ const AppointmentManagement = () => {
   const [refundError, setRefundError] = useState("");
   const [actionSuccessMessage, setActionSuccessMessage] = useState("");
   const [copiedAccount, setCopiedAccount] = useState(false);
+
+  const selectedHasBankDetails = Boolean(
+    selectedRefund &&
+      (selectedRefund.bankAccountNumber ||
+        (selectedRefund.bankName && selectedRefund.bankAccountHolderName) ||
+        selectedRefund.refundStatus === "AWAITING_PROCESSING")
+  );
 
   // Fetch all appointments, doctors, and pending refunds
   const fetchData = async () => {
@@ -115,10 +123,11 @@ const AppointmentManagement = () => {
     return doc ? `${doc.title || ""} ${doc.firstName || ""} ${doc.lastName || ""}`.trim() : "—";
   };
 
-  // Open refund processing modal
-  const handleOpenRefundModal = (appt) => {
-    // Look up in pendingRefunds first so we have the full unmasked bank details
-    const foundRefund = pendingRefunds.find((r) => r.id === appt.id);
+  // Open refund processing modal with fresh verified details from backend
+  const handleOpenRefundModal = async (appt) => {
+    const apptId = appt.id || appt._id;
+    // Look up in pendingRefunds first so we have an initial candidate
+    const foundRefund = pendingRefunds.find((r) => (r.id || r._id) === apptId);
     const target = foundRefund || appt;
     setSelectedRefund(target);
     setTransferForm({
@@ -129,6 +138,39 @@ const AppointmentManagement = () => {
     setRefundError("");
     setCopiedAccount(false);
     setRefundModalOpen(true);
+    setLoadingRefundModal(true);
+
+    try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`${API_BASE_URL}/api/appointments/${apptId}/refund-details`, { headers });
+      if (res.ok) {
+        const freshDetails = await res.json();
+        if (freshDetails && (freshDetails.id || freshDetails._id)) {
+          setSelectedRefund(freshDetails);
+          // Sync with local pendingRefunds list
+          setPendingRefunds((prev) => {
+            const exists = prev.some((r) => (r.id || r._id) === apptId);
+            if (freshDetails.refundStatus === "REFUNDED") {
+              return prev.filter((r) => (r.id || r._id) !== apptId);
+            }
+            if (exists) {
+              return prev.map((r) => ((r.id || r._id) === apptId ? { ...r, ...freshDetails } : r));
+            }
+            return [freshDetails, ...prev];
+          });
+          // Sync with appointments list so table badges update
+          setAppointments((prev) =>
+            prev.map((a) => ((a.id || a._id) === apptId ? { ...a, ...freshDetails } : a))
+          );
+        }
+      } else if (res.status === 403) {
+        setRefundError("You are not authorized to view refund details for another hospital's appointment.");
+      }
+    } catch (err) {
+      console.warn("Could not fetch latest refund details:", err);
+    } finally {
+      setLoadingRefundModal(false);
+    }
   };
 
   // Copy bank account number to clipboard
@@ -144,10 +186,13 @@ const AppointmentManagement = () => {
     e?.preventDefault();
     if (!selectedRefund) return;
 
-    if (
-      selectedRefund.refundStatus === "AWAITING_BANK_DETAILS" ||
-      !selectedRefund.bankAccountNumber
-    ) {
+    const hasBankDetails = Boolean(
+      selectedRefund.bankAccountNumber ||
+      (selectedRefund.bankName && selectedRefund.bankAccountHolderName) ||
+      (selectedRefund.refundStatus === "AWAITING_PROCESSING")
+    );
+
+    if (!hasBankDetails && selectedRefund.refundStatus === "AWAITING_BANK_DETAILS") {
       setRefundError(
         "Cannot confirm refund: Patient has not submitted their bank details yet."
       );
@@ -170,8 +215,9 @@ const AppointmentManagement = () => {
         "Content-Type": "application/json",
       };
 
+      const refundId = selectedRefund.id || selectedRefund._id;
       const res = await fetch(
-        `${API_BASE_URL}/api/appointments/${selectedRefund.id}/confirm-refund`,
+        `${API_BASE_URL}/api/appointments/${refundId}/confirm-refund`,
         {
           method: "PUT",
           headers,
@@ -193,10 +239,10 @@ const AppointmentManagement = () => {
       }
 
       // Immediately update local UI state
-      setPendingRefunds((prev) => prev.filter((r) => r.id !== selectedRefund.id));
+      setPendingRefunds((prev) => prev.filter((r) => (r.id || r._id) !== refundId));
       setAppointments((prev) =>
         prev.map((a) =>
-          a.id === selectedRefund.id
+          (a.id || a._id) === refundId
             ? {
                 ...a,
                 refundStatus: "REFUNDED",
@@ -1587,8 +1633,26 @@ const AppointmentManagement = () => {
                     )}
                   </div>
 
-                  {selectedRefund.refundStatus === "AWAITING_BANK_DETAILS" ||
-                  (!selectedRefund.bankAccountNumber && !selectedRefund.bankName) ? (
+                  {loadingRefundModal ? (
+                    <div
+                      style={{
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        borderRadius: 8,
+                        padding: "16px",
+                        textAlign: "center",
+                        color: "#0d7490",
+                        fontSize: 12,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <RefreshCw size={15} style={{ animation: "spin 1s linear infinite" }} />
+                      <span>Retrieving verified bank details...</span>
+                    </div>
+                  ) : !selectedHasBankDetails ? (
                     /* Bank details not submitted yet */
                     <div
                       style={{
@@ -1781,7 +1845,7 @@ const AppointmentManagement = () => {
                           setTransferForm({ ...transferForm, transactionRef: e.target.value })
                         }
                         placeholder="e.g., TXN-94830129 or Cheque #10293"
-                        disabled={selectedRefund.refundStatus === "AWAITING_BANK_DETAILS"}
+                        disabled={!selectedHasBankDetails || loadingRefundModal}
                         style={{
                           ...S.input,
                           width: "100%",
@@ -1802,7 +1866,7 @@ const AppointmentManagement = () => {
                           setTransferForm({ ...transferForm, notes: e.target.value })
                         }
                         placeholder="e.g., Processed via corporate online banking portal."
-                        disabled={selectedRefund.refundStatus === "AWAITING_BANK_DETAILS"}
+                        disabled={!selectedHasBankDetails || loadingRefundModal}
                         style={{
                           ...S.input,
                           width: "100%",
@@ -1813,7 +1877,7 @@ const AppointmentManagement = () => {
                     </div>
 
                     {/* Confirmation Checkbox */}
-                    {selectedRefund.refundStatus === "AWAITING_PROCESSING" && (
+                    {selectedHasBankDetails && (
                       <div
                         style={{
                           background: "#f8fafc",
@@ -1883,7 +1947,7 @@ const AppointmentManagement = () => {
                         Cancel
                       </button>
 
-                      {selectedRefund.refundStatus === "AWAITING_BANK_DETAILS" ? (
+                      {!selectedHasBankDetails ? (
                         <button
                           type="button"
                           disabled
@@ -1899,15 +1963,15 @@ const AppointmentManagement = () => {
                           }}
                           title="Patient bank details required before confirming transfer"
                         >
-                          Awaiting Bank Details
+                          {loadingRefundModal ? "Loading Details..." : "Awaiting Bank Details"}
                         </button>
                       ) : (
                         <button
                           type="submit"
-                          disabled={!transferForm.confirmedCheck || confirmingTransfer}
+                          disabled={!transferForm.confirmedCheck || confirmingTransfer || loadingRefundModal}
                           style={{
                             background:
-                              !transferForm.confirmedCheck || confirmingTransfer
+                              !transferForm.confirmedCheck || confirmingTransfer || loadingRefundModal
                                 ? "#94a3b8"
                                 : "#059669",
                             color: "white",

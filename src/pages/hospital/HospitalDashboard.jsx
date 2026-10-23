@@ -209,23 +209,38 @@ const HospitalDashboard = () => {
     }
   }, [user?.id, token]);
 
-  const handleOpenConfirmModal = (refund) => {
+  const handleOpenConfirmModal = async (refund) => {
+    const refundId = refund.id || refund._id;
     setSelectedRefundForConfirm(refund);
     setTransferForm({ transactionRef: "", notes: "" });
     setConfirmError("");
     setConfirmModalOpen(true);
+
+    try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await api.get(`/api/appointments/${refundId}/refund-details`, { headers });
+      if (res.data && (res.data.id || res.data._id)) {
+        setSelectedRefundForConfirm(res.data);
+        setPendingRefunds((prev) =>
+          prev.map((r) => ((r.id || r._id) === refundId ? { ...r, ...res.data } : r))
+        );
+      }
+    } catch (e) {
+      console.warn("Could not refresh refund details in dashboard:", e);
+    }
   };
 
   const handleExecuteConfirmTransfer = async (e) => {
     e?.preventDefault();
     if (!selectedRefundForConfirm) return;
+    const refundId = selectedRefundForConfirm.id || selectedRefundForConfirm._id;
     setConfirmingTransfer(true);
     setConfirmError("");
 
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       await api.put(
-        `/api/appointments/${selectedRefundForConfirm.id}/confirm-refund`,
+        `/api/appointments/${refundId}/confirm-refund`,
         {
           transactionRef: transferForm.transactionRef.trim(),
           notes: transferForm.notes.trim(),
@@ -235,7 +250,7 @@ const HospitalDashboard = () => {
 
       // Remove from pending refunds list immediately
       setPendingRefunds((prev) =>
-        prev.filter((r) => r.id !== selectedRefundForConfirm.id)
+        prev.filter((r) => (r.id || r._id) !== refundId)
       );
 
       setConfirmSuccessToast(
@@ -995,9 +1010,14 @@ const HospitalDashboard = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {filteredPendingRefunds.map((refItem) => {
-                    const isReady = refItem.refundStatus === "AWAITING_PROCESSING";
+                    const isReady =
+                      refItem.refundStatus === "AWAITING_PROCESSING" ||
+                      Boolean(
+                        refItem.bankAccountNumber ||
+                          (refItem.bankName && refItem.bankAccountHolderName)
+                      );
                     return (
-                      <tr key={refItem.id} className="hover:bg-slate-50/70 transition">
+                      <tr key={refItem.id || refItem._id} className="hover:bg-slate-50/70 transition">
                         {/* Appt / Patient */}
                         <td className="py-3.5 px-3">
                           <p className="font-bold text-slate-900">
