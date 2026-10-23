@@ -147,6 +147,7 @@ function App() {
               }
             >
             <Route path="hospital">
+              <Route index element={<Navigate to="/hospital/dashboard" replace />} />
               <Route path="dashboard" element={<HospitalDashboard />} />
               <Route
                   path="profile"
