@@ -5,6 +5,7 @@ import { useNotifications } from "../../context/NotificationContext";
 import defaultDocImg from "../../assets/doc1.png";
 import axios from "axios";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { getSriLankaTodayDate, formatTimeRange } from "../../utils/dateTime";
 
 function FindDoctor() {
   const [search, setSearch] = useState("");
@@ -61,7 +62,7 @@ function FindDoctor() {
       setHospitals(Array.isArray(hosps) ? hosps : []);
 
       // Get current date in YYYY-MM-DD format for comparison
-      const today = new Date().toISOString().split('T')[0];
+      const today = getSriLankaTodayDate();
 
       const schedulesMap = {};
       if (doctorsList.length > 0) {
@@ -408,7 +409,7 @@ function FindDoctor() {
                   <span className="mx-2 text-slate-300">·</span>
                   <span className="text-blue-700 font-semibold">{bookingSchedule.date}</span>
                   <span className="mx-2 text-slate-300">·</span>
-                  {bookingSchedule.startTime}
+                  {formatTimeRange(`${bookingSchedule.startTime} - ${bookingSchedule.endTime}`)}
                 </p>
               </div>
               <button
@@ -675,7 +676,7 @@ function FindDoctor() {
                               >
                                 <div className="flex flex-col gap-0.5 min-w-0 mr-2">
                                   <span className="text-xs font-bold text-blue-950">{schedule.date}</span>
-                                  <span className="text-xs text-slate-500">{schedule.startTime} – {schedule.endTime}</span>
+                                  <span className="text-xs text-slate-500">{formatTimeRange(`${schedule.startTime} - ${schedule.endTime}`)}</span>
                                   <span className="text-xs text-blue-600 font-semibold">{schedule.hospitalName || "Hospital"}</span>
                                 </div>
                                 <button

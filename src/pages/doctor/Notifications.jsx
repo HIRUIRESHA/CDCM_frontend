@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNotifications } from "../../context/NotificationContext";
+import { formatNotificationTimestamp, formatTimeRange } from "../../utils/dateTime";
 import {
   Bell,
   CheckCheck,
@@ -34,23 +35,7 @@ export default function DoctorNotifications() {
     return true;
   });
 
-  const formatTime = (isoString) => {
-    if (!isoString) return "";
-    try {
-      const date = new Date(isoString);
-      if (isNaN(date.getTime())) return isoString;
-      return date.toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-    } catch {
-      return isoString;
-    }
-  };
+  const formatTime = (isoString) => formatNotificationTimestamp(isoString);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -224,7 +209,7 @@ export default function DoctorNotifications() {
                       {(n.date || n.time) && (
                         <span className="px-2.5 py-1 rounded-lg text-xs text-slate-600 bg-slate-100 flex items-center gap-1">
                           <Calendar size={12} className="text-slate-400" />
-                          {n.date} {n.time && `• ${n.time}`}
+                          {n.date} {n.time && `• ${formatTimeRange(n.time)}`}
                         </span>
                       )}
                       {n.scheduleType && (

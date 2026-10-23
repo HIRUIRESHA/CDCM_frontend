@@ -6,6 +6,7 @@ import {
   Calendar as CalendarIcon, FlaskConical, History
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { formatTimeRange } from '../../utils/dateTime';
 
 const PatientManagement = () => {
   const navigate = useNavigate();
@@ -359,7 +360,7 @@ const hospitalName = hospitalData?.name || 'Hospital';
                           <div className="text-xs text-gray-500">{apt.doctorSpecialization || 'General'}</div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">{apt.date}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{apt.time}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{formatTimeRange(apt.time)}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-1 text-xs rounded-full ${
                             apt.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :

@@ -22,6 +22,7 @@ import {
   RotateCcw,
   CreditCard
 } from 'lucide-react';
+import { getSriLankaTodayDate, formatTimeRange } from '../../utils/dateTime';
 
 function PatientAppointments() {
   const { user } = useAuth();
@@ -375,7 +376,7 @@ function PatientAppointments() {
   }, [user]);
 
   // --- LOGIC TO CATEGORIZE APPOINTMENTS ---
-  const today = new Date().toISOString().split('T')[0];
+  const today = getSriLankaTodayDate();
 
   const upcomingAppointments = appointments
     .filter(appt => appt.date >= today)
@@ -489,7 +490,7 @@ function PatientAppointments() {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-slate-400 uppercase">Time</p>
-                <p className="text-xs font-bold text-slate-700 truncate">{appt.time}</p>
+                <p className="text-xs font-bold text-slate-700 truncate">{formatTimeRange(appt.time)}</p>
               </div>
             </div>
           </div>
@@ -664,7 +665,7 @@ function PatientAppointments() {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-slate-400 uppercase">Time</p>
-                <p className="text-xs font-bold text-slate-700 truncate">{appt.time}</p>
+                <p className="text-xs font-bold text-slate-700 truncate">{formatTimeRange(appt.time)}</p>
               </div>
             </div>
           </div>
@@ -1075,7 +1076,7 @@ function PatientAppointments() {
                     </div>
                     <div className="flex justify-between items-center text-slate-500">
                       <span>Schedule:</span>
-                      <span className="font-bold text-slate-800">{cancelPreviewData.date} at {cancelPreviewData.time}</span>
+                      <span className="font-bold text-slate-800">{cancelPreviewData.date} at {formatTimeRange(cancelPreviewData.time)}</span>
                     </div>
                     <div className="flex justify-between items-center text-slate-500">
                       <span>Notice Remaining:</span>

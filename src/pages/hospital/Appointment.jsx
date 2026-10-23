@@ -17,6 +17,7 @@ import {
   Info,
   ShieldCheck,
 } from "lucide-react";
+import { getSriLankaTodayDate, formatTimeRange } from "../../utils/dateTime";
 
 const AppointmentManagement = () => {
   const navigate = useNavigate();
@@ -108,14 +109,8 @@ const AppointmentManagement = () => {
     fetchData();
   }, [user]);
 
-  const now = new Date();
-  const todayISO = now.toISOString().split("T")[0];
-  const todayLocal = `${String(now.getDate()).padStart(2, "0")}/${String(
-    now.getMonth() + 1
-  ).padStart(2, "0")}/${now.getFullYear()}`;
-  const todayDisplay = now.toLocaleDateString("en-GB");
-
-  const isToday = (date) => date === todayISO || date === todayLocal;
+  const todayISO = getSriLankaTodayDate();
+  const isToday = (date) => date === todayISO;
 
   // Doctor name resolver
   const getDoctorName = (doctorId) => {
@@ -585,7 +580,7 @@ const AppointmentManagement = () => {
                 )}
 
                 {/* Time */}
-                <td style={{ ...S.td, fontWeight: 600 }}>{appt.time || "—"}</td>
+                <td style={{ ...S.td, fontWeight: 600 }}>{formatTimeRange(appt.time)}</td>
 
                 {/* Channeling No */}
                 <td style={S.td}>
@@ -1291,7 +1286,7 @@ const AppointmentManagement = () => {
                           {/* Date & Time */}
                           <td style={S.td}>
                             <div style={{ color: "#334155" }}>{refItem.date || "—"}</div>
-                            <div style={{ color: "#94a3b8", fontSize: 11 }}>{refItem.time || "—"}</div>
+                            <div style={{ color: "#94a3b8", fontSize: 11 }}>{formatTimeRange(refItem.time)}</div>
                           </td>
 
                           {/* Original Fee */}

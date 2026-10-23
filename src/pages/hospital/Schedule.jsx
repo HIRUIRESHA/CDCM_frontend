@@ -8,6 +8,7 @@ import axios from "axios";
 ========================= */
 
 import { API_BASE_URL } from "../../api/api";
+import { formatTimeRange } from "../../utils/dateTime";
 
 const API_URL =
   `${API_BASE_URL}/api/schedules`;
@@ -55,19 +56,7 @@ const STATUS_CONFIG = {
 ========================= */
 
 function formatTime(time) {
-  if (!time) return "--";
-
-  const [hours, minutes] = time.split(":");
-  const hour = parseInt(hours, 10);
-
-  if (Number.isNaN(hour)) return time;
-
-  const formattedHour =
-    hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-
-  const period = hour >= 12 ? "PM" : "AM";
-
-  return `${formattedHour}:${minutes} ${period}`;
+  return formatTimeRange(time);
 }
 
 function formatDate(dateStr) {

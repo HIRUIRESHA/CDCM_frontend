@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/api";
+import { formatTimeRange } from "../../utils/dateTime";
 import { 
   CreditCard, 
   CheckCircle2, 
@@ -251,7 +252,7 @@ export default function Payment() {
                           <Calendar size={13} className="text-blue-500" />
                           {p.date || "—"}
                         </div>
-                        {p.time && <p className="text-gray-500 mt-0.5">{p.time}</p>}
+                        {p.time && <p className="text-gray-500 mt-0.5">{formatTimeRange(p.time)}</p>}
                       </td>
 
                       {/* Amount */}

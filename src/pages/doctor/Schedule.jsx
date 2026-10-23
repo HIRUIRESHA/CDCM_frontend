@@ -8,6 +8,7 @@ import {
 } from "../../utils/alert";
 
 import { API_BASE_URL } from "../../api/api";
+import { formatTimeRange, isSchedulePastInSriLanka } from "../../utils/dateTime";
 
 const API_URL = `${API_BASE_URL}/api/schedules`;
 
@@ -176,56 +177,9 @@ const getDay = (date) => {
   return parsed.getDate();
 };
 
-const formatTime = (time) => {
-  if (!time) return "—";
+const formatTime = (time) => formatTimeRange(time);
 
-  const [hours, minutes] = time.split(":");
-  const date = new Date();
-
-  date.setHours(Number(hours), Number(minutes || 0), 0, 0);
-
-  return date.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-};
-
-const isSchedulePast = (date, time) => {
-  if (!date) return false;
-
-  try {
-    const cleanDate = String(date).split("T")[0].trim();
-    const [year, month, day] = cleanDate.split("-").map(Number);
-
-    if (!year || !month || !day) return false;
-
-    let hours = 0;
-    let minutes = 0;
-
-    if (time) {
-      const trimmed = String(time).trim();
-      const isPM = /pm/i.test(trimmed);
-      const isAM = /am/i.test(trimmed);
-      const cleanTime = trimmed.replace(/\s*(am|pm)/i, "");
-      const [h = 0, m = 0] = cleanTime.split(":").map(Number);
-
-      hours = h;
-      minutes = m;
-
-      if (isPM && hours < 12) hours += 12;
-      if (isAM && hours === 12) hours = 0;
-    }
-
-    const scheduleDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
-
-    if (Number.isNaN(scheduleDateTime.getTime())) return false;
-
-    return scheduleDateTime.getTime() <= Date.now();
-  } catch {
-    return false;
-  }
-};
+const isSchedulePast = (date, time) => isSchedulePastInSriLanka(date, time);
 
 /* =========================
    ICONS
