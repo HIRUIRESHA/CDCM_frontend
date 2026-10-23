@@ -179,9 +179,15 @@ function PatientAppointments() {
           const apptData = await apptRes.json();
 
           // Keep VIDEO appointments out of the normal appointments section
+          // Only show confirmed and paid physical appointments
           const normalAppointments = Array.isArray(apptData)
             ? apptData.filter(
-              appt => appt.consultationType !== "VIDEO"
+              appt =>
+                appt.consultationType !== "VIDEO" &&
+                (appt.paid === true || (appt.paymentStatus && appt.paymentStatus.toUpperCase() === "PAID")) &&
+                appt.status !== "PENDING" &&
+                appt.paymentStatus !== "PENDING" &&
+                appt.paymentStatus !== "FAILED"
             )
             : [];
 
