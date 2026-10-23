@@ -1149,9 +1149,9 @@ const HospitalDashboard = () => {
                       </strong>
                     </div>
                     <div className="col-span-2 pt-1 border-t border-emerald-100">
-                      <span className="text-slate-400 block text-[10px] uppercase">Masked Account Number</span>
-                      <span className="font-mono text-sm font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-emerald-200 inline-block mt-0.5">
-                        {selectedRefundForConfirm.maskedBankAccountNumber}
+                      <span className="text-slate-400 block text-[10px] uppercase">Patient Account Number (For Transfer)</span>
+                      <span className="font-mono text-sm font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-emerald-200 inline-block mt-0.5 select-all">
+                        {selectedRefundForConfirm.bankAccountNumber || selectedRefundForConfirm.maskedBankAccountNumber}
                       </span>
                     </div>
                   </div>
