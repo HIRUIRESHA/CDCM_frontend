@@ -75,8 +75,8 @@ function PatientAppointments() {
     e?.preventDefault();
     if (!selectedApptForBank) return;
 
-    if (!bankForm.accountHolderName.trim() || !bankForm.bankName.trim() || !bankForm.accountNumber.trim()) {
-      setBankError('Please complete all required bank fields.');
+    if (!bankForm.accountHolderName.trim() || !bankForm.bankName.trim() || !bankForm.bankBranchName.trim() || !bankForm.accountNumber.trim()) {
+      setBankError('Please complete all required bank fields including the branch name.');
       return;
     }
 
@@ -104,6 +104,7 @@ function PatientAppointments() {
         body: JSON.stringify({
           accountHolderName: bankForm.accountHolderName.trim(),
           bankName: bankForm.bankName.trim(),
+          branchName: bankForm.bankBranchName.trim(),
           bankBranchName: bankForm.bankBranchName.trim(),
           accountNumber: bankForm.accountNumber.trim()
         })
@@ -1265,10 +1266,11 @@ function PatientAppointments() {
                   </div>
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Branch Name
+                      Branch Name <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
+                      required
                       value={bankForm.bankBranchName}
                       onChange={(e) => setBankForm({ ...bankForm, bankBranchName: e.target.value })}
                       placeholder="e.g., Colombo Main"
