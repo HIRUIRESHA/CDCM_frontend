@@ -9,17 +9,16 @@ import {
   MessageSquare, FileText, ArrowUpRight, Loader2,
   Zap, Heart, BarChart3
 } from "lucide-react";
+import {
+  getSriLankaTodayDate,
+  getSriLankaNowMinutes,
+  parseTimeToMinutes,
+  formatTimeRange
+} from "../../utils/dateTime";
 
-const parseTime = (t = "") => {
-  if (!t) return Infinity;
-  const [time, period] = t.split(" ");
-  let [h, m = 0] = time.split(":").map(Number);
-  if (period === "PM" && h !== 12) h += 12;
-  if (period === "AM" && h === 12) h = 0;
-  return h * 60 + m;
-};
+const parseTime = (t = "") => parseTimeToMinutes(t);
 
-const todayISO = new Date().toISOString().split("T")[0];
+const todayISO = getSriLankaTodayDate();
 
 const statusConfig = {
   ACCEPTED: { label: "Accepted", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -152,16 +151,20 @@ export default function DoctorDashboard() {
   }, [doctorId]);
 
   const todaySchedules = schedules.filter((s) => {
-    try { return new Date(s.date).toISOString().split("T")[0] === todayISO; }
-    catch { return false; }
+    try {
+      const d = String(s.date).split("T")[0].trim();
+      return d === todayISO;
+    } catch { return false; }
   });
 
   const allAppointments = appointments;
   const uniquePatients = new Set(appointments.map((a) => a.patientId)).size;
   const videoSchedules = schedules.filter((s) => s.type === "VIDEO");
   const todayVideoSch = videoSchedules.filter((s) => {
-    try { return new Date(s.date).toISOString().split("T")[0] === todayISO; }
-    catch { return false; }
+    try {
+      const d = String(s.date).split("T")[0].trim();
+      return d === todayISO;
+    } catch { return false; }
   });
 
   const acceptedToday = todaySchedules.filter((s) => s.status === "ACCEPTED").length;
@@ -171,7 +174,7 @@ export default function DoctorDashboard() {
     ? (feedbacks.reduce((s, f) => s + (f.rating || 0), 0) / feedbacks.length).toFixed(1)
     : null;
 
-  const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
+  const nowMinutes = getSriLankaNowMinutes();
   const nextShift = todaySchedules
     .filter((s) => s.status === "ACCEPTED" && parseTime(s.startTime) > nowMinutes)
     .sort((a, b) => parseTime(a.startTime) - parseTime(b.startTime))[0];
@@ -609,7 +612,7 @@ export default function DoctorDashboard() {
                           </div>
                         </td>
                         <td style={{ fontSize: 13, color: "#64748b", padding: "10px 10px 10px 0", whiteSpace: "nowrap" }}>{a.date}</td>
-                        <td style={{ fontSize: 13, color: "#64748b", padding: "10px 10px 10px 0", whiteSpace: "nowrap" }}>{a.time}</td>
+                        <td style={{ fontSize: 13, color: "#64748b", padding: "10px 10px 10px 0", whiteSpace: "nowrap" }}>{formatTimeRange(a.time)}</td>
                         <td style={{ padding: "10px 10px 10px 0" }}>
                           <span style={{ background: "#eef2ff", color: "#6366f1", fontSize: 12, fontWeight: 700, borderRadius: 7, padding: "3px 9px" }}>#{a.appointmentNumber}</span>
                         </td>

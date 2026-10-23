@@ -23,6 +23,7 @@ import {
   X,
   CalendarDays
 } from "lucide-react";
+import { getSriLankaTodayDate, formatTimeRange } from "../../utils/dateTime";
 
 export default function MyDoctors() {
   const { user } = useAuth();
@@ -175,7 +176,7 @@ export default function MyDoctors() {
     if (!doctorSchedules[doctorId]) {
       setLoadingSchedules((prev) => ({ ...prev, [doctorId]: true }));
       try {
-        const today = new Date().toISOString().split("T")[0];
+        const today = getSriLankaTodayDate();
         const res = await fetch(
           `https://cdcm-backend.onrender.com/api/schedules/doctor/${doctorId}`
         );
@@ -524,7 +525,7 @@ export default function MyDoctors() {
                     {bookingSchedule.date}
                   </span>
                   <span className="mx-2 text-slate-300">·</span>
-                  {bookingSchedule.startTime}
+                  {formatTimeRange(`${bookingSchedule.startTime} - ${bookingSchedule.endTime}`)}
                 </p>
               </div>
               <button
@@ -849,7 +850,7 @@ export default function MyDoctors() {
                                     <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
                                       <Clock className="w-3 h-3 text-slate-400 shrink-0" />
                                       <span>
-                                        {schedule.startTime} – {schedule.endTime}
+                                        {formatTimeRange(`${schedule.startTime} - ${schedule.endTime}`)}
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-1.5 text-[11px] text-blue-700 font-medium mt-0.5 truncate">

@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { formatTimeRange } from "../../utils/dateTime";
 
 // Fallback avatar for broken images
 const defaultAvatar = "https://ui-avatars.com/api/?name=Patient&background=random";
@@ -334,7 +335,7 @@ const MyPatients = () => {
                           </div>
                         </td>
                         <td className="p-5">
-                          <span className="text-sm font-semibold text-gray-600">{appt.time}</span>
+                          <span className="text-sm font-semibold text-gray-600">{formatTimeRange(appt.time)}</span>
                         </td>
                         <td className="p-5">
                           <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg font-black text-xs">

@@ -20,6 +20,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/api";
 import HospitalDash from "../../assets/HospitalDash.jpg";
+import { formatTimeRange } from "../../utils/dateTime";
 
 // ==========================================
 // HELPER FUNCTIONS (Date, Currency, Badges)
@@ -51,21 +52,7 @@ const formatLKR = (amount) => {
 };
 
 const formatTimeString = (timeStr) => {
-  if (!timeStr) return "—";
-  if (timeStr.toLowerCase().includes("am") || timeStr.toLowerCase().includes("pm")) {
-    return timeStr;
-  }
-  const parts = timeStr.split(":");
-  if (parts.length >= 2) {
-    const hours = parseInt(parts[0], 10);
-    const minutes = parts[1];
-    if (!isNaN(hours)) {
-      const ampm = hours >= 12 ? "PM" : "AM";
-      const h12 = hours % 12 || 12;
-      return `${h12}:${minutes} ${ampm}`;
-    }
-  }
-  return timeStr;
+  return formatTimeRange(timeStr);
 };
 
 const formatHeaderDate = (date = new Date()) => {

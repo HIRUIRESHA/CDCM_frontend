@@ -24,9 +24,14 @@ import {
   Pill,
   ArrowRight
 } from "lucide-react";
+import {
+  getSriLankaTodayDate,
+  formatTimeRange,
+  formatNotificationTimestamp
+} from "../../utils/dateTime";
 
 /* ─── helpers ───────────────────────────────── */
-const todayISO = new Date().toISOString().split("T")[0];
+const todayISO = getSriLankaTodayDate();
 
 function Counter({ to, suffix = "" }) {
   const [v, setV] = useState(0);
@@ -328,7 +333,7 @@ export default function PatientDashboard() {
                           Scheduled Time
                         </p>
                         <p className="text-2xl sm:text-3xl font-black text-white leading-tight">
-                          {nextAppt.time}
+                          {formatTimeRange(nextAppt.time)}
                         </p>
                       </div>
                     </div>
@@ -464,7 +469,7 @@ export default function PatientDashboard() {
 
                       <div className="text-right flex-shrink-0">
                         <p className="text-xs sm:text-sm font-bold text-blue-600">
-                          {a.time}
+                          {formatTimeRange(a.time)}
                         </p>
                         <span
                           className={`inline-block text-[10px] font-bold uppercase tracking-wider ${
@@ -674,7 +679,7 @@ export default function PatientDashboard() {
                           </p>
                           {n.createdAt && (
                             <p className="text-[10px] text-slate-400 mt-1">
-                              {new Date(n.createdAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}
+                              {formatNotificationTimestamp(n.createdAt)}
                             </p>
                           )}
                         </div>

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
+import { formatTimeRange } from "../../utils/dateTime";
 
 const API_URL = "https://cdcm-backend.onrender.com/api/schedules";
 
@@ -88,26 +89,7 @@ const DoctorSchedules = () => {
     });
   };
 
-  const formatTime = (time) => {
-    if (!time) return "—";
-
-    const [hour, minute] = time.split(":");
-
-    const date = new Date();
-
-    date.setHours(
-      Number(hour),
-      Number(minute),
-      0,
-      0
-    );
-
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
+  const formatTime = (time) => formatTimeRange(time);
 
   const getScheduleStatus = (schedule) => {
     if (schedule.status !== "ACCEPTED") {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/api';
+import { formatTimeRange } from '../../utils/dateTime';
 import {
   DollarSign,
   TrendingUp,
@@ -679,7 +680,7 @@ export default function Analytics() {
                       {appt.doctorName}
                     </td>
                     <td className="py-3.5 text-slate-500">
-                      {appt.date} {appt.time && `at ${appt.time}`}
+                      {appt.date} {appt.time && `at ${formatTimeRange(appt.time)}`}
                     </td>
                     <td className="py-3.5">
                       <span
