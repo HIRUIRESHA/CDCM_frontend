@@ -110,7 +110,10 @@ const AppointmentManagement = () => {
   }, [user]);
 
   const todayISO = getSriLankaTodayDate();
-  const isToday = (date) => date === todayISO;
+  const [year, month, day] = todayISO.split("-");
+  const todayLocal = `${day}/${month}/${year}`;
+  const todayDisplay = todayLocal;
+  const isToday = (date) => date === todayISO || date === todayLocal;
 
   // Doctor name resolver
   const getDoctorName = (doctorId) => {
