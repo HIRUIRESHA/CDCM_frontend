@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import Swal from "sweetalert2";
 import {
   showSuccess,
   showError,
   showConfirm,
 } from "../../utils/alert";
 
-const API_URL = "https://cdcm-backend.onrender.com/api/schedules";
+import { API_BASE_URL } from "../../api/api";
+
+const API_URL = `${API_BASE_URL}/api/schedules`;
 
 /* =========================
    CACHE
@@ -337,6 +340,7 @@ export default function SchedulePage() {
   const [toast, setToast] = useState(null);
   const [filter, setFilter] = useState("ALL");
   const [processingId, setProcessingId] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   /* =========================
      TOAST
@@ -487,8 +491,13 @@ export default function SchedulePage() {
 
     try {
       setProcessingId(id);
+      const token = localStorage.getItem("token");
 
-      await axios.put(`${API_URL}/accept/${id}`);
+      await axios.put(
+        `${API_URL}/accept/${id}`,
+        {},
+        token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+      );
 
       clearScheduleCache(doctorId);
 
@@ -500,7 +509,13 @@ export default function SchedulePage() {
       console.error("Status:", err.response?.status);
       console.error("Response:", err.response?.data);
 
-      await showError("Failed to accept schedule.");
+      const errorMessage =
+        (typeof err.response?.data === "string"
+          ? err.response?.data
+          : err.response?.data?.message) ||
+        "Failed to accept schedule.";
+
+      await showError(errorMessage);
     } finally {
       setProcessingId(null);
     }
@@ -520,17 +535,32 @@ export default function SchedulePage() {
       return;
     }
 
-    const confirmed = await showConfirm(
-      "Do you want to reject this schedule?",
-      "Reject Schedule?"
-    );
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Reject Schedule?",
+      text: "Please provide a reason for declining this shift (optional):",
+      input: "textarea",
+      inputPlaceholder: "e.g., Scheduling conflict, hospital overlap, personal leave...",
+      showCancelButton: true,
+      confirmButtonText: "Reject Shift",
+      cancelButtonText: "Keep Shift",
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#64748b",
+      reverseButtons: true,
+    });
 
-    if (!confirmed) return;
+    if (!result.isConfirmed) return;
+    const reason = (result.value || "").trim();
 
     try {
       setProcessingId(id);
+      const token = localStorage.getItem("token");
 
-      await axios.put(`${API_URL}/reject/${id}`);
+      await axios.put(
+        `${API_URL}/reject/${id}`,
+        { reason },
+        token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+      );
 
       clearScheduleCache(doctorId);
 
@@ -542,7 +572,13 @@ export default function SchedulePage() {
       console.error("Status:", err.response?.status);
       console.error("Response:", err.response?.data);
 
-      await showError("Failed to reject schedule.");
+      const errorMessage =
+        (typeof err.response?.data === "string"
+          ? err.response?.data
+          : err.response?.data?.message) ||
+        "Failed to reject schedule.";
+
+      await showError(errorMessage);
     } finally {
       setProcessingId(null);
     }
@@ -571,32 +607,32 @@ export default function SchedulePage() {
       return;
     }
 
-    if (
-      targetSchedule &&
-      Number(targetSchedule.bookedPatientCount || 0) > 0
-    ) {
-      showToast(
-        "error",
-        "Cannot cancel a schedule with booked patients."
-      );
-      setCancelTargetId(null);
-      return;
-    }
-
     try {
       setProcessingId(cancelTargetId);
 
       const requestUrl = `${API_URL}/cancel/${cancelTargetId}`;
+      const token = localStorage.getItem("token");
 
       console.log("Cancelling schedule:", requestUrl);
 
-      await axios.put(requestUrl);
+      await axios.put(
+        requestUrl,
+        { reason: cancelReason },
+        token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+      );
 
       clearScheduleCache(doctorId);
 
-      showToast("success", "Schedule cancelled successfully.");
+      const bookedCount = Number(targetSchedule?.bookedPatientCount || 0);
+      showToast(
+        "success",
+        bookedCount > 0
+          ? `Schedule cancelled. ${bookedCount} booked patient(s) cascade-cancelled with 100% refund.`
+          : "Schedule cancelled successfully."
+      );
 
       setCancelTargetId(null);
+      setCancelReason("");
 
       await loadSchedules({ showLoading: false });
     } catch (err) {
@@ -1041,16 +1077,14 @@ export default function SchedulePage() {
                                 <button
                                   type="button"
                                   onClick={() => setCancelTargetId(id)}
-                                  disabled={isProcessing || isPast || hasBookings}
+                                  disabled={isProcessing || isPast}
                                   title={
                                     isPast
                                       ? "Cannot cancel an expired schedule"
-                                      : hasBookings
-                                      ? "Cannot cancel a schedule with booked patients"
                                       : undefined
                                   }
                                   className={`rounded-lg border px-3.5 py-2 text-xs font-semibold transition ${
-                                    isPast || hasBookings
+                                    isPast
                                       ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 opacity-60"
                                       : "border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
                                   }`}
@@ -1060,9 +1094,19 @@ export default function SchedulePage() {
                               )}
 
                               {s.status === "REJECTED" && (
-                                <span className="text-xs font-medium text-slate-400">
-                                  Declined
-                                </span>
+                                <div className="text-xs">
+                                  <span className="font-medium text-slate-400">
+                                    Declined
+                                  </span>
+                                  {s.rejectionReason && (
+                                    <p
+                                      className="mt-0.5 max-w-[160px] truncate text-[11px] text-slate-400"
+                                      title={s.rejectionReason}
+                                    >
+                                      {s.rejectionReason}
+                                    </p>
+                                  )}
+                                </div>
                               )}
 
                               {s.status === "CANCELLED" && (
@@ -1233,16 +1277,14 @@ export default function SchedulePage() {
                         <button
                           type="button"
                           onClick={() => setCancelTargetId(id)}
-                          disabled={isProcessing || isPast || hasBookings}
+                          disabled={isProcessing || isPast}
                           title={
                             isPast
                               ? "Cannot cancel an expired schedule"
-                              : hasBookings
-                              ? "Cannot cancel a schedule with booked patients"
                               : undefined
                           }
                           className={`w-full rounded-xl border px-3.5 py-2.5 text-xs font-semibold transition ${
-                            isPast || hasBookings
+                            isPast
                               ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 opacity-60"
                               : "border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
                           }`}
@@ -1253,7 +1295,12 @@ export default function SchedulePage() {
 
                       {s.status === "REJECTED" && (
                         <div className="rounded-xl bg-slate-50 px-3 py-2.5 text-center text-xs font-medium text-slate-400">
-                          This shift was declined
+                          <p>This shift was declined</p>
+                          {s.rejectionReason && (
+                            <p className="mt-1 text-[11px] text-slate-500 font-normal">
+                              Reason: {s.rejectionReason}
+                            </p>
+                          )}
                         </div>
                       )}
 
@@ -1324,54 +1371,95 @@ export default function SchedulePage() {
       </main>
 
       {/* CANCEL MODAL */}
-      {cancelTargetId && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
-          onClick={(e) => {
-            if (
-              e.target === e.currentTarget &&
-              !processingId
-            ) {
-              setCancelTargetId(null);
-            }
-          }}
-        >
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-7">
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-2xl font-bold text-rose-500">
-              !
-            </div>
+      {cancelTargetId && (() => {
+        const targetSchedule = schedules.find(
+          (s) => (s.id || s._id) === cancelTargetId
+        );
+        const bookedCount = Number(targetSchedule?.bookedPatientCount || 0);
 
-            <h2 className="text-center text-xl font-bold text-slate-900">
-              Cancel this schedule?
-            </h2>
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+            onClick={(e) => {
+              if (
+                e.target === e.currentTarget &&
+                !processingId
+              ) {
+                setCancelTargetId(null);
+                setCancelReason("");
+              }
+            }}
+          >
+            <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl sm:p-7 space-y-4">
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-xl font-bold text-rose-500 shrink-0">
+                  !
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">
+                    Cancel Shift Schedule?
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    {formatDate(targetSchedule?.date)} · {formatTime(targetSchedule?.startTime)} - {formatTime(targetSchedule?.endTime)}
+                  </p>
+                </div>
+              </div>
 
-            <p className="mx-auto mt-3 max-w-sm text-center text-sm leading-relaxed text-slate-500">
-              Are you sure you want to cancel this accepted hospital
-              shift? This action cannot be undone.
-            </p>
+              {bookedCount > 0 ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 space-y-2 text-xs">
+                  <div className="flex items-center gap-2 font-bold text-amber-800">
+                    <span>Active Bookings Alert: {bookedCount} Patient(s)</span>
+                  </div>
+                  <p className="text-amber-700 leading-relaxed">
+                    Cancelling this schedule will <strong>cascade-cancel all {bookedCount} active booking(s)</strong>.
+                    Every eligible paid appointment will be issued a <strong>100% full refund</strong>, and affected patients will be immediately notified via email.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Are you sure you want to cancel this scheduled shift? Once cancelled, this shift slot cannot be reopened.
+                </p>
+              )}
 
-            <div className="mt-7 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setCancelTargetId(null)}
-                disabled={!!processingId}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Keep Schedule
-              </button>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Reason for Cancellation:
+                </label>
+                <textarea
+                  rows={2}
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="e.g., Medical emergency, urgent hospital conference, personal leave..."
+                  className="w-full rounded-xl border border-slate-300 p-2.5 text-xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 resize-none"
+                />
+              </div>
 
-              <button
-                type="button"
-                onClick={confirmCancel}
-                disabled={!!processingId}
-                className="flex-1 rounded-xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {processingId ? "Cancelling..." : "Yes, Cancel"}
-              </button>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCancelTargetId(null);
+                    setCancelReason("");
+                  }}
+                  disabled={!!processingId}
+                  className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                >
+                  Keep Schedule
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmCancel}
+                  disabled={!!processingId}
+                  className="flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer shadow-sm shadow-rose-200"
+                >
+                  {processingId ? "Processing Cancellation..." : "Confirm Schedule Cancellation"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* TOAST */}
       {toast && (

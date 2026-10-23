@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../api/api";
 
 const AppointmentManagement = () => {
   const navigate = useNavigate();
@@ -20,8 +21,8 @@ const AppointmentManagement = () => {
     if (!user) return;
     const headers = { Authorization: `Bearer ${token}` };
     Promise.all([
-      fetch(`https://cdcm-backend.onrender.com/api/appointments/hospital/${user.id}`, { headers }),
-      fetch(`https://cdcm-backend.onrender.com/api/hospital/doctors/hospital/${user.id}`, { headers }),
+      fetch(`${API_BASE_URL}/api/appointments/hospital/${user.id}`, { headers }),
+      fetch(`${API_BASE_URL}/api/hospital/doctors/hospital/${user.id}`, { headers }),
     ])
       .then(([apptRes, docRes]) => Promise.all([apptRes.json(), docRes.json()]))
       .then(([apptData, docData]) => {
@@ -77,8 +78,8 @@ const AppointmentManagement = () => {
   // Stats
   const stats = [
     { label: "Today's Appointments",  value: appointments.filter((a) => isToday(a.date)).length },
-    { label: "Cancellation Requests", value: appointments.filter((a) => a.status === "CANCELLATION_REQUESTED").length },
-    { label: "Pending Refunds",        value: appointments.filter((a) => a.paymentStatus === "REFUND_PENDING").length },
+    { label: "Cancelled Appointments", value: appointments.filter((a) => a.status === "CANCELLED").length },
+    { label: "Pending Refunds",        value: appointments.filter((a) => a.refundStatus === "AWAITING_BANK_DETAILS" || a.refundStatus === "AWAITING_PROCESSING").length },
     { label: "Total Appointments",     value: appointments.length },
   ];
 
@@ -190,9 +191,9 @@ const AppointmentManagement = () => {
                 {/* Actions */}
                 <td style={S.td}>
                   <button onClick={() => navigate(`/hospital/appointments/${appt.id}`)} style={S.actionBtn("#22c55e")}>View</button>
-                  {appt.status === "CONFIRMED" && <button style={S.actionBtn("#3b82f6")}>Cancel</button>}
-                  {appt.status === "CANCELLED" && <button style={S.actionBtn("#3b82f6")}>Receipt</button>}
-                  {appt.status === "CANCELLATION_REQUESTED" && <button style={S.actionBtn("#f97316")}>Refund</button>}
+                  {appt.status === "CANCELLED" && (appt.refundStatus === "AWAITING_PROCESSING" || appt.refundStatus === "AWAITING_BANK_DETAILS") && (
+                    <button onClick={() => navigate("/hospital#refunds")} style={S.actionBtn("#f97316")}>Refund</button>
+                  )}
                   {!showDate && <button style={S.actionBtn("#6366f1")}>Remind</button>}
                 </td>
 
@@ -286,13 +287,13 @@ const AppointmentManagement = () => {
                 <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={S.input}>
                   <option value="ALL">All Status</option>
                   <option value="CONFIRMED">Confirmed</option>
+                  <option value="COMPLETED">Completed</option>
                   <option value="PENDING">Pending</option>
                   <option value="CANCELLED">Cancelled</option>
-                  <option value="CANCELLATION_REQUESTED">Cancellation Requested</option>
                 </select>
               </div>
               <div style={{ display: "flex", gap: 10, marginLeft: 12 }}>
-                <button style={{ background: "#22c55e", color: "white", border: "none", padding: "9px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Process Refund</button>
+                <button onClick={() => navigate("/hospital#refunds")} style={{ background: "#22c55e", color: "white", border: "none", padding: "9px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Manage Refunds</button>
               <button
                 onClick={handleAutoAssign}
                 style={{ background: "#1b3a6b", color: "white", border: "none", padding: "9px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}
@@ -317,7 +318,7 @@ const AppointmentManagement = () => {
                 <option value="CONFIRMED">Confirmed</option>
                 <option value="COMPLETED">Completed</option>
                 <option value="CANCELLED">Cancelled</option>
-                <option value="CANCELLATION_REQUESTED">Cancellation Requested</option>
+                <option value="PENDING">Pending</option>
               </select>
             </div>
             {renderTable(historyList, true)}
