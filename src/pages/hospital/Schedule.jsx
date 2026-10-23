@@ -7,8 +7,10 @@ import axios from "axios";
    API
 ========================= */
 
+import { API_BASE_URL } from "../../api/api";
+
 const API_URL =
-  "https://cdcm-backend.onrender.com/api/schedules";
+  `${API_BASE_URL}/api/schedules`;
 
 /* =========================
    STATUS CONFIG
@@ -282,7 +284,7 @@ function StatCard({
    SCHEDULE CARD
 ========================= */
 
-function ScheduleCard({ schedule }) {
+function ScheduleCard({ schedule, onCancelSchedule }) {
   const cfg =
     STATUS_CONFIG[schedule.status] || STATUS_CONFIG.PENDING;
 
@@ -455,6 +457,22 @@ function ScheduleCard({ schedule }) {
           </div>
         </div>
       )}
+
+      {/* ACTIONS */}
+      {schedule.status !== "CANCELLED" && (
+        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+          <span className="text-xs text-gray-500 font-medium">
+            {Number(schedule.bookedPatientCount || 0)} patient(s) booked
+          </span>
+          <button
+            type="button"
+            onClick={() => onCancelSchedule && onCancelSchedule(schedule)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 cursor-pointer"
+          >
+            Cancel Shift
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -476,6 +494,55 @@ export default function SchedulePage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [showFilter, setShowFilter] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [selectedScheduleForCancel, setSelectedScheduleForCancel] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancellingSchedule, setCancellingSchedule] = useState(false);
+  const [cancelError, setCancelError] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
+
+  const handleOpenCancelModal = (schedule) => {
+    setSelectedScheduleForCancel(schedule);
+    setCancelReason("");
+    setCancelError("");
+    setCancelModalOpen(true);
+  };
+
+  const handleConfirmHospitalCancel = async () => {
+    if (!selectedScheduleForCancel) return;
+    setCancellingSchedule(true);
+    setCancelError("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const schedId = selectedScheduleForCancel.id || selectedScheduleForCancel._id;
+
+      await axios.put(
+        `${API_URL}/hospital-cancel/${schedId}`,
+        { reason: cancelReason },
+        token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+      );
+
+      const bookedCount = Number(selectedScheduleForCancel.bookedPatientCount || 0);
+      setToastMessage(
+        bookedCount > 0
+          ? `Schedule cancelled successfully. ${bookedCount} booked patient(s) cascade-cancelled with 100% refund.`
+          : "Schedule cancelled successfully."
+      );
+      setTimeout(() => setToastMessage(""), 5000);
+      setCancelModalOpen(false);
+      setSelectedScheduleForCancel(null);
+      setCancelReason("");
+      loadSchedules(true);
+    } catch (err) {
+      console.error("Failed to cancel hospital schedule:", err);
+      const msg = err.response?.data?.message || (typeof err.response?.data === 'string' ? err.response?.data : null) || "Failed to cancel schedule.";
+      setCancelError(msg);
+    } finally {
+      setCancellingSchedule(false);
+    }
+  };
 
   /* =========================
      GET HOSPITAL
@@ -1141,6 +1208,7 @@ export default function SchedulePage() {
                     index
                   }
                   schedule={schedule}
+                  onCancelSchedule={handleOpenCancelModal}
                 />
 
               )
@@ -1208,6 +1276,99 @@ export default function SchedulePage() {
         </div>
 
       </div>
+
+      {/* HOSPITAL SCHEDULE CANCEL MODAL */}
+      {cancelModalOpen && selectedScheduleForCancel && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !cancellingSchedule) {
+              setCancelModalOpen(false);
+              setSelectedScheduleForCancel(null);
+            }
+          }}
+        >
+          <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-xl font-bold text-rose-500 shrink-0">
+                !
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">
+                  Cancel Entire Schedule Shift?
+                </h2>
+                <p className="text-xs text-gray-500">
+                  {selectedScheduleForCancel.doctorName} · {formatDate(selectedScheduleForCancel.date)} ({formatTime(selectedScheduleForCancel.startTime)} - {formatTime(selectedScheduleForCancel.endTime)})
+                </p>
+              </div>
+            </div>
+
+            {/* Refund & Cascade Notice */}
+            <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-2 text-xs">
+              <div className="flex items-center gap-2 font-bold text-amber-800">
+                <span>Cascade Cancellation & 100% Refund Policy</span>
+              </div>
+              <p className="text-amber-700 leading-relaxed">
+                Cancelling this schedule will immediately cancel all <strong>{Number(selectedScheduleForCancel.bookedPatientCount || 0)} booked patient appointment(s)</strong>.
+                All eligible paid bookings will be issued a <strong>100% full refund</strong>, and patients will receive an official cancellation notification email.
+              </p>
+            </div>
+
+            {cancelError && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+                {cancelError}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-gray-700">
+                Cancellation Reason: <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                rows={2}
+                required
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="e.g., Facility maintenance, emergency clinic closure, doctor duty conflict..."
+                className="w-full rounded-xl border border-gray-300 p-2.5 text-xs outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCancelModalOpen(false);
+                  setSelectedScheduleForCancel(null);
+                }}
+                disabled={cancellingSchedule}
+                className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+              >
+                Keep Shift
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmHospitalCancel}
+                disabled={cancellingSchedule || !cancelReason.trim()}
+                className="flex-1 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer shadow-sm shadow-rose-200"
+              >
+                {cancellingSchedule ? "Processing Cancellation..." : "Confirm Schedule Cancellation"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST ALERT */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-5 py-4 shadow-xl">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 font-bold">
+            ✓
+          </div>
+          <span className="text-xs font-semibold text-slate-800">{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }
