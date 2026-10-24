@@ -24,6 +24,12 @@ const AddHospital = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.password.length < 8) {
+      setStatus({ type: 'error', message: 'Password must be at least 8 characters.' });
+      return;
+    }
+
     setStatus({ type: 'loading', message: 'Registering hospital...' });
 
     try {
@@ -86,6 +92,7 @@ const AddHospital = () => {
   value={formData.password}
   onChange={handleChange}
   required
+  minLength={8}
   passwordToggle
   showPassword={showPassword}
   onTogglePassword={() =>
@@ -144,6 +151,7 @@ const InputField = ({
   onChange,
   icon,
   required,
+  minLength,
   passwordToggle = false,
   showPassword = false,
   onTogglePassword,
@@ -164,6 +172,7 @@ const InputField = ({
         value={value}
         onChange={onChange}
         required={required}
+        minLength={minLength}
         className={`block w-full pl-10 py-2.5 border border-gray-200 rounded-lg text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all ${
           passwordToggle
             ? "pr-11"
