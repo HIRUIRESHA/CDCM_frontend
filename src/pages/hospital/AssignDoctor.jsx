@@ -10,89 +10,130 @@ const AssignDoctor = () => {
   const [search, setSearch] = useState("");
   const [doctors, setDoctors] = useState([]);
 
-  useEffect(() => {
+  const hospitalId = user?.id;
 
-  const loadDoctors = async () => {
+  const filterAvailableDoctors = (doctorList, currentHospitalId) => {
+    if (!Array.isArray(doctorList) || !currentHospitalId) {
+      return [];
+    }
 
-    const res = await fetch(
-      `https://cdcm-backend.onrender.com/api/hospital/doctors/search?keyword=`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+    return doctorList.filter((doc) => {
+      // If doctor has no hospitals array or it is empty, doctor is available
+      if (!doc || !Array.isArray(doc.hospitals) || doc.hospitals.length === 0) {
+        return true;
       }
-    );
 
-    const data = await res.json();
-    setDoctors(data);
+      // Check if already assigned to the currently authenticated hospital
+      const isAssignedToCurrent = doc.hospitals.some(
+        (hId) => String(hId) === String(currentHospitalId)
+      );
 
+      return !isAssignedToCurrent;
+    });
   };
 
-  loadDoctors();
+  useEffect(() => {
+    if (!hospitalId) return;
 
-}, []);
+    const loadDoctors = async () => {
+      try {
+        const res = await fetch(
+          `https://cdcm-backend.onrender.com/api/hospital/doctors/search?keyword=`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error("Failed to load doctors");
+        }
+
+        const data = await res.json();
+        setDoctors(filterAvailableDoctors(data, hospitalId));
+      } catch (error) {
+        console.error("Error loading doctors:", error);
+      }
+    };
+
+    loadDoctors();
+  }, [hospitalId, token]);
 
   const handleSearch = async (value) => {
-
     setSearch(value);
 
-    const res = await fetch(
-      `https://cdcm-backend.onrender.com/api/hospital/doctors/search?keyword=${value}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
+    if (!hospitalId) return;
+
+    try {
+      const res = await fetch(
+        `https://cdcm-backend.onrender.com/api/hospital/doctors/search?keyword=${encodeURIComponent(value)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to search doctors");
       }
-    );
 
-    const data = await res.json();
-    setDoctors(data);
-
+      const data = await res.json();
+      setDoctors(filterAvailableDoctors(data, hospitalId));
+    } catch (error) {
+      console.error("Error searching doctors:", error);
+    }
   };
 
   const assignDoctor = async (doctorId) => {
-  const confirmed = await showConfirm(
-    "Do you want to assign this doctor to your hospital?",
-    "Assign Doctor?",
-    "Yes, Assign"
-  );
-
-  if (!confirmed) return;
-
-  try {
-    const res = await fetch(
-      `https://cdcm-backend.onrender.com/api/hospital/doctors/${doctorId}/assign/${user.id}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
-
-    if (!res.ok) {
-      await showError(
-        "Failed to assign doctor."
-      );
+    if (!hospitalId) {
+      await showError("Hospital information not found. Please log in again.");
       return;
     }
 
-    setDoctors((prev) =>
-      prev.filter((doc) => doc.id !== doctorId)
+    const confirmed = await showConfirm(
+      "Do you want to assign this doctor to your hospital?",
+      "Assign Doctor?",
+      "Yes, Assign"
     );
 
-    await showSuccess(
-      "Doctor assigned successfully!"
-    );
+    if (!confirmed) return;
 
-  } catch (error) {
-    console.error(error);
+    try {
+      const res = await fetch(
+        `https://cdcm-backend.onrender.com/api/hospital/doctors/${doctorId}/assign/${hospitalId}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
 
-    await showError(
-      "Failed to assign doctor. Please try again."
-    );
-  }
-};
+      if (!res.ok) {
+        await showError(
+          "Failed to assign doctor."
+        );
+        return;
+      }
+
+      setDoctors((prev) =>
+        prev.filter((doc) => doc.id !== doctorId)
+      );
+
+      await showSuccess(
+        "Doctor assigned successfully!"
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      await showError(
+        "Failed to assign doctor. Please try again."
+      );
+    }
+  };
 
   return (
 
