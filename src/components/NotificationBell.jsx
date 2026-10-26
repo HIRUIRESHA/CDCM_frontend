@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, Clock, Calendar, AlertCircle, ExternalLink, X } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
+import { formatNotificationRelativeTime, formatTimeRange } from '../utils/dateTime';
 
 export default function NotificationBell() {
   const { user } = useAuth();
@@ -36,26 +37,7 @@ export default function NotificationBell() {
     return true;
   }).slice(0, 8); // show up to 8 in quick dropdown
 
-  const formatTime = (isoString) => {
-    if (!isoString) return '';
-    try {
-      const date = new Date(isoString);
-      if (isNaN(date.getTime())) return isoString;
-      const now = new Date();
-      const diffMs = now - date;
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMins / 60);
-      const diffDays = Math.floor(diffHours / 24);
-
-      if (diffMins < 1) return 'Just now';
-      if (diffMins < 60) return `${diffMins}m ago`;
-      if (diffHours < 24) return `${diffHours}h ago`;
-      if (diffDays === 1) return 'Yesterday';
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } catch {
-      return '';
-    }
-  };
+  const formatTime = (isoString) => formatNotificationRelativeTime(isoString);
 
   return (
     <div className="relative inline-block" ref={dropdownRef}>
@@ -209,7 +191,7 @@ export default function NotificationBell() {
                       {(n.date || n.time) && (
                         <div className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-600 bg-slate-100/80 px-2 py-0.5 rounded-md w-fit">
                           <Calendar size={10} className="text-teal-600" />
-                          <span>{n.date} {n.time && `at ${n.time}`}</span>
+                          <span>{n.date} {n.time && `at ${formatTimeRange(n.time)}`}</span>
                         </div>
                       )}
                     </div>

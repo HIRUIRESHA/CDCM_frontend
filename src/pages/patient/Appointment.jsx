@@ -19,8 +19,10 @@ import {
   X,
   ShieldAlert,
   Percent,
-  RotateCcw
+  RotateCcw,
+  CreditCard
 } from 'lucide-react';
+import { getSriLankaTodayDate, formatTimeRange } from '../../utils/dateTime';
 
 function PatientAppointments() {
   const { user } = useAuth();
@@ -41,6 +43,100 @@ function PatientAppointments() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const [actionSuccessMessage, setActionSuccessMessage] = useState('');
+
+  // Bank Details Modal State
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [selectedApptForBank, setSelectedApptForBank] = useState(null);
+  const [bankForm, setBankForm] = useState({
+    accountHolderName: '',
+    bankName: '',
+    bankBranchName: '',
+    accountNumber: '',
+    confirmAccountNumber: ''
+  });
+  const [submittingBank, setSubmittingBank] = useState(false);
+  const [bankError, setBankError] = useState('');
+  const [bankSuccess, setBankSuccess] = useState('');
+
+  const handleOpenBankModal = (appt) => {
+    setSelectedApptForBank(appt);
+    setBankForm({
+      accountHolderName: appt.bankAccountHolderName || user?.name || '',
+      bankName: appt.bankName || '',
+      bankBranchName: appt.bankBranchName || '',
+      accountNumber: '',
+      confirmAccountNumber: ''
+    });
+    setBankError('');
+    setBankSuccess('');
+    setBankModalOpen(true);
+  };
+
+  const handleSubmitBankDetails = async (e) => {
+    e?.preventDefault();
+    if (!selectedApptForBank) return;
+
+    if (!bankForm.accountHolderName.trim() || !bankForm.bankName.trim() || !bankForm.bankBranchName.trim() || !bankForm.accountNumber.trim()) {
+      setBankError('Please complete all required bank fields including the branch name.');
+      return;
+    }
+
+    if (bankForm.accountNumber.trim() !== bankForm.confirmAccountNumber.trim()) {
+      setBankError('Account numbers do not match. Please verify.');
+      return;
+    }
+
+    setSubmittingBank(true);
+    setBankError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("Your login session has expired. Please log in again.");
+      }
+
+      const apptId = selectedApptForBank.id || selectedApptForBank._id;
+      const res = await fetch(`${API_BASE_URL}/api/appointments/${apptId}/bank-details`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          accountHolderName: bankForm.accountHolderName.trim(),
+          bankName: bankForm.bankName.trim(),
+          branchName: bankForm.bankBranchName.trim(),
+          bankBranchName: bankForm.bankBranchName.trim(),
+          accountNumber: bankForm.accountNumber.trim()
+        })
+      });
+
+      const rawText = await res.text();
+      let updated = null;
+      try {
+        updated = rawText ? JSON.parse(rawText) : null;
+      } catch {
+        updated = null;
+      }
+
+      if (!res.ok) {
+        throw new Error(updated?.message || updated?.error || 'Failed to submit bank details.');
+      }
+
+      setAppointments(prev => prev.map(a => (a.id === updated.id || a._id === updated.id) ? { ...a, ...updated } : a));
+      setBankSuccess('Bank details submitted successfully! Hospital administrators will process your refund transfer.');
+      setActionSuccessMessage(`Bank details recorded for #${updated.appointmentNumber || updated.id}. Refund is now awaiting hospital transfer.`);
+      setTimeout(() => {
+        setBankModalOpen(false);
+        setSelectedApptForBank(null);
+        setBankSuccess('');
+      }, 2500);
+    } catch (err) {
+      setBankError(err.message || 'Error submitting bank details.');
+    } finally {
+      setSubmittingBank(false);
+    }
+  };
 
   const handleOpenCancelModal = async (appt) => {
     setSelectedApptForCancel(appt);
@@ -140,11 +236,20 @@ function PatientAppointments() {
       setAppointments(prev => prev.map(a => (a.id === updated.id || a._id === updated.id) ? { ...a, ...updated } : a));
       setVideoAppointments(prev => prev.map(a => (a.id === updated.id || a._id === updated.id) ? { ...a, ...updated } : a));
 
-      setActionSuccessMessage(
-        updated.refundStatus === 'REFUNDED'
-          ? `Appointment #${updated.appointmentNumber || updated.id} cancelled. ${updated.refundPercentage}% refund (LKR ${Number(updated.refundAmount || 0).toFixed(2)}) recorded.`
-          : `Appointment #${updated.appointmentNumber || updated.id} cancelled successfully.`
-      );
+      if (updated.refundStatus === 'AWAITING_BANK_DETAILS') {
+        setActionSuccessMessage(
+          `Appointment #${updated.appointmentNumber || updated.id} cancelled. ${updated.refundPercentage}% refund (LKR ${Number(updated.refundAmount || 0).toFixed(2)}) is due. Please provide your bank details below.`
+        );
+        handleOpenBankModal(updated);
+      } else if (updated.refundStatus === 'REFUNDED') {
+        setActionSuccessMessage(
+          `Appointment #${updated.appointmentNumber || updated.id} cancelled. ${updated.refundPercentage}% refund (LKR ${Number(updated.refundAmount || 0).toFixed(2)}) recorded.`
+        );
+      } else {
+        setActionSuccessMessage(
+          `Appointment #${updated.appointmentNumber || updated.id} cancelled successfully.`
+        );
+      }
       setCancelModalOpen(false);
       setSelectedApptForCancel(null);
 
@@ -179,9 +284,15 @@ function PatientAppointments() {
           const apptData = await apptRes.json();
 
           // Keep VIDEO appointments out of the normal appointments section
+          // Only show confirmed and paid physical appointments
           const normalAppointments = Array.isArray(apptData)
             ? apptData.filter(
-              appt => appt.consultationType !== "VIDEO"
+              appt =>
+                appt.consultationType !== "VIDEO" &&
+                (appt.paid === true || (appt.paymentStatus && appt.paymentStatus.toUpperCase() === "PAID")) &&
+                appt.status !== "PENDING" &&
+                appt.paymentStatus !== "PENDING" &&
+                appt.paymentStatus !== "FAILED"
             )
             : [];
 
@@ -265,7 +376,7 @@ function PatientAppointments() {
   }, [user]);
 
   // --- LOGIC TO CATEGORIZE APPOINTMENTS ---
-  const today = new Date().toISOString().split('T')[0];
+  const today = getSriLankaTodayDate();
 
   const upcomingAppointments = appointments
     .filter(appt => appt.date >= today)
@@ -379,7 +490,7 @@ function PatientAppointments() {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-slate-400 uppercase">Time</p>
-                <p className="text-xs font-bold text-slate-700 truncate">{appt.time}</p>
+                <p className="text-xs font-bold text-slate-700 truncate">{formatTimeRange(appt.time)}</p>
               </div>
             </div>
           </div>
@@ -407,7 +518,7 @@ function PatientAppointments() {
 
       {/* Cancellation & Refund Audit Summary */}
       {appt.status === 'CANCELLED' && (
-        <div className="mx-5 mb-4 p-3.5 bg-rose-50/80 border border-rose-200/80 rounded-xl space-y-1.5 text-xs">
+        <div className="mx-5 mb-4 p-3.5 bg-rose-50/80 border border-rose-200/80 rounded-xl space-y-2 text-xs">
           <div className="flex items-center justify-between">
             <span className="font-semibold text-rose-800">
               Cancelled by: {appt.cancelledBy || 'Patient'}
@@ -416,20 +527,45 @@ function PatientAppointments() {
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                 {appt.refundPercentage}% Refunded
               </span>
+            ) : appt.refundStatus === 'AWAITING_PROCESSING' ? (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                Awaiting Hospital Transfer
+              </span>
+            ) : appt.refundStatus === 'AWAITING_BANK_DETAILS' ? (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+                Action Required: Bank Details
+              </span>
             ) : (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-700">
                 Non-Refundable
               </span>
             )}
           </div>
-          {appt.refundStatus === 'REFUNDED' && (
-            <p className="text-slate-700 font-medium">
-              Refund Amount: <strong className="text-emerald-700">LKR {Number(appt.refundAmount || 0).toFixed(2)}</strong>
-            </p>
+
+          {(Number(appt.refundAmount || 0) > 0 || Number(appt.refundPercentage || 0) > 0) && (
+            <div className="p-2.5 rounded-lg bg-white/90 border border-rose-100 text-slate-700 space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 text-[11px]">Eligible Refund ({appt.refundPercentage}%):</span>
+                <strong className="text-emerald-700 font-bold text-xs">LKR {Number(appt.refundAmount || 0).toFixed(2)}</strong>
+              </div>
+              {appt.maskedBankAccountNumber && (
+                <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                  <span>Transfer Account:</span>
+                  <span className="font-mono font-medium text-slate-800">{appt.bankName} ({appt.maskedBankAccountNumber})</span>
+                </div>
+              )}
+              {appt.refundTransactionRef && (
+                <div className="flex justify-between items-center text-[11px] text-emerald-700 pt-1 border-t border-slate-100">
+                  <span>Transfer Ref:</span>
+                  <span className="font-mono font-bold">{appt.refundTransactionRef}</span>
+                </div>
+              )}
+            </div>
           )}
-          {appt.refundReason && (
-            <p className="text-slate-500 italic text-[11px] truncate">
-              Reason: &ldquo;{appt.refundReason}&rdquo;
+
+          {(appt.cancellationReason || appt.refundReason) && (
+            <p className="text-slate-600 italic text-[11px]">
+              Reason: &ldquo;{appt.cancellationReason || appt.refundReason}&rdquo;
             </p>
           )}
         </div>
@@ -437,6 +573,17 @@ function PatientAppointments() {
 
       {/* Card Actions */}
       <div className="px-5 pb-5 pt-1 space-y-2">
+        {appt.status === 'CANCELLED' && appt.refundStatus === 'AWAITING_BANK_DETAILS' && (
+          <button
+            type="button"
+            onClick={() => handleOpenBankModal(appt)}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-amber-300 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs shadow-sm transition duration-150 cursor-pointer"
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>Submit Bank Details for Refund</span>
+          </button>
+        )}
+
         {appt.status !== 'CANCELLED' && (
           <Link
             to={`/patient/video-book/${appt.id}?doctorId=${appt.doctorId}`}
@@ -518,7 +665,7 @@ function PatientAppointments() {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold text-slate-400 uppercase">Time</p>
-                <p className="text-xs font-bold text-slate-700 truncate">{appt.time}</p>
+                <p className="text-xs font-bold text-slate-700 truncate">{formatTimeRange(appt.time)}</p>
               </div>
             </div>
           </div>
@@ -929,7 +1076,7 @@ function PatientAppointments() {
                     </div>
                     <div className="flex justify-between items-center text-slate-500">
                       <span>Schedule:</span>
-                      <span className="font-bold text-slate-800">{cancelPreviewData.date} at {cancelPreviewData.time}</span>
+                      <span className="font-bold text-slate-800">{cancelPreviewData.date} at {formatTimeRange(cancelPreviewData.time)}</span>
                     </div>
                     <div className="flex justify-between items-center text-slate-500">
                       <span>Notice Remaining:</span>
@@ -1022,6 +1169,183 @@ function PatientAppointments() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          PATIENT BANK DETAILS MODAL FOR REFUND
+      ====================================================== */}
+      {bankModalOpen && selectedApptForBank && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-amber-50 to-slate-50 border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Provide Bank Account Details</h3>
+                  <p className="text-xs text-slate-500">
+                    For Refund of {selectedApptForBank?.appointmentNumber || `Appt #${selectedApptForBank?.id}`}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setBankModalOpen(false);
+                  setSelectedApptForBank(null);
+                }}
+                disabled={submittingBank}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSubmitBankDetails} className="p-6 space-y-4">
+              {/* Refund Info Banner */}
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-emerald-800 font-semibold block">Eligible Refund Due</span>
+                  <span className="text-slate-500 text-[11px]">
+                    {selectedApptForBank.refundPercentage}% of original payment
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg font-extrabold text-emerald-700 block">
+                    LKR {Number(selectedApptForBank.refundAmount || 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {bankError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{bankError}</span>
+                </div>
+              )}
+
+              {bankSuccess && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                  <span>{bankSuccess}</span>
+                </div>
+              )}
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Account Holder Full Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={bankForm.accountHolderName}
+                    onChange={(e) => setBankForm({ ...bankForm, accountHolderName: e.target.value })}
+                    placeholder="e.g., John D. Silva"
+                    className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Bank Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={bankForm.bankName}
+                      onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
+                      placeholder="e.g., Commercial Bank"
+                      className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Branch Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={bankForm.bankBranchName}
+                      onChange={(e) => setBankForm({ ...bankForm, bankBranchName: e.target.value })}
+                      placeholder="e.g., Colombo Main"
+                      className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Bank Account Number <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={bankForm.accountNumber}
+                    onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
+                    placeholder="Enter full account number"
+                    className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Confirm Account Number <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={bankForm.confirmAccountNumber}
+                    onChange={(e) => setBankForm({ ...bankForm, confirmAccountNumber: e.target.value })}
+                    placeholder="Re-enter account number to confirm"
+                    className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 font-mono"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[11px]">
+                  <ShieldAlert className="w-4 h-4 shrink-0 text-slate-500" />
+                  <span>
+                    Your account details will be masked and accessed only by authorized hospital administrators to complete your manual refund transfer.
+                  </span>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBankModalOpen(false);
+                    setSelectedApptForBank(null);
+                  }}
+                  disabled={submittingBank}
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={submittingBank || !!bankSuccess}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold shadow-sm shadow-amber-200 disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  {submittingBank ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Submitting Details...</span>
+                    </>
+                  ) : (
+                    <span>Submit Bank Details</span>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

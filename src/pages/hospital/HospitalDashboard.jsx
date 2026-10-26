@@ -12,11 +12,15 @@ import {
   Building2,
   AlertCircle,
   TrendingUp,
-  FileText
+  FileText,
+  CreditCard,
+  Check,
+  X
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../api/api";
 import HospitalDash from "../../assets/HospitalDash.jpg";
+import { formatTimeRange } from "../../utils/dateTime";
 
 // ==========================================
 // HELPER FUNCTIONS (Date, Currency, Badges)
@@ -48,21 +52,7 @@ const formatLKR = (amount) => {
 };
 
 const formatTimeString = (timeStr) => {
-  if (!timeStr) return "—";
-  if (timeStr.toLowerCase().includes("am") || timeStr.toLowerCase().includes("pm")) {
-    return timeStr;
-  }
-  const parts = timeStr.split(":");
-  if (parts.length >= 2) {
-    const hours = parseInt(parts[0], 10);
-    const minutes = parts[1];
-    if (!isNaN(hours)) {
-      const ampm = hours >= 12 ? "PM" : "AM";
-      const h12 = hours % 12 || 12;
-      return `${h12}:${minutes} ${ampm}`;
-    }
-  }
-  return timeStr;
+  return formatTimeRange(timeStr);
 };
 
 const formatHeaderDate = (date = new Date()) => {
@@ -150,6 +140,14 @@ const HospitalDashboard = () => {
   const [appointments, setAppointments] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [pendingRefunds, setPendingRefunds] = useState([]);
+  const [refundFilter, setRefundFilter] = useState("ALL"); // "ALL" | "READY" | "AWAITING_DETAILS"
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [selectedRefundForConfirm, setSelectedRefundForConfirm] = useState(null);
+  const [transferForm, setTransferForm] = useState({ transactionRef: "", notes: "" });
+  const [confirmingTransfer, setConfirmingTransfer] = useState(false);
+  const [confirmError, setConfirmError] = useState("");
+  const [confirmSuccessToast, setConfirmSuccessToast] = useState("");
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -169,10 +167,14 @@ const HospitalDashboard = () => {
       const today = getTodayISO();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const [apptsRes, schedulesRes, doctorsRes] = await Promise.all([
+      const [apptsRes, schedulesRes, doctorsRes, refundsRes] = await Promise.all([
         api.get(`/api/appointments/hospital/${user.id}`, { headers }),
         api.get(`/api/schedules/hospital/${user.id}?date=${today}`, { headers }),
         api.get(`/api/hospital/doctors/hospital/${user.id}`, { headers }),
+        api.get(`/api/appointments/hospital/${user.id}/pending-refunds`, { headers }).catch((e) => {
+          console.warn("Pending refunds endpoint warning:", e?.message);
+          return { data: [] };
+        }),
         // Analytics endpoint is called to verify health & warm cache
         api.get(`/api/hospitals/${user.id}/analytics`, { headers }).catch((e) => {
           console.warn("Analytics endpoint warning:", e?.message);
@@ -183,6 +185,7 @@ const HospitalDashboard = () => {
       setAppointments(Array.isArray(apptsRes.data) ? apptsRes.data : []);
       setSchedules(Array.isArray(schedulesRes.data) ? schedulesRes.data : []);
       setDoctors(Array.isArray(doctorsRes.data) ? doctorsRes.data : []);
+      setPendingRefunds(Array.isArray(refundsRes.data) ? refundsRes.data : []);
       setLastRefreshedAt(new Date());
     } catch (err) {
       console.error("Hospital dashboard fetch error:", err);
@@ -192,6 +195,72 @@ const HospitalDashboard = () => {
       setIsRefreshing(false);
     }
   }, [user?.id, token]);
+
+  const handleOpenConfirmModal = async (refund) => {
+    const refundId = refund.id || refund._id;
+    setSelectedRefundForConfirm(refund);
+    setTransferForm({ transactionRef: "", notes: "" });
+    setConfirmError("");
+    setConfirmModalOpen(true);
+
+    try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await api.get(`/api/appointments/${refundId}/refund-details`, { headers });
+      if (res.data && (res.data.id || res.data._id)) {
+        setSelectedRefundForConfirm(res.data);
+        setPendingRefunds((prev) =>
+          prev.map((r) => ((r.id || r._id) === refundId ? { ...r, ...res.data } : r))
+        );
+      }
+    } catch (e) {
+      console.warn("Could not refresh refund details in dashboard:", e);
+    }
+  };
+
+  const handleExecuteConfirmTransfer = async (e) => {
+    e?.preventDefault();
+    if (!selectedRefundForConfirm) return;
+    const refundId = selectedRefundForConfirm.id || selectedRefundForConfirm._id;
+    setConfirmingTransfer(true);
+    setConfirmError("");
+
+    try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await api.put(
+        `/api/appointments/${refundId}/confirm-refund`,
+        {
+          transactionRef: transferForm.transactionRef.trim(),
+          notes: transferForm.notes.trim(),
+        },
+        { headers }
+      );
+
+      // Remove from pending refunds list immediately
+      setPendingRefunds((prev) =>
+        prev.filter((r) => (r.id || r._id) !== refundId)
+      );
+
+      setConfirmSuccessToast(
+        `Refund of LKR ${Number(selectedRefundForConfirm.refundAmount || 0).toFixed(2)} confirmed and recorded successfully.`
+      );
+      setTimeout(() => setConfirmSuccessToast(""), 6000);
+
+      setConfirmModalOpen(false);
+      setSelectedRefundForConfirm(null);
+
+      // Refresh appointments and dashboard counters
+      fetchDashboardData(true);
+    } catch (err) {
+      console.error("Confirm refund transfer error:", err);
+      const msg =
+        err.response?.data?.message ||
+        (typeof err.response?.data === "string" ? err.response?.data : null) ||
+        "Failed to confirm refund transfer.";
+      setConfirmError(msg);
+    } finally {
+      setConfirmingTransfer(false);
+    }
+  };
 
   useEffect(() => {
     fetchDashboardData(false);
@@ -306,6 +375,25 @@ const HospitalDashboard = () => {
     }
     return "Assigned Doctor";
   };
+
+  // 8. Pending Refunds Computed Values
+  const readyForTransferList = pendingRefunds.filter(
+    (r) => r.refundStatus === "AWAITING_PROCESSING"
+  );
+  const awaitingBankDetailsList = pendingRefunds.filter(
+    (r) => r.refundStatus === "AWAITING_BANK_DETAILS"
+  );
+
+  const filteredPendingRefunds = pendingRefunds.filter((r) => {
+    if (refundFilter === "READY") return r.refundStatus === "AWAITING_PROCESSING";
+    if (refundFilter === "AWAITING_DETAILS") return r.refundStatus === "AWAITING_BANK_DETAILS";
+    return true;
+  });
+
+  const totalPendingRefundAmount = pendingRefunds.reduce(
+    (sum, r) => sum + (Number(r.refundAmount) || 0),
+    0
+  );
 
   // ==========================================
   // RENDER: LOADING STATE
@@ -824,6 +912,329 @@ const HospitalDashboard = () => {
             </div>
           )}
         </div>
+
+        {/* 7. PENDING REFUNDS MANAGEMENT SECTION */}
+        <div id="refunds" className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-5 scroll-mt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <h3 className="text-base md:text-lg font-bold text-slate-900 flex items-center gap-2">
+                <CreditCard size={20} className="text-amber-600" />
+                Pending Patient Refunds
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Authorized hospital refund transfers for cancelled shifts and appointments
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full">
+                Total Pending: LKR {Number(totalPendingRefundAmount).toLocaleString("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              <span className="text-xs font-semibold px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full">
+                Ready to Transfer: {readyForTransferList.length}
+              </span>
+            </div>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-2 text-xs">
+            <button
+              type="button"
+              onClick={() => setRefundFilter("ALL")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
+                refundFilter === "ALL"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              All Pending ({pendingRefunds.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setRefundFilter("READY")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
+                refundFilter === "READY"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+              }`}
+            >
+              Ready for Transfer ({readyForTransferList.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setRefundFilter("AWAITING_DETAILS")}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer ${
+                refundFilter === "AWAITING_DETAILS"
+                  ? "bg-amber-600 text-white shadow-sm"
+                  : "bg-amber-50 text-amber-700 hover:bg-amber-100"
+              }`}
+            >
+              Awaiting Bank Details ({awaitingBankDetailsList.length})
+            </button>
+          </div>
+
+          {/* Table or Empty State */}
+          {filteredPendingRefunds.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 text-xs bg-slate-50/70 rounded-xl border border-dashed border-slate-200">
+              <CheckCircle2 size={36} className="mx-auto mb-2 text-emerald-500 opacity-60" />
+              <p className="font-semibold text-slate-700">No pending refunds in this category</p>
+              <p className="text-slate-400 mt-0.5">
+                All patient refunds for this filter are either up to date or completed.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/50">
+                    <th className="py-3 px-3">Appt / Patient</th>
+                    <th className="py-3 px-3">Doctor & Date</th>
+                    <th className="py-3 px-3">Cancellation</th>
+                    <th className="py-3 px-3">Amounts</th>
+                    <th className="py-3 px-3">Bank Details</th>
+                    <th className="py-3 px-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {filteredPendingRefunds.map((refItem) => {
+                    const isReady =
+                      refItem.refundStatus === "AWAITING_PROCESSING" ||
+                      Boolean(
+                        refItem.bankAccountNumber ||
+                          (refItem.bankName && refItem.bankAccountHolderName)
+                      );
+                    return (
+                      <tr key={refItem.id || refItem._id} className="hover:bg-slate-50/70 transition">
+                        {/* Appt / Patient */}
+                        <td className="py-3.5 px-3">
+                          <p className="font-bold text-slate-900">
+                            {refItem.patientName || `Patient #${refItem.patientId?.slice(-4)}`}
+                          </p>
+                          <span className="font-mono text-[11px] font-semibold text-indigo-600">
+                            {refItem.appointmentNumber || `#${refItem.id?.slice(-6).toUpperCase()}`}
+                          </span>
+                        </td>
+
+                        {/* Doctor & Date */}
+                        <td className="py-3.5 px-3">
+                          <p className="font-medium text-slate-800">{refItem.doctorName || "Assigned Doctor"}</p>
+                          <p className="text-[11px] text-slate-500">
+                            {refItem.date} {refItem.time ? `· ${formatTimeString(refItem.time)}` : ""}
+                          </p>
+                        </td>
+
+                        {/* Cancellation */}
+                        <td className="py-3.5 px-3">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                            refItem.cancelledBy === "HOSPITAL"
+                              ? "bg-purple-100 text-purple-800"
+                              : refItem.cancelledBy === "DOCTOR"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-rose-100 text-rose-800"
+                          }`}>
+                            By: {refItem.cancelledBy || "Patient"}
+                          </span>
+                          {refItem.cancellationReason && (
+                            <p className="text-[11px] text-slate-500 italic mt-0.5 max-w-[160px] truncate">
+                              &ldquo;{refItem.cancellationReason}&rdquo;
+                            </p>
+                          )}
+                        </td>
+
+                        {/* Amounts */}
+                        <td className="py-3.5 px-3">
+                          <p className="font-extrabold text-emerald-700 text-sm">
+                            LKR {Number(refItem.refundAmount || 0).toFixed(2)}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {refItem.refundPercentage}% of LKR {Number(refItem.amount || 0).toFixed(2)}
+                          </p>
+                        </td>
+
+                        {/* Bank Details */}
+                        <td className="py-3.5 px-3">
+                          {isReady ? (
+                            <div className="space-y-0.5">
+                              <p className="font-semibold text-slate-800 text-xs">
+                                {refItem.bankName} {refItem.bankBranchName ? `(${refItem.bankBranchName})` : ""}
+                              </p>
+                              <p className="text-[11px] text-slate-500">
+                                {refItem.bankAccountHolderName}
+                              </p>
+                              <span className="font-mono text-[11px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+                                {refItem.maskedBankAccountNumber || "****"}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 text-amber-700 text-[11px]">
+                              <AlertCircle size={13} className="shrink-0" />
+                              <span className="italic">Awaiting patient bank details</span>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Action */}
+                        <td className="py-3.5 px-3 text-right">
+                          {isReady ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenConfirmModal(refItem)}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm transition cursor-pointer"
+                            >
+                              <Check size={13} />
+                              <span>Confirm Transfer</span>
+                            </button>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                              Details Pending
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* CONFIRM TRANSFER MODAL */}
+        {confirmModalOpen && selectedRefundForConfirm && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              <div className="bg-gradient-to-r from-emerald-50 to-slate-50 border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base">Confirm Offline Bank Refund</h3>
+                    <p className="text-xs text-slate-500">
+                      Appt {selectedRefundForConfirm.appointmentNumber || `#${selectedRefundForConfirm.id}`} · {selectedRefundForConfirm.patientName}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmModalOpen(false);
+                    setSelectedRefundForConfirm(null);
+                  }}
+                  disabled={confirmingTransfer}
+                  className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleExecuteConfirmTransfer} className="p-6 space-y-4 text-xs">
+                {confirmError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700">
+                    {confirmError}
+                  </div>
+                )}
+
+                {/* Transfer Summary Box */}
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 space-y-2.5">
+                  <div className="flex justify-between items-center pb-2 border-b border-emerald-200">
+                    <span className="font-semibold text-emerald-900">Transfer Amount</span>
+                    <span className="text-lg font-extrabold text-emerald-800">
+                      LKR {Number(selectedRefundForConfirm.refundAmount || 0).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-slate-700">
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase">Account Holder</span>
+                      <strong className="text-slate-900">{selectedRefundForConfirm.bankAccountHolderName}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase">Bank & Branch</span>
+                      <strong className="text-slate-900">
+                        {selectedRefundForConfirm.bankName} {selectedRefundForConfirm.bankBranchName ? `· ${selectedRefundForConfirm.bankBranchName}` : ""}
+                      </strong>
+                    </div>
+                    <div className="col-span-2 pt-1 border-t border-emerald-100">
+                      <span className="text-slate-400 block text-[10px] uppercase">Patient Account Number (For Transfer)</span>
+                      <span className="font-mono text-sm font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-emerald-200 inline-block mt-0.5 select-all">
+                        {selectedRefundForConfirm.bankAccountNumber || selectedRefundForConfirm.maskedBankAccountNumber}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Bank Transaction / Transfer Reference <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={transferForm.transactionRef}
+                      onChange={(e) => setTransferForm({ ...transferForm, transactionRef: e.target.value })}
+                      placeholder="e.g., TXN-94830129 or Cheque #10293"
+                      className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Administrative Notes (optional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={transferForm.notes}
+                      onChange={(e) => setTransferForm({ ...transferForm, notes: e.target.value })}
+                      placeholder="e.g., Processed via corporate online banking portal."
+                      className="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-[11px]">
+                  <AlertCircle size={15} className="shrink-0 text-amber-600" />
+                  <span>
+                    Confirming will mark this refund as <strong>REFUNDED</strong>, record your hospital identity, and send an email confirmation to the patient.
+                  </span>
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmModalOpen(false);
+                      setSelectedRefundForConfirm(null);
+                    }}
+                    disabled={confirmingTransfer}
+                    className="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={confirmingTransfer || !transferForm.transactionRef.trim()}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm shadow-emerald-200 disabled:opacity-50 transition cursor-pointer"
+                  >
+                    {confirmingTransfer ? "Confirming Transfer..." : "Complete Refund Transfer"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* TOAST NOTIFICATION */}
+        {confirmSuccessToast && (
+          <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-5 py-4 shadow-xl">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 font-bold">
+              ✓
+            </div>
+            <span className="text-xs font-semibold text-slate-800">{confirmSuccessToast}</span>
+          </div>
+        )}
 
       </div>
     </div>

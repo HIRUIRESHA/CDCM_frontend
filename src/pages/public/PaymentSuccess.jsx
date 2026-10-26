@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { CheckCircle2, Calendar, Clock, CreditCard, ArrowRight, Home, Stethoscope } from "lucide-react";
 import axios from "axios";
 import { useNotifications } from "../../context/NotificationContext";
+import { formatTimeRange } from "../../utils/dateTime";
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
@@ -101,7 +102,7 @@ export default function PaymentSuccess() {
                 <Calendar className="w-3.5 h-3.5" /> Date & Time
               </span>
               <span className="font-bold text-slate-800">
-                {appointment.date} {appointment.time ? `• ${appointment.time}` : ""}
+                {appointment.date} {appointment.time ? `• ${formatTimeRange(appointment.time)}` : ""}
               </span>
             </div>
           )}

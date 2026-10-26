@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { showSuccess, showWarning } from "../../utils/alert";
 
 const VerifyEmail = () => {
   const location = useLocation();
@@ -18,24 +19,34 @@ const VerifyEmail = () => {
     setError("");
 
     if (!email || !role) {
-      setError("Session expired. Please register again.");
+      await showWarning(
+        "Your verification session has expired. Please register again.",
+        "Session Expired",
+      );
+
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch("https://cdcm-backend.onrender.com/api/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code, role })
-      });
+      const response = await fetch(
+        "https://cdcm-backend.onrender.com/api/auth/verify",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code, role }),
+        },
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data?.message || "Verification failed");
       } else {
-        alert("Email verified successfully!");
+        await showSuccess(
+          "Your email has been verified successfully. You can now sign in.",
+          "Email Verified!",
+        );
+
         navigate("/login");
       }
     } catch (err) {
@@ -50,14 +61,28 @@ const VerifyEmail = () => {
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 border-t-4 border-blue-600">
         <div className="text-center mb-8">
           <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <svg
+              className="w-8 h-8 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-800">Verify Your Email</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            Verify Your Email
+          </h2>
           <p className="text-gray-500 mt-2 text-sm">
-            We've sent a 6-digit verification code to <br/>
-            <span className="font-semibold text-blue-600">{email || "your email"}</span>
+            We've sent a 6-digit verification code to <br />
+            <span className="font-semibold text-blue-600">
+              {email || "your email"}
+            </span>
           </p>
         </div>
 
@@ -69,7 +94,9 @@ const VerifyEmail = () => {
 
         <form onSubmit={handleVerify} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Verification Code</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Verification Code
+            </label>
             <input
               type="text"
               maxLength="6"
@@ -85,7 +112,9 @@ const VerifyEmail = () => {
             type="submit"
             disabled={loading}
             className={`w-full py-3 px-4 rounded-lg text-white font-semibold transition-colors shadow-md ${
-              loading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
+              loading
+                ? "bg-blue-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
             }`}
           >
             {loading ? "Verifying..." : "Verify Account"}
@@ -93,7 +122,7 @@ const VerifyEmail = () => {
         </form>
 
         <div className="mt-6 text-center">
-          <button 
+          <button
             onClick={() => navigate("/register")}
             className="text-sm text-blue-600 hover:underline font-medium"
           >
