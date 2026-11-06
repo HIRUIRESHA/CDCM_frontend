@@ -24,9 +24,21 @@ export const getPatients = () =>
 export const addLabTest = (data) =>
   api.post("/api/lab/add", data);
 
-// Get all lab tests
-export const getAllLabTests = () =>
-  api.get("/api/lab/all");
+// Get all lab tests (optionally filtered by hospital)
+export const getAllLabTests = async (hospitalId) => {
+  if (hospitalId && hospitalId !== "null") {
+    try {
+      return await api.get(`/api/lab/hospital/${hospitalId}`);
+    } catch (err) {
+      return await api.get("/api/lab/all", { params: { hospitalId } });
+    }
+  }
+  return api.get("/api/lab/all");
+};
+
+// Get lab tests by hospital
+export const getHospitalLabTests = (hospitalId) =>
+  api.get(`/api/lab/hospital/${hospitalId}`);
 
 // Get single test
 export const getLabTestById = (id) =>

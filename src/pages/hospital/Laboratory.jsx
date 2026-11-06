@@ -15,7 +15,7 @@ import AddLabTest from "./AddLabTest";
 export default function Laboratory() {
   const hospitalObj = JSON.parse(localStorage.getItem("hospital") || "null");
   const userObj = JSON.parse(localStorage.getItem("user") || "null");
-  const hospitalId = hospitalObj?.id || userObj?.id || localStorage.getItem("hospitalId");
+  const hospitalId = hospitalObj?.id || hospitalObj?._id || userObj?.id || userObj?._id || localStorage.getItem("hospitalId");
 
   const [tests, setTests] = useState([]);
   const [testCounts, setTestCounts] = useState({ pending: 0, inProgress: 0, total: 0 });
@@ -35,13 +35,16 @@ export default function Laboratory() {
       const catRes = await getTestCategories(hospitalId);
       setTests(catRes.data || []);
 
-      const testsRes = await getAllLabTests();
-      const allTests = testsRes.data || [];
+      const testsRes = await getAllLabTests(hospitalId);
+      const allTests = Array.isArray(testsRes.data) ? testsRes.data : [];
+      const hospitalTests = hospitalId
+        ? allTests.filter(t => t.hospitalId === hospitalId)
+        : allTests;
       
       setTestCounts({
-        pending: allTests.filter(t => t.status === "Pending").length,
-        inProgress: allTests.filter(t => t.status === "In Progress").length,
-        total: allTests.length
+        pending: hospitalTests.filter(t => t.status === "Pending").length,
+        inProgress: hospitalTests.filter(t => t.status === "In Progress").length,
+        total: hospitalTests.length
       });
     } catch (error) {
       console.error("Error loading laboratory data:", error);

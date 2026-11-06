@@ -12,7 +12,7 @@ import { useNavigate } from "react-router-dom";
 export default function AddLabTest({ onBack }) {
   const hospitalObj = JSON.parse(localStorage.getItem("hospital") || "null");
   const userObj = JSON.parse(localStorage.getItem("user") || "null");
-  const hospitalId = hospitalObj?.id || userObj?.id || localStorage.getItem("hospitalId");
+  const hospitalId = hospitalObj?.id || hospitalObj?._id || userObj?.id || userObj?._id || localStorage.getItem("hospitalId");
   const navigate = useNavigate();
 
   const [patients, setPatients] = useState([]);
@@ -56,8 +56,16 @@ export default function AddLabTest({ onBack }) {
 
   
   const loadLabTests = async () => {
-    const res = await getAllLabTests(hospitalId);
-    setLabTests(res.data);
+    try {
+      const res = await getAllLabTests(hospitalId);
+      const data = Array.isArray(res.data) ? res.data : [];
+      const hospitalTests = hospitalId
+        ? data.filter(t => t.hospitalId === hospitalId)
+        : data;
+      setLabTests(hospitalTests);
+    } catch (error) {
+      console.error("Error loading lab tests:", error);
+    }
   };
 
   const selectPatient = (p) => {
