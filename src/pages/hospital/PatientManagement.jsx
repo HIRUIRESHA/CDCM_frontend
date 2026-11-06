@@ -26,8 +26,8 @@ const [labLoading, setLabLoading] = useState(false);
   const token = localStorage.getItem('token');
   const userRole = localStorage.getItem('userRole');
   const hospitalData = JSON.parse(localStorage.getItem('hospital'));
-const hospitalId = hospitalData?.id;
-const hospitalName = hospitalData?.name || 'Hospital';
+  const hospitalId = hospitalData?.id || hospitalData?._id || localStorage.getItem('hospitalId');
+  const hospitalName = hospitalData?.name || 'Hospital';
   // Fetch patients with appointments for this hospital
   const fetchPatients = async () => {
     try {
@@ -69,29 +69,37 @@ const hospitalName = hospitalData?.name || 'Hospital';
   };
 
   const fetchLabTests = async (patientId) => {
-  try {
-    setLabLoading(true);
+    try {
+      setLabLoading(true);
 
-    const res = await fetch(
-      `https://cdcm-backend.onrender.com/api/lab/patient/${patientId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
+      const url = hospitalId
+        ? `https://cdcm-backend.onrender.com/api/lab/patient/${patientId}?hospitalId=${hospitalId}`
+        : `https://cdcm-backend.onrender.com/api/lab/patient/${patientId}`;
+
+      const res = await fetch(
+        url,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
         }
-      }
-    );
+      );
 
-    const data = await res.json();
-    console.log("Lab tests:", data);
+      const data = await res.json();
+      console.log("Lab tests:", data);
 
-    setLabTests(data);
+      const hospitalTests = hospitalId && Array.isArray(data)
+        ? data.filter(t => t.hospitalId === hospitalId)
+        : (Array.isArray(data) ? data : []);
 
-  } catch (err) {
-    console.error("Lab fetch error:", err);
-  } finally {
-    setLabLoading(false);
-  }
-};
+      setLabTests(hospitalTests);
+
+    } catch (err) {
+      console.error("Lab fetch error:", err);
+    } finally {
+      setLabLoading(false);
+    }
+  };
 
   // Show laboratory history modal (to be implemented later)
   const handleViewLaboratory = (patient) => {

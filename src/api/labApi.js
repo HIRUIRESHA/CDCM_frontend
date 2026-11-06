@@ -74,9 +74,13 @@ export const uploadLabReportWithFile = (id, file, reportText) => {
 export const deleteLabTest = (id) =>
   api.delete(`/api/lab/delete/${id}`);
 
-// Get tests for logged patient
-export const getPatientTests = (patientId) =>
-  api.get(`/api/lab/patient/${patientId}`);
+// Get tests for logged patient (optionally filtered by hospital)
+export const getPatientTests = (patientId, hospitalId) => {
+  if (hospitalId) {
+    return api.get(`/api/lab/patient/${patientId}`, { params: { hospitalId } });
+  }
+  return api.get(`/api/lab/patient/${patientId}`);
+};
 
 // Pay for test
 export const payForTest = (id) =>
